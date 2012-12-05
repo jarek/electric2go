@@ -41,10 +41,10 @@ def format_car(car):
 		', exterior: ' + car['exterior'] + '<br/>'
 
 	coords = str(car['coordinates'][1]) + ',' + str(car['coordinates'][0])
-	mapurl = MAPS_URL.format(ll = coords, q = car['address'])
+	mapurl = MAPS_URL.replace('{ll}', coords).replace('{q}', car['address'])
 	info += 'Coords: <a href="' + mapurl + '">' + coords + '</a><br/>'
 
-	info += MAPS_IFRAME_CODE.format(ll = coords, q = car['address'])
+	info += MAPS_IFRAME_CODE.replace('{ll}', coords).replace('{q}', car['address'])
 
 	return info
 
