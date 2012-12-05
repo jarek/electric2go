@@ -2,7 +2,9 @@
 
 import pycurl, StringIO, simplejson as json, urllib
 
-APIurl = 'https://www.car2go.com/api/v2.1/vehicles?loc=vancouver&oauth_consumer_key=car2gowebsite&format=json'
+API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc=vancouver&oauth_consumer_key=car2gowebsite&format=json'
+MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'
+MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'
 
 def get_URL(url):
 	c = pycurl.Curl()
@@ -19,21 +21,35 @@ def get_URL(url):
 
 def format_car(car):
 	info = 'Location: ' + car['address'] + '<br/>'
-	info += 'Charge: ' + str(car['fuel']) + '%'
+
+	charge = car['fuel']
+	if charge < 20:
+		info += '<span color="red">Not driveable</span>, '
+	else:
+		range = 1.2 * charge # approx 135 km on full charge, round down
+		info += 'Approx range: ' + str(range) + ' km, '
+
+	info += 'charge: ' + str(charge) + '%'
+
 	if car['charging']:
 		info += ', charging<br/>'
 	else:
 		info += '<br/>'
+
 	info += 'Plate: ' + car['name'] + '<br/>'
 	info += 'Interior: ' + car['interior'] + \
 		', exterior: ' + car['exterior'] + '<br/>'
-	info += 'Coords: ' + str(car['coordinates'][0]) + ',' \
-		+ str(car['coordinates'][1]) + '<br/>'
+
+	coords = str(car['coordinates'][1]) + ',' + str(car['coordinates'][0])
+	mapurl = MAPS_URL.format(ll = coords, q = car['address'])
+	info += 'Coords: <a href="' + mapurl + '">' + coords + '</a><br/>'
+
+	info += MAPS_IFRAME_CODE.format(ll = coords, q = car['address'])
 
 	return info
 
 def get_electric_cars():
-	json_text = get_URL(APIurl)
+	json_text = get_URL(API_URL)
 	cars = json.loads(json_text).get('placemarks')
 
 	electric_cars = []
@@ -50,7 +66,7 @@ print 'Content-type: text/html\n'
 electric_cars = get_electric_cars()
 
 count = len(electric_cars)
-plural = 's' if count > 1 else ''
+plural = 's' if count != 1 else ''
 
 print '<p>' + str(count) + ' electric car' + plural + ' currently available in Vancouver'
 
