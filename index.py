@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 
-import pycurl, StringIO, simplejson as json, urllib
+import cgi
+import pycurl
+import StringIO
+import simplejson as json
 
-API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc=vancouver&oauth_consumer_key=car2gowebsite&format=json'
+API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'
 MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'
+
+CITIES = ['amsterdam', 'austin', 'berlin', 'calgary', 'duesseldorf', 'hamburg',
+	'koeln', 'london', 'miami', 'portland', 'sandiego', 'stuttgart', 
+	'toronto', 'ulm', 'vancouver', 'washingtondc', 'wien']
 
 def get_URL(url):
 	c = pycurl.Curl()
@@ -48,8 +55,8 @@ def format_car(car):
 
 	return info
 
-def get_electric_cars():
-	json_text = get_URL(API_URL)
+def get_electric_cars(city):
+	json_text = get_URL(API_URL.replace('{loc}', city))
 	cars = json.loads(json_text).get('placemarks')
 
 	electric_cars = []
@@ -60,15 +67,28 @@ def get_electric_cars():
 
 	return electric_cars
 
+def get_city():
+	arguments = cgi.FieldStorage()
+
+	if 'city' in arguments and arguments['city'].value in CITIES:
+		city = arguments['city'].value
+	else:
+		city = 'vancouver'
+
+	return city
+
 
 print 'Content-type: text/html\n'
 
-electric_cars = get_electric_cars()
+city = get_city()
+
+electric_cars = get_electric_cars(city)
 
 count = len(electric_cars)
 plural = 's' if count != 1 else ''
 
-print '<p>' + str(count) + ' electric car' + plural + ' currently available in Vancouver'
+print '<p>' + str(count) + ' electric car' + plural,
+print ' currently available in ' + city.title()
 
 for car in electric_cars:
 	print '<p>' + car
