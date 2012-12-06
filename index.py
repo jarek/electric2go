@@ -33,7 +33,9 @@ def format_car(car):
 	if charge < 20:
 		info += '<span color="red">Not driveable</span>, '
 	else:
-		range = 1.2 * charge # approx 135 km on full charge, round down
+		# full charge range is approx 135 km, round down a bit
+		# must end trip with more than 20% unless at charging station
+		range = 1.2 * (charge-20)
 		info += 'Approx range: ' + str(range) + ' km, '
 
 	info += 'charge: ' + str(charge) + '%'
