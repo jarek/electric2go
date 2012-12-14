@@ -8,6 +8,7 @@ import simplejson as json
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'
 MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'
+MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'
 
 CITIES = ['amsterdam', 'austin', 'berlin', 'calgary', 'duesseldorf', 'hamburg',
 	'koeln', 'london', 'miami', 'portland', 'sandiego', 'stuttgart', 
@@ -53,7 +54,7 @@ def format_car(car):
 	mapurl = MAPS_URL.replace('{ll}', coords).replace('{q}', car['address'])
 	info += 'Coords: <a href="' + mapurl + '">' + coords + '</a><br/>'
 
-	info += MAPS_IFRAME_CODE.replace('{ll}', coords).replace('{q}', car['address'])
+	info += MAPS_IMAGE_CODE.replace('{ll}', coords).replace('{q}', car['address'])
 
 	return info
 
