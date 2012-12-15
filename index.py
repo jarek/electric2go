@@ -71,12 +71,14 @@ def get_electric_cars(city):
 	return electric_cars
 
 def get_city():
+	city = 'vancouver' # default to Vancouver
+
 	arguments = cgi.FieldStorage()
 
-	if 'city' in arguments and arguments['city'].value in CITIES:
-		city = arguments['city'].value
-	else:
-		city = 'vancouver'
+	if 'city' in arguments:
+		param = str(arguments['city'].value).lower()
+		if param in CITIES:
+			city = param
 
 	return city
 
