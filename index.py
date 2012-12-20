@@ -4,6 +4,7 @@ import cgi
 import pycurl
 import StringIO
 import simplejson as json
+import time
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'
@@ -15,12 +16,17 @@ CITIES = ['amsterdam', 'austin', 'berlin', 'calgary', 'duesseldorf', 'hamburg',
 	'toronto', 'ulm', 'vancouver', 'washingtondc', 'wien']
 
 def get_URL(url):
+	htime1 = time.time()
+
 	c = pycurl.Curl()
 	c.setopt(pycurl.URL, url)
 
 	b = StringIO.StringIO()
 	c.setopt(pycurl.WRITEFUNCTION, b.write)
 	c.perform()
+
+	htime2 = time.time()
+	print '<!--http get: %0.3f ms' % ((htime2-htime1)*1000.0) + '-->'
 
 	html = b.getvalue()
 	b.close()
@@ -60,13 +66,25 @@ def format_car(car):
 
 def get_electric_cars(city):
 	json_text = get_URL(API_URL.replace('{loc}', city))
+
+	time1 = time.time()
+
 	cars = json.loads(json_text).get('placemarks')
 
+	time2 = time.time()
+	print '<!--json load: %0.3f ms' % ((time2-time1)*1000.0) + '-->'
+
 	electric_cars = []
+
+
+	time1 = time.time()
 
 	for car in cars:
 		if car['engineType'] == 'ED':
 			electric_cars.append(format_car(car))
+
+	time2 = time.time()
+	print '<!--list search: %0.3f ms' % ((time2-time1)*1000.0) + '-->'
 
 	return electric_cars
 
@@ -85,6 +103,8 @@ def get_city():
 
 print 'Content-type: text/html\n'
 
+ttime1 = time.time()
+
 city = get_city()
 
 electric_cars = get_electric_cars(city)
@@ -97,4 +117,7 @@ print ' currently available in ' + city.title()
 
 for car in electric_cars:
 	print '<p>' + car
+
+ttime2 = time.time()
+print '<!--total: %0.3f ms' % ((ttime2-ttime1)*1000.0) + '-->'
 
