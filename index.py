@@ -100,24 +100,39 @@ def get_city():
 
 	return city
 
+def get_formatted_all_cities(requested_city):
+	formatted_cities = []
 
-print 'Content-type: text/html\n'
+	for city in CITIES:
+		if city == requested_city:
+			formatted_cities.append('<strong>' + city.title() + '</strong>')
+		else:
+			formatted_cities.append('<a href="?city=' + city + '">' + city.title() + '</a>')
 
-ttime1 = time.time()
+	return '<p>car2go cities: ' + ', '.join(formatted_cities)
 
-city = get_city()
+def print_all_html():
+	print 'Content-type: text/html\n'
 
-electric_cars = get_electric_cars(city)
+	ttime1 = time.time()
 
-count = len(electric_cars)
-plural = 's' if count != 1 else ''
+	requested_city = get_city()
 
-print '<p>' + str(count) + ' electric car' + plural,
-print ' currently available in ' + city.title()
+	print get_formatted_all_cities(requested_city)
 
-for car in electric_cars:
-	print '<p>' + car
+	electric_cars = get_electric_cars(requested_city)
 
-ttime2 = time.time()
-print '<!--total: %0.3f ms' % ((ttime2-ttime1)*1000.0) + '-->'
+	count = len(electric_cars)
+	plural = 's' if count != 1 else ''
 
+	print '<p>' + str(count) + ' electric car' + plural,
+	print ' currently available in ' + requested_city.title()
+
+	for car in electric_cars:
+		print '<p>' + car
+
+	ttime2 = time.time()
+	print '<!--total: %0.3f ms' % ((ttime2-ttime1)*1000.0) + '-->'
+
+if __name__ == '__main__':
+	print_all_html()
