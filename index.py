@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 
 import cgi
 import pycurl
@@ -7,13 +8,16 @@ import simplejson as json
 import time
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
-MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'
-MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'
-MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'
+MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
+MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'.replace('&', '&amp;')
+MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'.replace('&', '&amp;')
 
-CITIES = ['amsterdam', 'austin', 'berlin', 'calgary', 'duesseldorf', 'hamburg',
-	'koeln', 'london', 'miami', 'portland', 'sandiego', 'stuttgart', 
-	'toronto', 'ulm', 'vancouver', 'washingtondc', 'wien']
+CITIES = { 'amsterdam': 'Amsterdam', 'austin': 'Austin', 'berlin': 'Berlin',
+	'calgary': 'Calgary', 'duesseldorf': 'Düsseldorf', 'hamburg': 'Hamburg',
+	'koeln': 'Köln', 'london': 'London', 'miami': 'Miami', 'portland': 'Portland',
+	'sandiego': 'San Diego', 'seattle': 'Seattle', 'stuttgart': 'Stuttgart', 
+	'toronto': 'Toronto', 'ulm': 'Ulm', 'vancouver': 'Vancouver',
+	'washingtondc': 'Washington, D.C.', 'wien': 'Wien'}
 
 def get_URL(url):
 	htime1 = time.time()
@@ -57,10 +61,11 @@ def format_car(car):
 		', exterior: ' + car['exterior'] + '<br/>'
 
 	coords = str(car['coordinates'][1]) + ',' + str(car['coordinates'][0])
-	mapurl = MAPS_URL.replace('{ll}', coords).replace('{q}', car['address'])
-	info += 'Coords: <a href="' + mapurl + '">' + coords + '</a><br/>'
+	mapurl = MAPS_URL.replace('{ll}', coords).replace('{q}', car['address'].replace(' ','%20'))
+	info += 'Coords: <a href="' + mapurl + '">' + coords + '<br/>'
 
 	info += MAPS_IMAGE_CODE.replace('{ll}', coords).replace('{q}', car['address'])
+	info += '</a>'
 
 	return info
 
@@ -103,11 +108,11 @@ def get_city():
 def get_formatted_all_cities(requested_city):
 	formatted_cities = []
 
-	for city in CITIES:
+	for city,formatted_name in sorted(CITIES.iteritems()):
 		if city == requested_city:
-			formatted_cities.append('<strong>' + city.title() + '</strong>')
+			formatted_cities.append('<strong>' + formatted_name + '</strong>')
 		else:
-			formatted_cities.append('<a href="?city=' + city + '">' + city.title() + '</a>')
+			formatted_cities.append('<a href="?city=' + city + '">' + formatted_name + '</a>')
 
 	return '<p>car2go cities: ' + ', '.join(formatted_cities)
 
@@ -118,6 +123,10 @@ def print_all_html():
 
 	requested_city = get_city()
 
+	print '<!doctype html>'
+	print '<meta charset="utf-8" />'
+	print '<title>electric car2go vehicles in ' + CITIES[requested_city] + '</title>'
+
 	print get_formatted_all_cities(requested_city)
 
 	electric_cars = get_electric_cars(requested_city)
@@ -126,7 +135,7 @@ def print_all_html():
 	plural = 's' if count != 1 else ''
 
 	print '<p>' + str(count) + ' electric car' + plural,
-	print ' currently available in ' + requested_city.title()
+	print ' currently available in ' + CITIES[requested_city]
 
 	for car in electric_cars:
 		print '<p>' + car
