@@ -80,8 +80,8 @@ def get_all_cars_text(city):
 	if os.path.exists(cached_data_filename):
 		cached_data_timestamp = os.path.getmtime(cached_data_filename)
 		cached_data_age = datetime.now() - datetime.fromtimestamp(cached_data_timestamp)
-		if cached_data_age.total_seconds() < 180:
-			timer.append(['using cached data, age in seconds', cached_data_age.total_seconds()])
+		if cached_data_age.days == 0 and cached_data_age.seconds < 180:
+			timer.append(['using cached data, age in seconds', cached_data_age.seconds])
 			f = open(cached_data_filename, 'r')
 			json_text = f.read()
 			f.close()
