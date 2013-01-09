@@ -6,6 +6,8 @@ import pycurl
 import StringIO
 import simplejson as json
 import time
+import os
+from datetime import datetime
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
@@ -71,8 +73,26 @@ def format_car(car):
 
 	return info
 
+def get_all_cars_text(city):
+	json_text = None
+
+	cached_data_filename = './data/current_%s' % city
+	if os.path.exists(cached_data_filename):
+		cached_data_timestamp = os.path.getmtime(cached_data_filename)
+		cached_data_age = datetime.now() - datetime.fromtimestamp(cached_data_timestamp)
+		if cached_data_age.total_seconds() < 180:
+			timer.append(['using cached data, age in seconds', cached_data_age.total_seconds()])
+			f = open(cached_data_filename, 'r')
+			json_text = f.read()
+			f.close()
+
+	if json_text == None:	
+		json_text = get_URL(API_URL.replace('{loc}', city))
+
+	return json_text
+
 def get_electric_cars(city):
-	json_text = get_URL(API_URL.replace('{loc}', city))
+	json_text = get_all_cars_text(city)
 
 	time1 = time.time()
 
@@ -88,12 +108,21 @@ def get_electric_cars(city):
 
 	for car in cars:
 		if car['engineType'] == 'ED':
-			electric_cars.append(format_car(car))
+			electric_cars.append(car)
 
 	time2 = time.time()
 	timer.append(['list search', (time2-time1)*1000.0])
 
 	return electric_cars
+
+def get_formatted_electric_cars(city):
+	electric_cars = get_electric_cars(city)
+	result = []
+
+	for car in electric_cars:
+		result.append(format_car(car))
+
+	return result
 
 def get_city():
 	city = 'vancouver' # default to Vancouver
@@ -118,6 +147,10 @@ def get_formatted_all_cities(requested_city):
 
 	return '<p>car2go cities: ' + ', '.join(formatted_cities)
 
+def print_timer_info():
+	for timepoint in timer:
+		print '<!--%s: %0.3f ms-->' % (timepoint[0], timepoint[1])
+
 def print_all_html():
 	print 'Content-type: text/html\n'
 
@@ -131,7 +164,7 @@ def print_all_html():
 
 	print get_formatted_all_cities(requested_city)
 
-	electric_cars = get_electric_cars(requested_city)
+	electric_cars = get_formatted_electric_cars(requested_city)
 
 	count = len(electric_cars)
 	plural = 's' if count != 1 else ''
@@ -145,8 +178,8 @@ def print_all_html():
 	ttime2 = time.time()
 	timer.append(['total', (ttime2-ttime1)*1000.0])
 
-	for timepoint in timer:
-		print '<!--%s: %0.3f ms-->' % (timepoint[0], timepoint[1])
+	print_timer_info()
+
 
 if __name__ == '__main__':
 	print_all_html()
