@@ -9,7 +9,7 @@ import time
 import datetime
 import index
 
-city = 'vancouver'
+city = index.get_city()
 
 cars_text = index.get_all_cars_text(city)
 

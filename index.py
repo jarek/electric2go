@@ -7,6 +7,7 @@ import StringIO
 import simplejson as json
 import time
 import os
+import sys
 from datetime import datetime
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
@@ -127,12 +128,19 @@ def get_formatted_electric_cars(city):
 def get_city():
 	city = 'vancouver' # default to Vancouver
 
+	# look for http param first
+	# if http param not present, look for command line param
+	
+	param = None
 	arguments = cgi.FieldStorage()
 
 	if 'city' in arguments:
 		param = str(arguments['city'].value).lower()
-		if param in CITIES:
-			city = param
+	elif len(sys.argv) > 1:
+		param = sys.argv[1].lower()
+
+	if param in CITIES:
+		city = param
 
 	return city
 
