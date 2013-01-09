@@ -19,6 +19,8 @@ CITIES = { 'amsterdam': 'Amsterdam', 'austin': 'Austin', 'berlin': 'Berlin',
 	'toronto': 'Toronto', 'ulm': 'Ulm', 'vancouver': 'Vancouver',
 	'washingtondc': 'Washington, D.C.', 'wien': 'Wien'}
 
+timer = list()
+
 def get_URL(url):
 	htime1 = time.time()
 
@@ -30,7 +32,7 @@ def get_URL(url):
 	c.perform()
 
 	htime2 = time.time()
-	print '<!--http get: %0.3f ms' % ((htime2-htime1)*1000.0) + '-->'
+	timer.append(['http get', (htime2-htime1)*1000.0])
 
 	html = b.getvalue()
 	b.close()
@@ -77,7 +79,7 @@ def get_electric_cars(city):
 	cars = json.loads(json_text).get('placemarks')
 
 	time2 = time.time()
-	print '<!--json load: %0.3f ms' % ((time2-time1)*1000.0) + '-->'
+	timer.append(['json load', (time2-time1)*1000.0])
 
 	electric_cars = []
 
@@ -89,7 +91,7 @@ def get_electric_cars(city):
 			electric_cars.append(format_car(car))
 
 	time2 = time.time()
-	print '<!--list search: %0.3f ms' % ((time2-time1)*1000.0) + '-->'
+	timer.append(['list search', (time2-time1)*1000.0])
 
 	return electric_cars
 
@@ -141,7 +143,10 @@ def print_all_html():
 		print '<p>' + car
 
 	ttime2 = time.time()
-	print '<!--total: %0.3f ms' % ((ttime2-ttime1)*1000.0) + '-->'
+	timer.append(['total', (ttime2-ttime1)*1000.0])
+
+	for timepoint in timer:
+		print '<!--%s: %0.3f ms-->' % (timepoint[0], timepoint[1])
 
 if __name__ == '__main__':
 	print_all_html()
