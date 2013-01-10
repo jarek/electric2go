@@ -1,17 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import cgi
-import pycurl
-import StringIO
-import simplejson as json
-import time
 import datetime
+import cars
 import index
 
-city = index.get_city()
+city = cars.get_city()
 
-cars_text = index.get_all_cars_text(city)
+cars_text = cars.get_all_cars_text(city, force_download = True)
 
 f = open('./data/current_%s' % city, 'w')
 print >> f, cars_text
@@ -23,4 +19,4 @@ if t.minute % 10 == 0:
 	print >> f, cars_text
 	f.close()
 
-index.print_timer_info()
+index.print_timer_info(cars.timer)
