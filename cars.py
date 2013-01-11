@@ -22,6 +22,8 @@ CITIES = { 'amsterdam': 'Amsterdam', 'austin': 'Austin', 'berlin': 'Berlin',
 	'toronto': 'Toronto', 'ulm': 'Ulm', 'vancouver': 'Vancouver',
 	'washingtondc': 'Washington, D.C.', 'wien': 'Wien'}
 
+data_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+
 timer = list()
 
 def get_URL(url):
@@ -45,7 +47,7 @@ def get_URL(url):
 def get_all_cars_text(city, force_download = False):
 	json_text = None
 
-	cached_data_filename = './data/current_%s' % city
+	cached_data_filename = data_dir + 'current_%s' % city
 	if os.path.exists(cached_data_filename) and not force_download:
 		cached_data_timestamp = os.path.getmtime(cached_data_filename)
 		cached_data_age = datetime.now() - datetime.fromtimestamp(cached_data_timestamp)
