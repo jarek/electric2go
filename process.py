@@ -10,6 +10,13 @@ import simplejson as json
 import cars
 
 
+LIMIT_NORTH = 49.295
+LIMIT_SOUTH = 49.224
+LIMIT_EAST  = -123.04
+LIMIT_WEST  = -123.252
+# there's also parkspots in Richmond and Langley.
+# I think I will ignore them to make map more compact.
+
 def process_data(json_data, data_time = None, previous_data = {}):
 	data = previous_data
 	moved_cars = []
@@ -37,6 +44,17 @@ def process_data(json_data, data_time = None, previous_data = {}):
 			data[vin] = {'coords': [lat, lng], 'seen': data_time}
 
 	return data,moved_cars
+
+def make_csv(data, filename):
+	text = []
+	for car in data:
+		[lat,lng] = data[car]['coords']
+		if lat <= LIMIT_NORTH and lat >= LIMIT_SOUTH and lng >= LIMIT_WEST and lng <= LIMIT_EAST:
+			text.append(car + ',' + str(lat) + ',' + str(lng))
+
+	f = open(filename + '.csv', 'w')
+	print >> f, '\n'.join(text)
+	f.close()
 
 def get_stats(car_data):
 	lat_max = 40
@@ -89,6 +107,8 @@ for i in range(38):
 	stats = get_stats(json_data)
 	print 'lat range: ' + str(stats[0]) + ' - ' + str(stats[1]),
 	print 'lng range: ' + str(stats[2]) + ' - ' + str(stats[3])
+
+	make_csv(saved_data, filename)
 
 # show info for cars that had just stopped moving in the last dataset
 print '\njust stopped on ' + str(t) + ':'
