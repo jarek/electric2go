@@ -23,6 +23,7 @@ CITIES = { 'amsterdam': 'Amsterdam', 'austin': 'Austin', 'berlin': 'Berlin',
 	'washingtondc': 'Washington, D.C.', 'wien': 'Wien'}
 
 data_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
 timer = list()
 

@@ -16,7 +16,7 @@ f.close()
 
 t = datetime.datetime.now()
 if t.minute % 5 == 0:
-	f = open(cars.data_dir + '%s_%04d-%02d-%02d--%02d-%02d' % (city, t.year, t.month, t.day, t.hour, t.minute), 'w')
+	f = open(cars.data_dir + cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute), 'w')
 	print >> f, cars_text
 	f.close()
 
