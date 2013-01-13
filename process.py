@@ -8,6 +8,7 @@ import sys
 import math
 import simplejson as json
 import matplotlib.pyplot as plt
+import numpy as np
 import cars
 
 
@@ -22,8 +23,12 @@ LIMIT_WEST  = -123.252
 LENGTH_OF_LATITUDE = 111209.70
 LENGTH_OF_LONGITUDE = 73171.77
 
+# these ratios are connected
+# 991/508 : (49.295-49.224)/(123.252-123.04) :: 111209.70 : 73171.77
+MAP_X = 991
+MAP_Y = 508
+
 def process_data(json_data, data_time = None, previous_data = {}):
-	#	data = previous_data
 	data = previous_data
 	moved_cars = []
 
@@ -80,26 +85,79 @@ def make_csv(data, filename, turn):
 	print >> f, '\n'.join(text)
 	f.close()
 
+def map_latitude(latitudes):
+	return ((latitudes - LIMIT_SOUTH)/(LIMIT_NORTH - LIMIT_SOUTH)) * MAP_Y
+
+def map_longitude(longitudes):
+	return ((longitudes - LIMIT_WEST)/(LIMIT_EAST - LIMIT_WEST)) * MAP_X
+
 def make_graph(data, filename, turn):
-	latitudes = []
-	longitudes = []
-	lines = []
+	# my lists of latitudes, longitudes, will be at most
+	# as lost as data (when all cars are currently being seen)
+	# and usually around 1/2 - 2/3rd the size. pre-allocating 
+	# zeros and keeping track of the actual size is the most 
+	# memory-efficient thing to do, i think.
+	# (I have to use numpy arrays to transform coordinates. 
+	# and numpy array appends are not in place.)
+	max_length = len(data)
+
+	latitudes = np.empty(max_length)
+	longitudes = np.empty(max_length)
+	
+	# lists for the lines will be usually 5-30 long or so. 
+	# i'll keep them as standard python for the appends 
+	# and convert later
+	lines_start_lat = []
+	lines_start_lng = []
+	lines_end_lat = []
+	lines_end_lng = []
+
+	car_count = 0
 
 	for car in data:
 		if data[car]['seen'] == turn:
 			if is_latlng_in_bounds(data[car]['coords']):
-				latitudes.append(data[car]['coords'][0])
-				longitudes.append(data[car]['coords'][1])
+				latitudes[car_count] = data[car]['coords'][0]
+				longitudes[car_count] = data[car]['coords'][1]
 
-			#if car has just moved, add a line from previous point to current point
+			car_count = car_count + 1
+
+			# if car has just moved, add a line from previous point to current point
 			if data[car]['just_moved'] == True:
-				lines.append([data[car]['coords'], data[car]['prev_coords']])
+				lines_start_lat.append(data[car]['prev_coords'][0])
+				lines_start_lng.append(data[car]['prev_coords'][1])
+				lines_end_lat.append(data[car]['coords'][0])
+				lines_end_lng.append(data[car]['coords'][1])
+
+	# translate into map coordinates
+	latitudes = map_latitude(latitudes)
+	longitudes = map_longitude(longitudes)
+
+	lines_start_lat = map_latitude(np.array(lines_start_lat))
+	lines_start_lng = map_longitude(np.array(lines_start_lng))
+	lines_end_lat = map_latitude(np.array(lines_end_lat))
+	lines_end_lng = map_longitude(np.array(lines_end_lng))
 	
-	plt.clf() # clear figure
+	# set up figure area
+	dpi = 80
+ 	# i actually have no idea why this is necessary, but the 
+	# figure sizes are wrong otherwise. ???
+	dpi_adj_x = 0.775
+	dpi_adj_y = 0.8
+
+	f = plt.figure(dpi=dpi)
+	f.set_size_inches(MAP_X/dpi_adj_x/dpi, MAP_Y/dpi_adj_y/dpi)
+
+	# uncomment the second line below to include map directly in plot
+	# processing makes it look a bit worse than the original map - 
+	# so keeping the generated graph transparent and overlaying it 
+	# on source map is a good option too
+	im = plt.imread(cars.data_dir + 'map.jpg')
+	#implot = plt.imshow(im, origin='lower',aspect='auto')
+
+	plt.axis([0, MAP_X, 0, MAP_Y])
 
 	plt.plot(longitudes, latitudes, 'b.') 
-
-	plt.axis([LIMIT_WEST-0.003, LIMIT_EAST+0.003, LIMIT_SOUTH-0.003, LIMIT_NORTH+0.003])
 	
 	# remove visible axes and figure frame
 	ax = plt.gca()
@@ -108,20 +166,17 @@ def make_graph(data, filename, turn):
 	ax.set_frame_on(False)
 
 	# add in lines for moving vehicles
-	for line in lines:
-		l = plt.Line2D([line[0][1], line[1][1]], [line[0][0], line[1][0]], color='grey')
+	for i in range(len(lines_start_lat)):
+		l = plt.Line2D([lines_start_lng[i], lines_end_lng[i]], \
+			[lines_start_lat[i], lines_end_lat[i]], color='grey')
 		ax.add_line(l)
 
-	# TODO: figure out how to add this image as a background without wrecking everything else
-	#im = plt.imread(cars.data_dir + 'map_squished.jpg')
-	#implot = plt.imshow(im, origin='lower',aspect='auto')
-
 	# add labels
-	ax.text(LIMIT_WEST, LIMIT_NORTH-0.005, 'car2go ' + city + ' ' + turn.strftime('%Y-%m-%d %H:%M'), fontsize=10)
-	ax.text(LIMIT_WEST, LIMIT_NORTH-0.009, 'total cars: %d' % len(latitudes), fontsize=10)
-	ax.text(LIMIT_WEST, LIMIT_NORTH-0.013, 'moved this round: %d' % len(lines), fontsize=10)
+	ax.text(10, MAP_Y - 20, city + ' ' + turn.strftime('%Y-%m-%d %H:%M'), fontsize=10)
+	ax.text(10, MAP_Y - 40, 'total cars: %d' % car_count, fontsize=10)
+	ax.text(10, MAP_Y - 60, 'moved this round: %d' % len(lines_start_lat), fontsize=10)
 
-	plt.savefig(filename + '.png', bbox_inches='tight')
+	plt.savefig(filename + '.png', bbox_inches='tight', pad_inches=0, dpi=dpi, transparent=True)
 
 def get_stats(car_data):
 	lat_max = 40
