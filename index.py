@@ -50,13 +50,14 @@ def get_formatted_electric_cars(city):
 def get_formatted_all_cities(requested_city):
 	formatted_cities = []
 
-	for city,formatted_name in sorted(cars.CITIES.iteritems()):
-		if city == requested_city:
-			formatted_cities.append('<strong>' + formatted_name + '</strong>')
-		else:
-			formatted_cities.append('<a href="?city=' + city + '">' + formatted_name + '</a>')
+	for city,data in sorted(cars.CITIES.iteritems()):
+		if data['has_electric'] == True:
+			if city == requested_city:
+				formatted_cities.append('<strong>' + data['display'] + '</strong>')
+			else:
+				formatted_cities.append('<a href="?city=' + city + '">' + data['display'] + '</a>')
 
-	return '<p>car2go cities: ' + ', '.join(formatted_cities)
+	return '<p>car2go cities with electric vehicles: ' + ', '.join(formatted_cities)
 
 def print_timer_info(t = timer):
 	for timepoint in t:
@@ -71,7 +72,7 @@ def print_all_html():
 
 	print '<!doctype html>'
 	print '<meta charset="utf-8" />'
-	print '<title>electric car2go vehicles in ' + cars.CITIES[requested_city] + '</title>'
+	print '<title>electric car2go vehicles in ' + cars.CITIES[requested_city]['display'] + '</title>'
 
 	print get_formatted_all_cities(requested_city)
 
@@ -81,7 +82,7 @@ def print_all_html():
 	plural = 's' if count != 1 else ''
 
 	print '<p>' + str(count) + ' electric car' + plural,
-	print ' currently available in ' + cars.CITIES[requested_city]
+	print 'currently available in ' + cars.CITIES[requested_city]['display']
 
 	for car in electric_cars:
 		print '<p>' + car
