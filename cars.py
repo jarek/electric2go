@@ -48,7 +48,7 @@ for city in CITIES:
 data_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
-timer = list()
+timer = []
 
 def get_URL(url):
 	htime1 = time.time()
@@ -61,7 +61,7 @@ def get_URL(url):
 	c.perform()
 
 	htime2 = time.time()
-	timer.append(['http get', (htime2-htime1)*1000.0])
+	timer.append(['http get, ms', (htime2-htime1)*1000.0])
 
 	html = b.getvalue()
 	b.close()
@@ -94,7 +94,8 @@ def get_electric_cars(city):
 	cars = json.loads(json_text).get('placemarks')
 
 	time2 = time.time()
-	timer.append(['json load', (time2-time1)*1000.0])
+	timer.append(['json size, kB', len(json_text)/1000.0])
+	timer.append(['json load, ms', (time2-time1)*1000.0])
 
 	electric_cars = []
 
@@ -106,7 +107,7 @@ def get_electric_cars(city):
 			electric_cars.append(car)
 
 	time2 = time.time()
-	timer.append(['list search', (time2-time1)*1000.0])
+	timer.append(['list search, ms', (time2-time1)*1000.0])
 
 	return electric_cars
 

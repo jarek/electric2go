@@ -4,7 +4,7 @@
 import time
 import cars
 
-timer = list()
+timer = []
 
 def format_car(car):
 	info = 'Location: ' + car['address'] + '<br/>'
@@ -61,7 +61,7 @@ def get_formatted_all_cities(requested_city):
 
 def print_timer_info(t = timer):
 	for timepoint in t:
-		print '<!--%s: %0.3f ms-->' % (timepoint[0], timepoint[1])
+		print '<!--%s: %f-->' % (timepoint[0], timepoint[1])
 
 def print_all_html():
 	print 'Content-type: text/html\n'
@@ -88,7 +88,7 @@ def print_all_html():
 		print '<p>' + car
 
 	ttime2 = time.time()
-	timer.append(['total', (ttime2-ttime1)*1000.0])
+	timer.append(['total, ms', (ttime2-ttime1)*1000.0])
 
 	print_timer_info(cars.timer)
 	print_timer_info()
