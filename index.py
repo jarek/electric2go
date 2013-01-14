@@ -51,13 +51,17 @@ def get_formatted_all_cities(requested_city):
 	formatted_cities = []
 
 	for city,data in sorted(cars.CITIES.iteritems()):
-		if data['has_electric'] == True:
+		# show only cities that have some electric cars,
+		# but not a full fleet of electric.
+		# there's nothing to show for cities that don't have any,
+		# and there's no benefit over official apps for all-fleet.
+		if data['electric'] == 'some':
 			if city == requested_city:
 				formatted_cities.append('<strong>' + data['display'] + '</strong>')
 			else:
 				formatted_cities.append('<a href="?city=' + city + '">' + data['display'] + '</a>')
 
-	return '<p>car2go cities with electric vehicles: ' + ', '.join(formatted_cities)
+	return '<p>car2go cities with a few electric vehicles: ' + ', '.join(formatted_cities)
 
 def print_timer_info(t = timer):
 	for timepoint in t:

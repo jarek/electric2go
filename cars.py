@@ -16,22 +16,22 @@ MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="
 MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'.replace('&', '&amp;')
 
 CITIES = {
-	'amsterdam': {'has_electric': True},
-	'austin': {'has_electric': True},
-	'berlin': {'has_electric': True},
+	'amsterdam': {'electric': 'all'},
+	'austin': {'electric': 'some'},
+	'berlin': {'electric': 'some'},
 	'calgary': {},
 	'duesseldorf': {'display': 'Düsseldorf'},
 	'hamburg': {},
 	'koeln': {'display': 'Köln'},
 	'london': {},
 	'miami': {},
-	'portland': {'has_electric': True},
-	'sandiego': {'display': 'San Diego', 'has_electric': True},
+	'portland': {'electric': 'some'},
+	'sandiego': {'display': 'San Diego', 'electric': 'all'},
 	'seattle': {},
-	'stuttgart': {'has_electric': True}, 
+	'stuttgart': {'electric': 'some'}, 
 	'toronto': {'of_interest': True},
-	'ulm': {'has_electric': True},
-	'vancouver': {'has_electric': True, 'of_interest': True},
+	'ulm': {'electric': 'some'}, #TODO: confirm whether this is some or actually all
+	'vancouver': {'of_interest': True, 'electric': 'some'},
 	'washingtondc': {'display': 'Washington, D.C.'},
 	'wien': {}
 	}
@@ -40,8 +40,8 @@ CITIES = {
 for city in CITIES:
 	if not 'display' in CITIES[city]:
 		CITIES[city]['display'] = city.title()
-	if not 'has_electric' in CITIES[city]:
-		CITIES[city]['has_electric'] = False
+	if not 'electric' in CITIES[city]:
+		CITIES[city]['electric'] = False
 	if not 'of_interest' in CITIES[city]:
 		CITIES[city]['of_interest'] = False
 
