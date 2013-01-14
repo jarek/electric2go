@@ -7,6 +7,10 @@ import cars
 timer = []
 
 def format_car(car):
+	for key in car:
+		if isinstance(car[key], basestring):
+			car[key] = car[key].encode('ascii','xmlcharrefreplace')
+
 	info = 'Location: ' + car['address'] + '<br/>'
 
 	charge = car['fuel']
