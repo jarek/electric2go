@@ -10,7 +10,7 @@ import simplejson as json
 import time
 from datetime import datetime
 
-API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=car2gowebsite&format=json'
+API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key={key}&format=json'
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
 MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'.replace('&', '&amp;')
 MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'.replace('&', '&amp;')
@@ -50,6 +50,13 @@ filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
 timer = []
 
+OAUTH_KEY = 'car2gowebsite' # default key used by car2go.com
+if os.path.exists('oauth_key'):
+	f = open('oauth_key', 'r')
+	OAUTH_KEY = f.read().strip()
+	f.close()
+
+
 def get_URL(url):
 	htime1 = time.time()
 
@@ -82,7 +89,7 @@ def get_all_cars_text(city, force_download = False):
 			f.close()
 
 	if json_text == None:	
-		json_text = get_URL(API_URL.replace('{loc}', city))
+		json_text = get_URL(API_URL.replace('{loc}', city).replace('{key}', OAUTH_KEY))
 
 	return json_text
 

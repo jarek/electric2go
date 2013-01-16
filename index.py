@@ -98,6 +98,8 @@ def print_all_html():
 	ttime2 = time.time()
 	timer.append(['total, ms', (ttime2-ttime1)*1000.0])
 
+	print '<p><small>This product uses the car2go API but is not endorsed or certified by car2go.</small></p>'
+
 	print_timer_info(cars.timer)
 	print_timer_info()
 

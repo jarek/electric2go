@@ -1,3 +1,6 @@
+# semi-private key file
+oauth_key
+
 *.py[cod]
 
 # C extensions

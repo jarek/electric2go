@@ -23,7 +23,8 @@ for city in cities:
 	f.close()
 
 	if cars.CITIES[city]['of_interest'] == True and t.minute % 5 == 0:
-		filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
+		filename = cars.filename_format % (city, \
+			t.year, t.month, t.day, t.hour, t.minute)
 		f = open(cars.data_dir + filename, 'w')
 		print >> f, cars_text
 		f.close()
