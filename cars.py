@@ -30,7 +30,7 @@ CITIES = {
 	'seattle': {},
 	'stuttgart': {'electric': 'some'}, 
 	'toronto': {'of_interest': True},
-	'ulm': {'electric': 'some'}, #TODO: confirm whether this is some or actually all
+	'ulm': {'electric': 'some'},
 	'vancouver': {'of_interest': True, 'electric': 'some'},
 	'washingtondc': {'display': 'Washington, D.C.'},
 	'wien': {}
@@ -75,7 +75,7 @@ def get_all_cars_text(city, force_download = False):
 	if os.path.exists(cached_data_filename) and not force_download:
 		cached_data_timestamp = os.path.getmtime(cached_data_filename)
 		cached_data_age = datetime.now() - datetime.fromtimestamp(cached_data_timestamp)
-		if cached_data_age.days == 0 and cached_data_age.seconds < 180:
+		if cached_data_age.days == 0 and cached_data_age.seconds < 120:
 			timer.append(['using cached data, age in seconds', cached_data_age.seconds])
 			f = open(cached_data_filename, 'r')
 			json_text = f.read()
