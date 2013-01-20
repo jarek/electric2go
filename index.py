@@ -43,13 +43,13 @@ def format_car(car):
 	return info
 
 def get_formatted_electric_cars(city):
-	electric_cars = cars.get_electric_cars(city)
+	electric_cars,cache = cars.get_electric_cars(city)
 	result = []
 
 	for car in electric_cars:
 		result.append(format_car(car))
 
-	return result
+	return result,cache
 
 def get_formatted_all_cities(requested_city):
 	formatted_cities = []
@@ -84,7 +84,7 @@ def print_all_html():
 
 	print get_formatted_all_cities(requested_city)
 
-	electric_cars = get_formatted_electric_cars(requested_city)
+	electric_cars,cache = get_formatted_electric_cars(requested_city)
 
 	count = len(electric_cars)
 	plural = 's' if count != 1 else ''
@@ -98,7 +98,10 @@ def print_all_html():
 	ttime2 = time.time()
 	timer.append(['total, ms', (ttime2-ttime1)*1000.0])
 
-	print '<p><small>This product uses the car2go API but is not endorsed or certified by car2go.</small></p>'
+	print '<p><small>',
+	if cache:
+		print 'Using cached data. Data age: %i seconds, next refresh in %i seconds.' % (cache, cars.CACHE_PERIOD - cache)
+	print 'This product uses the car2go API but is not endorsed or certified by car2go.</small></p>'
 
 	print_timer_info(cars.timer)
 	print_timer_info()

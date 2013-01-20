@@ -15,6 +15,8 @@ MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&a
 MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'.replace('&', '&amp;')
 MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'.replace('&', '&amp;')
 
+CACHE_PERIOD = 120 # cache data for 120 seconds at most
+
 CITIES = {
 	'amsterdam': {'electric': 'all'},
 	'austin': {'electric': 'some'},
@@ -77,12 +79,14 @@ def get_URL(url):
 
 def get_all_cars_text(city, force_download = False):
 	json_text = None
+	cache = False
 
 	cached_data_filename = data_dir + 'current_%s' % city
 	if os.path.exists(cached_data_filename) and not force_download:
 		cached_data_timestamp = os.path.getmtime(cached_data_filename)
 		cached_data_age = datetime.now() - datetime.fromtimestamp(cached_data_timestamp)
-		if cached_data_age.days == 0 and cached_data_age.seconds < 120:
+		if cached_data_age.days == 0 and cached_data_age.seconds < CACHE_PERIOD:
+			cache = cached_data_age.seconds
 			timer.append(['using cached data, age in seconds', cached_data_age.seconds])
 			f = open(cached_data_filename, 'r')
 			json_text = f.read()
@@ -91,10 +95,10 @@ def get_all_cars_text(city, force_download = False):
 	if json_text == None:	
 		json_text = get_URL(API_URL.replace('{loc}', city).replace('{key}', OAUTH_KEY))
 
-	return json_text
+	return json_text,cache
 
 def get_electric_cars(city):
-	json_text = get_all_cars_text(city)
+	json_text,cache = get_all_cars_text(city)
 
 	time1 = time.time()
 
@@ -116,7 +120,7 @@ def get_electric_cars(city):
 	time2 = time.time()
 	timer.append(['list search, ms', (time2-time1)*1000.0])
 
-	return electric_cars
+	return electric_cars,cache
 
 def get_city():
 	city = 'vancouver' # default to Vancouver

@@ -16,7 +16,7 @@ else:
 
 t = datetime.datetime.now()
 for city in cities:
-	cars_text = cars.get_all_cars_text(city, force_download = True)
+	cars_text,cache = cars.get_all_cars_text(city, force_download = True)
 
 	f = open(cars.data_dir + 'current_%s' % city, 'w')
 	print >> f, cars_text
