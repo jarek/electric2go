@@ -15,7 +15,7 @@ MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&a
 MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'.replace('&', '&amp;')
 MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'.replace('&', '&amp;')
 
-CACHE_PERIOD = 120 # cache data for 120 seconds at most
+CACHE_PERIOD = 60 # cache data for this many seconds at most
 
 CITIES = {
 	'amsterdam': {'electric': 'all'},
@@ -30,7 +30,7 @@ CITIES = {
 	'portland': {'electric': 'some'},
 	'sandiego': {'display': 'San Diego', 'electric': 'all'},
 	'seattle': {},
-	'stuttgart': {'electric': 'some'}, 
+	'stuttgart': {'electric': 'all'}, 
 	'toronto': {'of_interest': True},
 	'ulm': {'electric': 'some'},
 	'vancouver': {'of_interest': True, 'electric': 'some'},
