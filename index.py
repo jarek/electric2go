@@ -1,10 +1,31 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+import os
 import time
 import cars
 
 timer = []
+
+def import_file(filename):
+	result = ''
+
+	if os.path.exists(filename):
+		f = open(filename, 'r')
+		result = f.read().strip()
+		f.close()
+
+	if filename.endswith('.css'):
+		result = ' '.join(result.split())
+
+	# TODO: not doing the above for js because split() uses all whitespace,
+	# including newlines, breaking on js "//" comments.
+	# see if removing the comments or something might be worth it.
+	# difference in size to transfer with whitespace removed is
+	# negligible. with comments removed it's about ~10% on a ~10 car page.
+	# not sure if I want to send uncommented js to gain that, really.
+
+	return result
 
 def format_car(car):
 	for key in car:
@@ -13,8 +34,8 @@ def format_car(car):
 
 	coords = str(car['coordinates'][1]) + ',' + str(car['coordinates'][0])
 
-	info = '<p data-loc="' + coords + '">'
-	info += 'Location: ' + car['address'] + '<br/>'
+	info = '<section class="sort" data-loc="' + coords + '">'
+	info += '<h3>' + car['address'] + '</h3><p>'
 
 	charge = car['fuel']
 	if charge < 20:
@@ -32,17 +53,18 @@ def format_car(car):
 	else:
 		info += '<br/>'
 
-	info += 'Plate: ' + car['name'] + '<br/>'
-	info += 'Interior: ' + car['interior'] + \
-		', exterior: ' + car['exterior'] + '<br/>\n'
+	info += 'Plate: ' + car['name'] + ', '
+	info += 'interior: ' + car['interior'].lower() + ', '
+	info += 'exterior: ' + car['exterior'].lower() + '<br/>\n'
 
 	mapurl = cars.MAPS_URL.replace('{ll}', coords).replace('{q}', car['address'].replace(' ','%20'))
-	info += 'Coords: <a href="' + mapurl + '">' + coords + '</a>'
+	info += 'Location: <a href="' + mapurl + '">' + coords + '</a>'
 	info += '<span class="distance" data-template=", approx distance: {dist} km"></span><br/>\n'
 
 	info += '<a href="' + mapurl + '">'
 	info += cars.MAPS_IMAGE_CODE.replace('{ll}', coords).replace('{q}', car['address'])
 	info += '</a>'
+	info += '</section>'
 
 	return info
 
@@ -69,7 +91,7 @@ def get_formatted_all_cities(requested_city):
 			else:
 				formatted_cities.append('<a href="?city=' + city + '">' + data['display'] + '</a>')
 
-	return '<p>car2go cities with a few electric vehicles: ' + ', '.join(formatted_cities)
+	return 'car2go cities with a few electric vehicles: ' + ', '.join(formatted_cities)
 
 def print_timer_info(t = timer):
 	for timepoint in t:
@@ -85,114 +107,32 @@ def print_all_html():
 	print '<!doctype html>'
 	print '<meta charset="utf-8" />'
 	print '<title>electric car2go vehicles in ' + cars.CITIES[requested_city]['display'] + '</title>'
+	print '<style type="text/css" media="screen,projection">'
+	print import_file('style.css') + '</style>'
 
-	print get_formatted_all_cities(requested_city)
+	print '<nav>' + get_formatted_all_cities(requested_city) + '</nav>'
 
 	electric_cars,cache = get_formatted_electric_cars(requested_city)
 
 	count = len(electric_cars)
 	plural = 's' if count != 1 else ''
 
-	print '<p>' + str(count) + ' electric car' + plural,
-	print 'currently available in ' + cars.CITIES[requested_city]['display']
+	print '<h2>' + str(count) + ' electric car' + plural,
+	print 'currently available in ' + cars.CITIES[requested_city]['display'] + '</h2>'
 
-	print '<section class="sortable">'
 	for car in electric_cars:
 		print car
-	print '</section>'
 
 	ttime2 = time.time()
 	timer.append(['total, ms', (ttime2-ttime1)*1000.0])
 
-	print '<p><small>',
+	print '<footer>',
 	if cache:
 		print 'Using cached data. Data age: %i seconds, next refresh in %i seconds.' % (cache, cars.CACHE_PERIOD - cache)
-	print 'This product uses the car2go API but is not endorsed or certified by car2go.</small></p>'
-
-	print """
-<script type="text/javascript">
-function get_location() {
-	try {
-		// enableHighAccuracy is left to default to false
-		// timeout is 2 seconds, to reposition cars reasonably quickly
-		// maximum age is a minute, users are unlikely to move fast
-		navigator.geolocation.getCurrentPosition(order_cars, 
-			handle_error, {timeout: 2000, maximumAge: 60000});
-	} catch(err) {
-		// fail silently
-	}
-}
-
-function handle_error(err) {
-	// do nothing. fallback is default ordering, which is acceptable
-}
-
-function order_cars(position) {
-	try {
-		var user_lat = position.coords.latitude;
-		var user_lng = position.coords.longitude;
-
-		// get a list of all car latlngs and calculate
-		// distances from user's position
-		var car_list = document.querySelectorAll(".sortable p");
-		var cars = [];
-		for (var i = 0; i < car_list.length; i++) {
-			car_latlng = car_list[i].getAttribute("data-loc")
-				.split(",");
-			cars.push([calculate_distance(user_lat, user_lng,
-				car_latlng[0], car_latlng[1]), car_list[i]]);
-		}
-
-		// sort based on distance
-		cars.sort(function(a, b) {
-			a = a[0];
-			b = b[0];
-			return a < b ? -1 : (a > b ? 1 : 0);
-		})
-
-		// sort list of cars based on distance,
-		// and add in the approx distance
-		var section = document.querySelectorAll(".sortable")[0];
-		for (var i = 0; i < cars.length; i++) {
-			var dist = cars[i][0];
-			var para = cars[i][1];
-			
-			// removes it wherever it was and appends in new order
-			section.removeChild(para);
-			section.appendChild(para);
-
-			var dist_span = para.querySelectorAll(".distance")[0];
-			var dist_str = dist_span.getAttribute("data-template");
-			// also trim distance to one decimal digit
-			dist_str = dist_str.replace("{dist}", dist.toFixed(1));
-			dist_span.innerHTML = dist_str;
-		}
-	} catch (err) {
-		// fail silently
-	}
-}
-
-function calculate_distance(lat1, lng1, lat2, lng2) {
-	// from http://www.movable-type.co.uk/scripts/latlong.html
-	// see also http://stackoverflow.com/questions/27928
-	function deg2rad(deg) {
-		return deg * (Math.PI/180);
-	}
-
-	var R = 6371; // Radius of the earth in km
-	var dLat = deg2rad(lat2-lat1);
-	var dLon = deg2rad(lng2-lng1); 
-	var a = 
-		Math.sin(dLat/2) * Math.sin(dLat/2) +
-		Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-		Math.sin(dLon/2) * Math.sin(dLon/2); 
-	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-	var d = R * c; // Distance in km
-	return d;
-}
-
-document.onload = get_location();
-</script>"""
+	print 'This product uses the car2go API but is not endorsed or certified by car2go.</footer>'
+	
+	print '<script type="text/javascript">'
+	print import_file('sort.js') + '</script>'
 
 	print_timer_info(cars.timer)
 	print_timer_info()
