@@ -27,7 +27,21 @@ def import_file(filename):
 
 	return result
 
-def format_car(car):
+def format_address(address, city):
+	if not cars.CITIES[city]['number_first_address']:
+		return address
+
+	address_parts = address.split(',')
+
+	street_parts = address_parts[0].split()
+
+	if street_parts[-1].isdigit() and not street_parts[0].isdigit():
+		street_parts.insert(0, street_parts.pop())
+		address_parts[0] = ' '.join(street_parts)
+
+	return ','.join(address_parts)
+
+def format_car(car, city):
 	for key in car:
 		if isinstance(car[key], basestring):
 			car[key] = car[key].encode('ascii','xmlcharrefreplace')
@@ -35,7 +49,7 @@ def format_car(car):
 	coords = str(car['coordinates'][1]) + ',' + str(car['coordinates'][0])
 
 	info = '<section class="sort" data-loc="' + coords + '">'
-	info += '<h3>' + car['address'] + '</h3><p>'
+	info += '<h3>' + format_address(car['address'], city) + '</h3><p>'
 
 	charge = car['fuel']
 	if charge < 20:
@@ -73,7 +87,7 @@ def get_formatted_electric_cars(city):
 	result = []
 
 	for car in electric_cars:
-		result.append(format_car(car))
+		result.append(format_car(car, city))
 
 	return result,cache
 

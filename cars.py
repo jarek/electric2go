@@ -19,22 +19,25 @@ CACHE_PERIOD = 60 # cache data for this many seconds at most
 
 CITIES = {
 	'amsterdam': {'electric': 'all'},
-	'austin': {'electric': 'some'},
+	'austin': {'electric': 'some', 'number_first_address': True},
 	'berlin': {'electric': 'some'},
-	'calgary': {},
+	'calgary': {'number_first_address': True},
 	'duesseldorf': {'display': 'Düsseldorf'},
 	'hamburg': {},
 	'koeln': {'display': 'Köln'},
-	'london': {},
-	'miami': {},
-	'portland': {'electric': 'some'},
-	'sandiego': {'display': 'San Diego', 'electric': 'all'},
-	'seattle': {},
+	'london': {'number_first_address': True},
+	'miami': {'number_first_address': True},
+	'portland': {'electric': 'some', 'number_first_address': True},
+	'sandiego': {'display': 'San Diego', 'electric': 'all',
+		'number_first_address': True},
+	'seattle': {'number_first_address': True},
 	'stuttgart': {'electric': 'all'}, 
-	'toronto': {'of_interest': True},
+	'toronto': {'of_interest': True, 'number_first_address': True},
 	'ulm': {'electric': 'some'},
-	'vancouver': {'of_interest': True, 'electric': 'some'},
-	'washingtondc': {'display': 'Washington, D.C.'},
+	'vancouver': {'of_interest': True, 'electric': 'some',
+		'number_first_address': True},
+	'washingtondc': {'display': 'Washington, D.C.',
+		'number_first_address': True},
 	'wien': {}
 	}
 
@@ -46,6 +49,8 @@ for city in CITIES:
 		CITIES[city]['electric'] = False
 	if not 'of_interest' in CITIES[city]:
 		CITIES[city]['of_interest'] = False
+	if not 'number_first_address' in CITIES[city]:
+		CITIES[city]['number_first_address'] = False
 
 data_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
