@@ -70,7 +70,6 @@ MAP_SIZES = {
 
 LABELS = {
 	'toronto': {
-		# TODO: needs verified values
 		'fontsize': 10,
 		'lines': [
 			(10, MAP_SIZES['toronto']['MAP_Y'] - 20),
@@ -176,7 +175,8 @@ def map_longitude(city, longitudes):
 		(MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST'])) * \
 		MAP_SIZES[city]['MAP_X']
 
-def make_graph(data, city, filename, turn, iteration = False, show_move_lines = True):
+def make_graph(data, city, filename, turn, second_filename = False, 
+	show_move_lines = True):
 	# my lists of latitudes, longitudes, will be at most
 	# as lost as data (when all cars are currently being seen)
 	# and usually around 1/2 - 2/3rd the size. pre-allocating 
@@ -272,8 +272,8 @@ def make_graph(data, city, filename, turn, iteration = False, show_move_lines = 
 		dpi=dpi, transparent=True)
 
 	# also save with iterative filenames for ease of animation
-	if not iteration == False:
-		plt.savefig(filename[:filename.rfind('--')] + '_' + str(iteration).rjust(3, '0') + '.png', 
+	if not second_filename == False:
+		plt.savefig(second_filename, 
 			bbox_inches='tight', pad_inches=0, 
 			dpi=dpi, transparent=True)
 	
@@ -318,6 +318,11 @@ def batch_process(city, starting_time, make_iterations = True, \
 	t = starting_time
 	filepath = get_filepath(city, starting_time, append_data_dir)
 
+	animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
+		'-' + os.path.basename(filepath)
+	animation_files_prefix = os.path.join(os.path.dirname(filepath), 
+		animation_files_filename)
+
 	saved_data = {}
 
 	# loop as long as new files exist
@@ -339,9 +344,14 @@ def batch_process(city, starting_time, make_iterations = True, \
 		#print 'lng range: ' + str(stats[2]) + ' - ' + str(stats[3])
 		print
 
+		second_filename = False
+		if make_iterations:
+			second_filename = animation_files_prefix + '_' + \
+				str(i).rjust(3, '0') + '.png'
+
 		#make_csv(saved_data, city, filepath, t)
 		make_graph(saved_data, city, filepath, t, 
-			iteration = make_iterations and i, 
+			second_filename = second_filename, 
 			show_move_lines = show_move_lines)
 
 		# next, look five minutes from now
@@ -353,12 +363,11 @@ def batch_process(city, starting_time, make_iterations = True, \
 	if make_iterations:
 		# move 5 minutes back in case we ended at midnight and would
 		# have wrong date on the files
-		filenames = get_filepath(city, t - timedelta(0, 5*60), \
-			append_data_dir)
-		filenames = filenames[:filenames.rfind('--')] + '_%03d.png'
+		png_filenames = animation_files_prefix + '_%03d.png'
+		mp4_name = animation_files_prefix + '.mp4'
 
 		print '\nto animate:'
-		print '''avconv -loop 1 -r 8 -i background.png -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d out.mp4''' % (filenames, i-1)
+		print '''avconv -loop 1 -r 8 -i %s-background.png -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d %s''' % (city, png_filenames, i-1, mp4_name)
 
 	# show info for cars that had just stopped moving in the last dataset
 	print '\njust stopped on ' + str(t) + ':'
