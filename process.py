@@ -13,10 +13,21 @@ import numpy as np
 import cars
 
 
-KNOWN_CITIES = ['vancouver']
+KNOWN_CITIES = ['toronto', 'vancouver']
 
 MAP_LIMITS = {
+	'toronto': {
+		'NORTH': 43.72736,
+		'SOUTH': 43.625893,
+		'EAST': -79.2768,
+		'WEST': -79.50168
+	},
 	'vancouver': {
+		# according to home area json, this is actually
+		# (49.295673, 49.224716, -123.04207, -123.21545)
+		# but I've picked out map sizes and everything according to the
+		# coordinates below, so i'll keep them for now, at least until
+		# a major update of Vancouver-specific code
 		'NORTH': 49.295,
 		'SOUTH': 49.224,
 		'EAST':  -123.04,
@@ -27,24 +38,46 @@ MAP_LIMITS = {
 }
 
 DEGREE_LENGTHS = {
+	# from http://www.csgnetwork.com/degreelenllavcalc.html
+	# could calculate ourselves but meh. would need city's latitude
+	'toronto': {
+		# for latitude 43.7
+		'LENGTH_OF_LATITUDE': 111106.36,
+		'LENGTH_OF_LONGITUDE': 80609.20
+	},
 	'vancouver': {
-		# these are Vancouver (latitude 49) specific.
-		# http://www.csgnetwork.com/degreelenllavcalc.html
-		'LENGTH_OF_LATITUDE': 111209.70,
-		'LENGTH_OF_LONGITUDE': 73171.77
+		# for latitude 49.25
+		'LENGTH_OF_LATITUDE': 111214.54,
+		'LENGTH_OF_LONGITUDE': 72804.85
 	}
 }
 
 MAP_SIZES = {
+	# all these ratios are connected
+	'toronto': {
+		# 615/991 / (43.72736-43.625893)/(79.50168-79.2768) ~= 111106.36 / 80609.20
+		# 0.620585267 / 0.451205087 = 1.375395103 ~= 1.37833349
+		'MAP_X' : 991,
+		'MAP_Y' : 615
+	},
 	'vancouver': {
-		# these ratios are connected
-		# 991/508 : (49.295-49.224)/(123.252-123.04) :: 111209.70 : 73171.77
+		# 508/991 / (49.295-49.224)/(123.252-123.04) ~= 111214.54 / 72804.85
+		# 0.512613522 / 0.33490566 = 1.530620659 ~= 1.527570485
 		'MAP_X' : 991,
 		'MAP_Y' : 508
 	}
 }
 
 LABELS = {
+	'toronto': {
+		# TODO: needs verified values
+		'fontsize': 10,
+		'lines': [
+			(10, MAP_SIZES['toronto']['MAP_Y'] - 20),
+			(10, MAP_SIZES['toronto']['MAP_Y'] - 40),
+			(10, MAP_SIZES['toronto']['MAP_Y'] - 60)
+		]
+	},
 	'vancouver': {
 		'fontsize': 10,
 		'lines': [
@@ -205,7 +238,7 @@ def make_graph(data, city, filename, turn, iteration = False, show_move_lines = 
 	# processing makes it look a bit worse than the original map - 
 	# so keeping the generated graph transparent and overlaying it 
 	# on source map is a good option too
-	im = plt.imread(cars.data_dir + 'map.jpg')
+	#im = plt.imread(cars.data_dir + 'background.jpg')
 	#implot = plt.imshow(im, origin='lower',aspect='auto')
 
 	plt.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
@@ -231,7 +264,7 @@ def make_graph(data, city, filename, turn, iteration = False, show_move_lines = 
 		cars.CITIES[city]['display'] + ' ' + \
 		turn.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
 	ax.text(LABELS[city]['lines'][1][0], LABELS[city]['lines'][1][1], \
-		'total cars: %d' % car_count, fontsize=fontsize)
+		'available cars: %d' % car_count, fontsize=fontsize)
 	ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
 		'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
 
