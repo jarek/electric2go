@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timedelta
 import os
 import sys
+import argparse
 import math
 import simplejson as json
 import matplotlib.pyplot as plt
@@ -270,7 +271,7 @@ def get_stats(car_data):
 	return lat_min, lat_max, long_min, long_max
 
 def batch_process(city, starting_time, make_iterations = True, \
-	show_move_lines = True, append_data_dir = True):
+	show_move_lines = True, max_files = False, append_data_dir = True):
 
 	def get_filepath(city, t, append_data_dir):
 		filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
@@ -286,7 +287,9 @@ def batch_process(city, starting_time, make_iterations = True, \
 
 	saved_data = {}
 
-	while os.path.exists(filepath):
+	# loop as long as new files exist
+	# if we have a limit specified, loop only until limit is reached
+	while os.path.exists(filepath) and (max_files is False or i <= max_files):
 		print t,
 
 		f = open(filepath, 'r')
@@ -313,12 +316,16 @@ def batch_process(city, starting_time, make_iterations = True, \
 		t = t + timedelta(0, 5*60)
 		filepath = get_filepath(city, t, append_data_dir)
 
-	# print animation information
-	filenames = get_filepath(city, t - timedelta(0, 5*60), append_data_dir)
-	filenames = filenames[:filenames.rfind('--')] + '_%03d.png'
+	# print animation information if applicable
+	if make_iterations:
+		# move 5 minutes back in case we ended at midnight and would
+		# have wrong date on the files
+		filenames = get_filepath(city, t - timedelta(0, 5*60), \
+			append_data_dir)
+		filenames = filenames[:filenames.rfind('--')] + '_%03d.png'
 
-	print '\nto animate:'
-	print '''avconv -loop 1 -r 4 -i background.png -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d out.mp4''' % (filenames, i-1)
+		print '\nto animate:'
+		print '''avconv -loop 1 -r 8 -i background.png -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d out.mp4''' % (filenames, i-1)
 
 	# show info for cars that had just stopped moving in the last dataset
 	print '\njust stopped on ' + str(t) + ':'
@@ -336,44 +343,50 @@ def batch_process(city, starting_time, make_iterations = True, \
 	pass
 
 def process_commandline():
-	if len(sys.argv) <= 1:
-		print 'usage: ./process.py starting_file_name'
-	else:
-		filename = sys.argv[1].lower()
+	parser = argparse.ArgumentParser()
+	parser.add_argument('starting_filename', type=str,
+		help='name of first file to process')
+	parser.add_argument('-noiter', '--no-iter', action='store_true', 
+		help='do not create iterative-named files intended to make animating easier')
+	parser.add_argument('-nolines', '--no-lines', action='store_true',
+		help='do not show lines indicating cars\' moves')
+	parser.add_argument('-max', '--max-files', type=int, default=False,
+		help='limit maximum amount of files to process')
 
-		append_data_dir = True
+	args = parser.parse_args()
 
-		if not os.path.exists(cars.data_dir + filename):
-			if not os.path.exists(filename):
-				print 'file not found: ' + filename
-				return 
-			else:
-				append_data_dir = False
+	filename = args.starting_filename.lower()
 
-		city,starting_time = filename.split('_', 1)
+	append_data_dir = True
 
-		# strip off directory, if any. might not work on Windows :D D:
-		city = city.split('/')[-1]
+	if not os.path.exists(cars.data_dir + filename):
+		if not os.path.exists(filename):
+			print 'file not found: ' + filename
+			return 
+		else:
+			append_data_dir = False
 
-		if not city in KNOWN_CITIES:
-			print 'unsupported city: ' + city
-			return
+	city,starting_time = filename.split('_', 1)
 
-		try:
-			# parse out starting time
-			starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
-		except:
-			print 'time format not recognized: ' + filename
-			return
+	# strip off directory, if any. might not work on Windows :D D:
+	city = city.split('/')[-1]
 
-		# crude command-line param support
-		make_iterations = not 'noiter' in sys.argv[2:]
-		show_move_lines = not 'nolines' in sys.argv[2:]
+	if not city in KNOWN_CITIES:
+		print 'unsupported city: ' + city
+		return
 
-		batch_process(city, starting_time, \
-			make_iterations = make_iterations, \
-			show_move_lines = show_move_lines, \
-			append_data_dir = append_data_dir)
+	try:
+		# parse out starting time
+		starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
+	except:
+		print 'time format not recognized: ' + filename
+		return
+
+	batch_process(city, starting_time, \
+		make_iterations = not args.no_iter, \
+		show_move_lines = not args.no_lines, \
+		max_files = args.max_files, \
+		append_data_dir = append_data_dir)
 
 
 if __name__ == '__main__':
