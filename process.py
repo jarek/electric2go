@@ -7,6 +7,8 @@ import os
 import sys
 import argparse
 import math
+import time
+import shutil
 import simplejson as json
 import matplotlib.pyplot as plt
 import numpy as np
@@ -86,6 +88,9 @@ LABELS = {
 		]
 	}
 }
+
+timer = []
+DEBUG = False
 
 
 def process_data(json_data, data_time = None, previous_data = {}):
@@ -184,6 +189,9 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	# memory-efficient thing to do, i think.
 	# (I have to use numpy arrays to transform coordinates. 
 	# and numpy array appends are not in place.)
+	global timer
+	time_init_start = time.time()
+
 	max_length = len(data)
 
 	latitudes = np.empty(max_length)
@@ -198,6 +206,11 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	lines_end_lng = []
 
 	car_count = 0
+
+	timer.append((filename + ': make_graph init, ms',
+		(time.time()-time_init_start)*1000.0))
+
+	time_load_start = time.time()
 
 	for car in data:
 		if data[car]['seen'] == turn:
@@ -222,6 +235,11 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	lines_start_lng = map_longitude(city, np.array(lines_start_lng))
 	lines_end_lat = map_latitude(city, np.array(lines_end_lat))
 	lines_end_lng = map_longitude(city, np.array(lines_end_lng))
+
+	timer.append((filename + ': make_graph load, ms',
+		(time.time()-time_load_start)*1000.0))
+
+	time_plotsetup_start = time.time()
 	
 	# set up figure area
 	dpi = 80
@@ -230,6 +248,7 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	dpi_adj_x = 0.775
 	dpi_adj_y = 0.8
 
+	# TODO: the two below take ~20 ms. try to reuse
 	f = plt.figure(dpi=dpi)
 	f.set_size_inches(MAP_SIZES[city]['MAP_X']/dpi_adj_x/dpi, \
 			MAP_SIZES[city]['MAP_Y']/dpi_adj_y/dpi)
@@ -241,7 +260,12 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	#im = plt.imread(cars.data_dir + 'background.jpg')
 	#implot = plt.imshow(im, origin='lower',aspect='auto')
 
+	# TODO: this takes 50 ms each time. try to reuse
 	plt.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
+
+	timer.append((filename + ': make_graph plot setup, ms',
+		(time.time()-time_plotsetup_start)*1000.0))
+	time_plot_start = time.time()
 
 	plt.plot(longitudes, latitudes, 'b.') 
 	
@@ -268,15 +292,31 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
 		'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
 
-	plt.savefig(filename + '.png', bbox_inches='tight', pad_inches=0, 
+	timer.append((filename + ': make_graph plot, ms',
+		(time.time()-time_plot_start)*1000.0))
+
+	time_save_start = time.time()
+
+	# saving as .png takes about 130-150 ms
+	# saving as .ps or .eps takes about 30-50 ms
+	# .svg is about 100 ms - and preserves transparency
+	# .pdf is about 80 ms
+	# svg and e/ps would have to be rendered before being animated, though
+	# possibly making it a moot point
+	image_first_filename = filename + '.png'
+	plt.savefig(image_first_filename, bbox_inches='tight', pad_inches=0, 
 		dpi=dpi, transparent=True)
 
-	# also save with iterative filenames for ease of animation
+	# if requested, also save with iterative filenames for ease of animation
 	if not second_filename == False:
-		plt.savefig(second_filename, 
-			bbox_inches='tight', pad_inches=0, 
-			dpi=dpi, transparent=True)
-	
+		# copying the file rather than saving again is a lot faster
+		shutil.copyfile(image_first_filename, second_filename)
+
+	timer.append((filename + ': make_graph save, ms',
+		(time.time()-time_save_start)*1000.0))
+
+	timer.append((filename + ': make_graph total, ms',
+		(time.time()-time_init_start)*1000.0))
 
 def get_stats(car_data):
 	# TODO: localize this, these are vancouver specific
@@ -306,6 +346,8 @@ def get_stats(car_data):
 def batch_process(city, starting_time, make_iterations = True, \
 	show_move_lines = True, max_files = False, append_data_dir = True):
 
+	global timer, DEBUG
+
 	def get_filepath(city, t, append_data_dir):
 		filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
 
@@ -328,6 +370,8 @@ def batch_process(city, starting_time, make_iterations = True, \
 	# loop as long as new files exist
 	# if we have a limit specified, loop only until limit is reached
 	while os.path.exists(filepath) and (max_files is False or i <= max_files):
+		time_process_start = time.time()
+
 		print t,
 
 		f = open(filepath, 'r')
@@ -338,6 +382,9 @@ def batch_process(city, starting_time, make_iterations = True, \
 		saved_data,moved_cars = process_data(json_data, t, saved_data)
 		print 'total known: %d' % len(saved_data),
 		print 'moved: %02d' % len(moved_cars),
+
+		timer.append((filepath + ': process_data, ms',
+			 (time.time()-time_process_start)*1000.0))
 		
 		stats = get_stats(json_data)
 		#print 'lat range: ' + str(stats[0]) + ' - ' + str(stats[1]),
@@ -349,25 +396,38 @@ def batch_process(city, starting_time, make_iterations = True, \
 			second_filename = animation_files_prefix + '_' + \
 				str(i).rjust(3, '0') + '.png'
 
+		time_graph_start = time.time()
+
 		#make_csv(saved_data, city, filepath, t)
 		make_graph(saved_data, city, filepath, t, 
 			second_filename = second_filename, 
 			show_move_lines = show_move_lines)
+
+		timer.append((filepath + ': make_graph, ms',
+			(time.time()-time_graph_start)*1000.0))
 
 		# next, look five minutes from now
 		i = i + 1
 		t = t + timedelta(0, 5*60)
 		filepath = get_filepath(city, t, append_data_dir)
 
+		timer.append((filepath + ': total, ms',
+			(time.time()-time_process_start)*1000.0))
+
+		if DEBUG:
+			print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
+
+		# reset timer to only keep information about one file at a time
+		timer = []
+
 	# print animation information if applicable
 	if make_iterations:
-		# move 5 minutes back in case we ended at midnight and would
-		# have wrong date on the files
 		png_filenames = animation_files_prefix + '_%03d.png'
 		mp4_name = animation_files_prefix + '.mp4'
 
 		print '\nto animate:'
 		print '''avconv -loop 1 -r 8 -i %s-background.png -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d %s''' % (city, png_filenames, i-1, mp4_name)
+		# if i wanted to invoke this, just do os.system('avconv...')
 
 	# show info for cars that had just stopped moving in the last dataset
 	print '\njust stopped on ' + str(t) + ':'
@@ -385,6 +445,8 @@ def batch_process(city, starting_time, make_iterations = True, \
 	pass
 
 def process_commandline():
+	global DEBUG
+
 	parser = argparse.ArgumentParser()
 	parser.add_argument('starting_filename', type=str,
 		help='name of first file to process')
@@ -394,10 +456,13 @@ def process_commandline():
 		help='do not show lines indicating cars\' moves')
 	parser.add_argument('-max', '--max-files', type=int, default=False,
 		help='limit maximum amount of files to process')
+	parser.add_argument('-debug', action='store_true',
+		help='print extra debug and timing messages')
 
 	args = parser.parse_args()
 
 	filename = args.starting_filename.lower()
+	DEBUG = args.debug
 
 	append_data_dir = True
 
