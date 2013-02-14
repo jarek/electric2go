@@ -1,0 +1,40 @@
+process.make_graph refactor:
+	refactor things a bit first to enable things like _accessibility_graph
+	and other similar future functions. have one function to create 
+	plot/axes for a city (and reuse them to save time on that timer task),
+	another to plot points, then savefig() in a separate spot where it can
+	be bypassed by things like _accessibility_graph that want to add more 
+	information still
+
+process.make_accessibility_graph:
+	extend make_graph to shade out areas more than 5 minutes walk
+	from nearest car2go (~330 m).
+	should be able to reuse much of make_graph
+	don't draw move lines
+	
+	have a numpy matrix the size of MAP_X * MAP_Y, initialize as zeros
+	for each car, calculate pixels within 330 m around it
+	(this is an approximation since you can't walk in straight lines 
+	but close enough without major street info data crunching)
+	for each of these pixels, increment its matrix value
+
+	then initially just draw gray pixels for each of the array
+	slots that aren't zeros.
+	in version 2.0, maybe do fancy grayscale 
+	or alpha transparency to account for accessibility to multiple cars
+	(in case someone grabs one or something)
+
+process.make_cleanness_graph:
+	extend make_graph, using different colour indicators for 
+	the different reported cleanness levels to answer the important
+	question: do kits people mark cars as dirty more frequently
+	than east van people?!
+
+trace.find_car:
+	given a data file and a license plate or VIN, trace car's movements
+	during the day/in provided set of files
+
+trace.cleanness:
+	somehow visualize cars that went from indicated 'unacceptable'
+	cleanness rating back to 'good'. see how often and where that happens!
+
