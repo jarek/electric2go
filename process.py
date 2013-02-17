@@ -15,9 +15,21 @@ import numpy as np
 import cars
 
 
-KNOWN_CITIES = ['toronto', 'vancouver']
+KNOWN_CITIES = ['calgary', 'seattle', 'toronto', 'vancouver']
 
 MAP_LIMITS = {
+	'calgary': {
+		'NORTH': 51.088425,
+		'SOUTH': 50.984936,
+		'EAST': -113.997314,
+		'WEST': -114.16401
+	},
+	'seattle': {
+		'NORTH': 47.72344,
+		'SOUTH': 47.578247,
+		'EAST': -122.24557,
+		'WEST': -122.437126
+	},
 	'toronto': {
 		'NORTH': 43.72736,
 		'SOUTH': 43.625893,
@@ -42,6 +54,16 @@ MAP_LIMITS = {
 DEGREE_LENGTHS = {
 	# from http://www.csgnetwork.com/degreelenllavcalc.html
 	# could calculate ourselves but meh. would need city's latitude
+	'calgary': {
+		# for latitude 51.04
+		'LENGTH_OF_LATITUDE': 111249.00,
+		'LENGTH_OF_LONGITUDE': 70137.28
+	},
+	'seattle': {
+		# for latitude 47.65
+		'LENGTH_OF_LATITUDE': 111183.48,
+		'LENGTH_OF_LONGITUDE': 75128.68
+	},
 	'toronto': {
 		# for latitude 43.7
 		'LENGTH_OF_LATITUDE': 111106.36,
@@ -56,6 +78,18 @@ DEGREE_LENGTHS = {
 
 MAP_SIZES = {
 	# all these ratios are connected
+	'calgary': {
+		# 978/991 / (51.088425-50.984936)/(114.16401-113.997314) ~= 111249.00 / 70137.28
+		# 0.986881937 / 0.620824735 = 1.589630505 ~= 1.586160741
+		'MAP_X': 991,
+		'MAP_Y': 978
+	},
+	'seattle': {
+		# 991/879 / (47.72344-47.578247)/(122.437126-122.24557) ~= 111183.48 / 75128.68
+		# 1.12741752 / 0.757966339 = 1.487424259 ~= 1.479907274
+		'MAP_X' : 879,
+		'MAP_Y' : 991
+	},
 	'toronto': {
 		# 615/991 / (43.72736-43.625893)/(79.50168-79.2768) ~= 111106.36 / 80609.20
 		# 0.620585267 / 0.451205087 = 1.375395103 ~= 1.37833349
@@ -71,6 +105,25 @@ MAP_SIZES = {
 }
 
 LABELS = {
+	'calgary': {
+		'fontsize': 15,
+		'lines': [
+			(MAP_SIZES['calgary']['MAP_X']*0.667,
+					MAP_SIZES['calgary']['MAP_Y']-25),
+			(MAP_SIZES['calgary']['MAP_X']*0.667,
+					MAP_SIZES['calgary']['MAP_Y']-50),
+			(MAP_SIZES['calgary']['MAP_X']*0.667,
+					MAP_SIZES['calgary']['MAP_Y']-75)
+		]
+	},
+	'seattle': {
+		'fontsize': 15,
+		'lines': [
+			(10, 60),
+			(10, 40),
+			(10, 20)
+		]
+	},
 	'toronto': {
 		'fontsize': 10,
 		'lines': [
