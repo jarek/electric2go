@@ -52,7 +52,8 @@ for city in CITIES:
 	if not 'number_first_address' in CITIES[city]:
 		CITIES[city]['number_first_address'] = False
 
-data_dir = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+root_dir = os.path.dirname(os.path.realpath(__file__))
+data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data/')
 filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
 timer = []
@@ -65,6 +66,20 @@ if os.path.exists('oauth_key'):
 
 
 def get_URL(url):
+	# TODO: consider handling if-none-match, or modified-since, or etag, 
+	# or something similar
+	# http://www.diveintopython.net/http_web_services/etags.html
+	# Maybe before doing so, look into existing data and see 
+	# how often the data doesn't change over a minute or over five minutes.
+	# At first glance it doesn't look like the the car2go server is sending
+	# either last-modified or etag, actually.
+
+	# TODO: also support gzip, if curl doesn't for me. Connection 
+	# establishment is likely to be much of the delay, but perhaps not all.
+
+	# TODO: Maybe try to support keep-alive too? Not sure if I can do it 
+	# over separate script runs...
+
 	htime1 = time.time()
 
 	c = pycurl.Curl()

@@ -236,9 +236,9 @@ def map_longitude(city, longitudes):
 		(MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST'])) * \
 		MAP_SIZES[city]['MAP_X']
 
-def make_graph_axes(city, filename):
+def make_graph_axes(city, log_name = ''):
 	""" Sets up figure area and axes for common properties for a city 
-	to be graphed. The param `filename` is used for logging only. """
+	to be graphed. The param `log_name` is used for logging only. """
 
 	# set up figure area
 
@@ -261,7 +261,7 @@ def make_graph_axes(city, filename):
 	# processing makes it look a bit worse than the original map - 
 	# so keeping the generated graph transparent and overlaying it 
 	# on source map is a good option too
-	#im = plt.imread(cars.data_dir + 'map.jpg')
+	#im = plt.imread(os.path.join(cars.data_dir, 'map.jpg'))
 	#implot = plt.imshow(im, origin='lower',aspect='auto')
 
 	# TODO: this takes 50 ms each time. try to reuse the whole set of axes
@@ -274,13 +274,14 @@ def make_graph_axes(city, filename):
 	ax.axes.get_yaxis().set_visible(False)
 	ax.set_frame_on(False)
 
-	timer.append((filename + ': make_graph plot setup, ms',
+	timer.append((log_name + ': make_graph_axes, ms',
 		(time.time()-time_plotsetup_start)*1000.0))
 
 	return f,ax
 
-def make_graph_object(data, city, filename, turn, show_move_lines = True):
-	""" Creates and returns the matplotlib figure for the provided data """
+def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
+	""" Creates and returns the matplotlib figure for the provided data.
+	The param `log_name` is used for logging only. """
 
 	# my lists of latitudes, longitudes, will be at most
 	# as lost as data (when all cars are currently being seen)
@@ -307,7 +308,7 @@ def make_graph_object(data, city, filename, turn, show_move_lines = True):
 
 	car_count = 0
 
-	timer.append((filename + ': make_graph init, ms',
+	timer.append((log_name + ': make_graph init, ms',
 		(time.time()-time_init_start)*1000.0))
 
 	time_load_start = time.time()
@@ -336,10 +337,10 @@ def make_graph_object(data, city, filename, turn, show_move_lines = True):
 	lines_end_lat = map_latitude(city, np.array(lines_end_lat))
 	lines_end_lng = map_longitude(city, np.array(lines_end_lng))
 
-	timer.append((filename + ': make_graph load, ms',
+	timer.append((log_name + ': make_graph load, ms',
 		(time.time()-time_load_start)*1000.0))
 
-	f,ax = make_graph_axes(city, filename)
+	f,ax = make_graph_axes(city, log_name)
 
 	time_plot_start = time.time()
 
@@ -362,12 +363,12 @@ def make_graph_object(data, city, filename, turn, show_move_lines = True):
 	ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
 		'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
 
-	timer.append((filename + ': make_graph plot, ms',
+	timer.append((log_name + ': make_graph plot, ms',
 		(time.time()-time_plot_start)*1000.0))
 
 	return f
 
-def make_graph(data, city, filename, turn, second_filename = False, 
+def make_graph(data, city, first_filename, turn, second_filename = False, 
 	show_move_lines = True):
 	""" Creates and saves matplotlib figure for provided data. 
 	If second_filename is specified, also copies the saved file to 
@@ -377,7 +378,11 @@ def make_graph(data, city, filename, turn, second_filename = False,
 
 	time_total_start = time.time()
 
-	f = make_graph_object(data, city, filename, turn, show_move_lines)
+	# use a different variable name for clarity where it'll be used only
+	# for logging rather than actually accessing/creating files
+	log_name = first_filename
+
+	f = make_graph_object(data, city, turn, show_move_lines, log_name)
 
 	time_save_start = time.time()
 
@@ -387,7 +392,7 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	# .pdf is about 80 ms
 	# svg and e/ps would have to be rendered before being animated, though
 	# possibly making it a moot point
-	image_first_filename = filename + '.png'
+	image_first_filename = first_filename + '.png'
 	plt.savefig(image_first_filename, bbox_inches='tight', pad_inches=0, 
 		dpi=80, transparent=True)
 
@@ -396,10 +401,10 @@ def make_graph(data, city, filename, turn, second_filename = False,
 		# copying the file rather than saving again is a lot faster
 		shutil.copyfile(image_first_filename, second_filename)
 
-	timer.append((filename + ': make_graph save, ms',
+	timer.append((log_name + ': make_graph save, ms',
 		(time.time()-time_save_start)*1000.0))
 
-	timer.append((filename + ': make_graph total, ms',
+	timer.append((log_name + ': make_graph total, ms',
 		(time.time()-time_total_start)*1000.0))
 
 def get_stats(car_data):
@@ -428,28 +433,18 @@ def get_stats(car_data):
 	return lat_min, lat_max, long_min, long_max
 
 def batch_process(city, starting_time, make_iterations = True, \
-	show_move_lines = True, max_files = False, append_data_dir = True):
+	show_move_lines = True, max_files = False, file_dir = ''):
 
 	global timer, DEBUG
 
-	def get_filepath(city, t, append_data_dir):
+	def get_filepath(city, t, file_dir):
 		filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
 
-		if append_data_dir:
-			return cars.data_dir + filename
-		else:
-			return filename
+		return os.path.join(file_dir, filename)
 
 	i = 1
 	t = starting_time
-	# TODO: the directory handling code is actually all kinds of messed up
-	# any prefixed directory that is not data/ is chopped off silently
-	# in batch_process and ignored. should change append_data_dir to be
-	# append_dir or similar and hold the directory name. note that 
-	# filename is not passed from batch_process into here, only city, 
-	# starting time, and append_data_dir, and I then attempt to reconstruct
-	# paths here - less than sucessfully for directories other than data/.
-	filepath = get_filepath(city, starting_time, append_data_dir)
+	filepath = get_filepath(city, starting_time, file_dir)
 
 	animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
 		'-' + os.path.basename(filepath)
@@ -500,7 +495,7 @@ def batch_process(city, starting_time, make_iterations = True, \
 		# next, look five minutes from now
 		i = i + 1
 		t = t + timedelta(0, 5*60)
-		filepath = get_filepath(city, t, append_data_dir)
+		filepath = get_filepath(city, t, file_dir)
 
 		timer.append((filepath + ': total, ms',
 			(time.time()-time_process_start)*1000.0))
@@ -513,11 +508,13 @@ def batch_process(city, starting_time, make_iterations = True, \
 
 	# print animation information if applicable
 	if make_iterations:
-		png_filenames = animation_files_prefix + '_%03d.png'
-		mp4_name = animation_files_prefix + '.mp4'
+		background_path = os.path.relpath(os.path.join(cars.root_dir,
+			'backgrounds/', '%s-background.png' % city))
+		png_filepaths = animation_files_prefix + '_%03d.png'
+		mp4_path = animation_files_prefix + '.mp4'
 
 		print '\nto animate:'
-		print '''avconv -loop 1 -r 8 -i %s-background.png -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d %s''' % (city, png_filenames, i-1, mp4_name)
+		print '''avconv -loop 1 -r 8 -i %s -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d %s''' % (background_path, png_filepaths, i-1, mp4_path)
 		# if i wanted to invoke this, just do os.system('avconv...')
 
 	# show info for cars that had just stopped moving in the last dataset
@@ -555,19 +552,19 @@ def process_commandline():
 	filename = args.starting_filename.lower()
 	DEBUG = args.debug
 
-	append_data_dir = True
+	city,starting_time = filename.rsplit('_', 1)
 
-	if not os.path.exists(cars.data_dir + filename):
-		if not os.path.exists(filename):
-			print 'file not found: ' + filename
-			return 
+	# strip off directory, if any.
+	file_dir,city = os.path.split(city)
+
+	if not os.path.exists(filename):
+		if os.path.exists(os.path.join(cars.data_dir, filename)):
+			# try to use 'data/' directory automatically, if suitable
+			file_dir = cars.data_dir
 		else:
-			append_data_dir = False
-
-	city,starting_time = filename.split('_', 1)
-
-	# strip off directory, if any. might not work on Windows :D D:
-	city = city.split('/')[-1]
+			# otherwise we can't find that file
+			print 'file not found: ' + filename
+			return
 
 	if not city in KNOWN_CITIES:
 		print 'unsupported city: ' + city
@@ -584,7 +581,7 @@ def process_commandline():
 		make_iterations = not args.no_iter, \
 		show_move_lines = not args.no_lines, \
 		max_files = args.max_files, \
-		append_data_dir = append_data_dir)
+		file_dir = file_dir)
 
 
 if __name__ == '__main__':
