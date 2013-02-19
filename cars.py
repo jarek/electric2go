@@ -14,6 +14,7 @@ API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
 MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'.replace('&', '&amp;')
 MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&sensor=false" alt="map of {q}" />'.replace('&', '&amp;')
+MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&sensor=false" alt="{alt}" />'.replace('&', '&amp;')
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
 
@@ -21,7 +22,7 @@ CITIES = {
 	'amsterdam': {'electric': 'all'},
 	'austin': {'electric': 'some', 'number_first_address': True},
 	'berlin': {'electric': 'some'},
-	'calgary': {'number_first_address': True},
+	'calgary': {'of_interest': True, 'number_first_address': True},
 	'duesseldorf': {'display': 'Düsseldorf'},
 	'hamburg': {},
 	'koeln': {'display': 'Köln'},
@@ -30,7 +31,7 @@ CITIES = {
 	'portland': {'electric': 'some', 'number_first_address': True},
 	'sandiego': {'display': 'San Diego', 'electric': 'all',
 		'number_first_address': True},
-	'seattle': {'number_first_address': True},
+	'seattle': {'of_interest': True, 'number_first_address': True},
 	'stuttgart': {'electric': 'all'}, 
 	'toronto': {'of_interest': True, 'number_first_address': True},
 	'ulm': {'electric': 'some'},

@@ -41,12 +41,15 @@ def format_address(address, city):
 
 	return ','.join(address_parts)
 
+def format_latlng(ll):
+	return str(ll[1]) + ',' + str(ll[0])
+
 def format_car(car, city):
 	for key in car:
 		if isinstance(car[key], basestring):
 			car[key] = car[key].encode('ascii','xmlcharrefreplace')
 
-	coords = str(car['coordinates'][1]) + ',' + str(car['coordinates'][0])
+	coords = format_latlng(car['coordinates'])
 
 	info = '<section class="sort" data-loc="' + coords + '">'
 	info += '<h3>' + format_address(car['address'], city) + '</h3><p>'
@@ -81,6 +84,19 @@ def format_car(car, city):
 	info += '</section>'
 
 	return info
+
+def format_all_cars_map(city):
+	all_cars,cache = cars.get_electric_cars(city)
+
+	if len(all_cars) == 0:
+		return ''
+
+	coords = list(format_latlng(car['coordinates']) for car in all_cars)
+
+	code = cars.MAPS_MULTI_CODE.replace('{ll}', '|'.join(coords))
+	code = code.replace('{alt}', 'map of all available cars')
+
+	return code
 
 def get_formatted_electric_cars(city):
 	electric_cars,cache = cars.get_electric_cars(city)
@@ -133,6 +149,8 @@ def print_all_html():
 
 	print '<h2>' + str(count) + ' electric car' + plural,
 	print 'currently available in ' + cars.CITIES[requested_city]['display'] + '</h2>'
+
+	print format_all_cars_map(requested_city)
 
 	for car in electric_cars:
 		print car
