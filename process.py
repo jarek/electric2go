@@ -224,17 +224,64 @@ def make_csv(data, city, filename, turn):
 	f.close()
 
 def map_latitude(city, latitudes):
+	# TODO: this is also western hemisphere specific, probably needs abs()
+	# around the MAP_LIMITS - MAP_LIMITS
 	return ((latitudes - MAP_LIMITS[city]['SOUTH']) / \
 		(MAP_LIMITS[city]['NORTH'] - MAP_LIMITS[city]['SOUTH'])) * \
 		MAP_SIZES[city]['MAP_Y']
 
 def map_longitude(city, longitudes):
+	# TODO: same as map_latitude
 	return ((longitudes - MAP_LIMITS[city]['WEST']) / \
 		(MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST'])) * \
 		MAP_SIZES[city]['MAP_X']
 
-def make_graph(data, city, filename, turn, second_filename = False, 
-	show_move_lines = True):
+def make_graph_axes(city, filename):
+	""" Sets up figure area and axes for common properties for a city 
+	to be graphed. The param `filename` is used for logging only. """
+
+	# set up figure area
+
+	global timer
+
+	time_plotsetup_start = time.time()
+	
+	dpi = 80
+ 	# i actually have no idea why this is necessary, but the 
+	# figure sizes are wrong otherwise. ???
+	dpi_adj_x = 0.775
+	dpi_adj_y = 0.8
+
+	# TODO: the two below take ~20 ms. try to reuse
+	f = plt.figure(dpi=dpi)
+	f.set_size_inches(MAP_SIZES[city]['MAP_X']/dpi_adj_x/dpi, \
+			MAP_SIZES[city]['MAP_Y']/dpi_adj_y/dpi)
+
+	# uncomment the second line below to include map directly in plot
+	# processing makes it look a bit worse than the original map - 
+	# so keeping the generated graph transparent and overlaying it 
+	# on source map is a good option too
+	#im = plt.imread(cars.data_dir + 'map.jpg')
+	#implot = plt.imshow(im, origin='lower',aspect='auto')
+
+	# TODO: this takes 50 ms each time. try to reuse the whole set of axes
+	# rather than regenerating it each time
+	plt.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
+
+	# remove visible axes and figure frame
+	ax = plt.gca()
+	ax.axes.get_xaxis().set_visible(False)
+	ax.axes.get_yaxis().set_visible(False)
+	ax.set_frame_on(False)
+
+	timer.append((filename + ': make_graph plot setup, ms',
+		(time.time()-time_plotsetup_start)*1000.0))
+
+	return f,ax
+
+def make_graph_object(data, city, filename, turn, show_move_lines = True):
+	""" Creates and returns the matplotlib figure for the provided data """
+
 	# my lists of latitudes, longitudes, will be at most
 	# as lost as data (when all cars are currently being seen)
 	# and usually around 1/2 - 2/3rd the size. pre-allocating 
@@ -292,42 +339,12 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	timer.append((filename + ': make_graph load, ms',
 		(time.time()-time_load_start)*1000.0))
 
-	time_plotsetup_start = time.time()
-	
-	# set up figure area
-	dpi = 80
- 	# i actually have no idea why this is necessary, but the 
-	# figure sizes are wrong otherwise. ???
-	dpi_adj_x = 0.775
-	dpi_adj_y = 0.8
+	f,ax = make_graph_axes(city, filename)
 
-	# TODO: the two below take ~20 ms. try to reuse
-	f = plt.figure(dpi=dpi)
-	f.set_size_inches(MAP_SIZES[city]['MAP_X']/dpi_adj_x/dpi, \
-			MAP_SIZES[city]['MAP_Y']/dpi_adj_y/dpi)
-
-	# uncomment the second line below to include map directly in plot
-	# processing makes it look a bit worse than the original map - 
-	# so keeping the generated graph transparent and overlaying it 
-	# on source map is a good option too
-	#im = plt.imread(cars.data_dir + 'background.jpg')
-	#implot = plt.imshow(im, origin='lower',aspect='auto')
-
-	# TODO: this takes 50 ms each time. try to reuse
-	plt.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
-
-	timer.append((filename + ': make_graph plot setup, ms',
-		(time.time()-time_plotsetup_start)*1000.0))
 	time_plot_start = time.time()
 
 	plt.plot(longitudes, latitudes, 'b.') 
 	
-	# remove visible axes and figure frame
-	ax = plt.gca()
-	ax.axes.get_xaxis().set_visible(False)
-	ax.axes.get_yaxis().set_visible(False)
-	ax.set_frame_on(False)
-
 	# add in lines for moving vehicles
 	if show_move_lines:
 		for i in range(len(lines_start_lat)):
@@ -348,6 +365,20 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	timer.append((filename + ': make_graph plot, ms',
 		(time.time()-time_plot_start)*1000.0))
 
+	return f
+
+def make_graph(data, city, filename, turn, second_filename = False, 
+	show_move_lines = True):
+	""" Creates and saves matplotlib figure for provided data. 
+	If second_filename is specified, also copies the saved file to 
+	second_filename. """
+
+	global timer
+
+	time_total_start = time.time()
+
+	f = make_graph_object(data, city, filename, turn, show_move_lines)
+
 	time_save_start = time.time()
 
 	# saving as .png takes about 130-150 ms
@@ -358,7 +389,7 @@ def make_graph(data, city, filename, turn, second_filename = False,
 	# possibly making it a moot point
 	image_first_filename = filename + '.png'
 	plt.savefig(image_first_filename, bbox_inches='tight', pad_inches=0, 
-		dpi=dpi, transparent=True)
+		dpi=80, transparent=True)
 
 	# if requested, also save with iterative filenames for ease of animation
 	if not second_filename == False:
@@ -369,7 +400,7 @@ def make_graph(data, city, filename, turn, second_filename = False,
 		(time.time()-time_save_start)*1000.0))
 
 	timer.append((filename + ': make_graph total, ms',
-		(time.time()-time_init_start)*1000.0))
+		(time.time()-time_total_start)*1000.0))
 
 def get_stats(car_data):
 	# TODO: localize this, these are vancouver specific
@@ -411,6 +442,13 @@ def batch_process(city, starting_time, make_iterations = True, \
 
 	i = 1
 	t = starting_time
+	# TODO: the directory handling code is actually all kinds of messed up
+	# any prefixed directory that is not data/ is chopped off silently
+	# in batch_process and ignored. should change append_data_dir to be
+	# append_dir or similar and hold the directory name. note that 
+	# filename is not passed from batch_process into here, only city, 
+	# starting time, and append_data_dir, and I then attempt to reconstruct
+	# paths here - less than sucessfully for directories other than data/.
 	filepath = get_filepath(city, starting_time, append_data_dir)
 
 	animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
