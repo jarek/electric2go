@@ -1,3 +1,5 @@
+/*notmuchhere*/
+
 function get_location() {
 	try {
 		// enableHighAccuracy is left to default to false
@@ -10,7 +12,7 @@ function get_location() {
 	}
 }
 
-function handle_error(err) {
+function handle_error() {
 	// do nothing. fallback is default ordering, which is acceptable
 }
 
@@ -24,56 +26,64 @@ function order_cars(position) {
 		var car_list = document.querySelectorAll(".sort");
 		var cars = [];
 		for (var i = 0; i < car_list.length; i++) {
-			car_latlng = car_list[i].getAttribute("data-loc")
+			var car_latlng = car_list[i].getAttribute("data-loc")
 				.split(",");
-			cars.push([calculate_distance(user_lat, user_lng,
-				car_latlng[0], car_latlng[1]), car_list[i]]);
+			var car_dist = calculate_distance(user_lat, user_lng,
+				car_latlng[0], car_latlng[1]);
+
+			cars.push([ car_dist, car_list[i] ]);
 		}
 
-		// sort based on distance
+		// sort based on distance - distance is stored in cars[i][0]
 		cars.sort(function(a, b) {
-			a = a[0];
-			b = b[0];
-			return a < b ? -1 : (a > b ? 1 : 0);
-		})
+			var dst_a = a[0];
+			var dst_b = b[0];
+			return dst_a < dst_b ? -1 : (dst_a > dst_b ? 1 : 0);
+		});
 
-		// sort list of cars based on distance,
-		// and add in the approx distance
+		// sort list of cars in the DOM by approx distance,
+		// and add it into the DOM using the template message
 		for (var i = 0; i < cars.length; i++) {
-			var dist = cars[i][0];
-			var para = cars[i][1];
+			var dist = cars[i][0]; // the distance
+			var para = cars[i][1]; // the DOM object with car info
 
 			if (cars.length > 1) {
-				// sort the list
+				// if .length is 1 or 0, no sorting is required
+
 				var parent = para.parentNode;
+				var prev;
 
-				if (i == 0)
-					// cars[1] is guaranteed to exist now
-					var prev = cars[1][1];
-				else
-					var prev = cars[i-1][1];
-
-				// removes it wherever it was and appends 
-				// in new order. first one gets appended 
-				// wherever as long as it's within the list
-				// (here, after the next one), and the rest are
+				// remove objects, wherever they are, and
+				// append them in in new order.
+				// first one (i === 0) is appended wherever,
+				// as long as it's within the list (here,
+				// after the second one), and the rest are
 				// appended after it in order
 
 				// doing it this way allows having the list 
 				// in DOM root, next to header/footer, without
 				// requiring a wrapping element
+
+				if (i === 0) {
+					// cars[1] exists since .length is > 1
+					prev = cars[1][1];
+				} else {
+					prev = cars[i-1][1];
+				}
+
 				parent.removeChild(para);
 				parent.insertBefore(para, prev.nextSibling);
 			}
 
+			// add distance information for each car
 			var dist_span = para.querySelectorAll(".distance")[0];
 			var dist_str = dist_span.getAttribute("data-template");
-			// also trim distance to one decimal digit
+			// trim distance to one decimal digit
 			dist_str = dist_str.replace("{dist}", dist.toFixed(1));
 			dist_span.innerHTML = dist_str;
 		}
 	} catch (err) {
-		// fail silently
+		// fail silently - this is only an enhancement
 	}
 }
 
