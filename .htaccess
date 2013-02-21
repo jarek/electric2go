@@ -1,1 +1,6 @@
 DirectoryIndex index.py
+
+<Files oauth_key>
+	Order allow,deny
+	Deny from all
+</Files>
