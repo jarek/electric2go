@@ -88,7 +88,10 @@ def format_car(car, city):
 def format_all_cars_map(city):
 	all_cars,cache = cars.get_electric_cars(city)
 
-	if len(all_cars) == 0:
+	if len(all_cars) < 2:
+		# Don't show map if there's no cars.
+		# Also don't show map is there's just one car - the map shown
+		# with the rest of car info will be above fold or quite high.
 		return ''
 
 	coords = list(format_latlng(car['coordinates']) for car in all_cars)
