@@ -17,6 +17,7 @@ MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=
 MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&sensor=false" alt="{alt}" />'.replace('&', '&amp;')
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
+DATA_COLLECTION_INTERVAL_MINUTES = 5 # used in download.py, process.py
 
 CITIES = {
 	'amsterdam': {'electric': 'all'},

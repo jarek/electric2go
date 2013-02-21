@@ -492,9 +492,9 @@ def batch_process(city, starting_time, make_iterations = True, \
 		timer.append((filepath + ': make_graph, ms',
 			(time.time()-time_graph_start)*1000.0))
 
-		# next, look five minutes from now
+		# next, look five minutes from now (value stored in cars.py)
 		i = i + 1
-		t = t + timedelta(0, 5*60)
+		t = t + timedelta(0, cars.DATA_COLLECTION_INTERVAL_MINUTES*60)
 		filepath = get_filepath(city, t, file_dir)
 
 		timer.append((filepath + ': total, ms',

@@ -22,7 +22,8 @@ for city in cities:
 	print >> f, cars_text
 	f.close()
 
-	if cars.CITIES[city]['of_interest'] == True and t.minute % 5 == 0:
+	if cars.CITIES[city]['of_interest'] == True \
+		and t.minute % cars.DATA_COLLECTION_INTERVAL_MINUTES == 0:
 		filename = cars.filename_format % (city, \
 			t.year, t.month, t.day, t.hour, t.minute)
 		f = open(cars.data_dir + filename, 'w')
