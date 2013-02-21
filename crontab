@@ -1,4 +1,4 @@
 # sample crontab entry. replace the ellipses with actual path
 
-*/2 * * * * python .../electric2go/download.py all >> .../electric2go/data/cronlog
+*/1 * * * * python .../electric2go/download.py all >> .../electric2go/data/cronlog
 

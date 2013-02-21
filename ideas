@@ -38,3 +38,14 @@ trace.cleanness:
 	somehow visualize cars that went from indicated 'unacceptable'
 	cleanness rating back to 'good'. see how often and where that happens!
 
+more visualization ideas:
+	all of a day's / period's move lines rendered into one image, with
+	no location points or underlying map. see if you can identify cities
+	or gain any particularly deep insight
+
+	similarly, all location points during a day/week with no underlying
+	map, with or without move lines. see how much data is needed until 
+	you can visually identify the city, if at all
+
+	could be almost art~~~
+
