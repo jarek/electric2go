@@ -37,17 +37,15 @@ MAP_LIMITS = {
 		'WEST': -79.50168
 	},
 	'vancouver': {
-		# according to home area json, this is actually
-		# (49.295673, 49.224716, -123.04207, -123.21545)
-		# but I've picked out map sizes and everything according to the
-		# coordinates below, so i'll keep them for now, at least until
-		# a major update of Vancouver-specific code
-		'NORTH': 49.295,
-		'SOUTH': 49.224,
-		'EAST':  -123.04,
+		'NORTH': 49.336, # exact value 49.335735
+		'SOUTH': 49.224, # exact value 49.224716
+		'EAST':  -123.031, # exact value -123.03196
 		'WEST':  -123.252
-		# there's also parkspots in Richmond and Langley.
-		# I think I will ignore them to make map more compact.
+		# limit of home area is -123.21545; westernmost parking spot 
+		# at UBC is listed as centered on -123.2515
+		
+		# there's also parkspots in Richmond and Langley,
+		# I am ignoring them to make map more compact.
 	}
 }
 
@@ -70,9 +68,9 @@ DEGREE_LENGTHS = {
 		'LENGTH_OF_LONGITUDE': 80609.20
 	},
 	'vancouver': {
-		# for latitude 49.25
-		'LENGTH_OF_LATITUDE': 111214.54,
-		'LENGTH_OF_LONGITUDE': 72804.85
+		# for latitude 49.28
+		'LENGTH_OF_LATITUDE': 111215.12,
+		'LENGTH_OF_LONGITUDE': 72760.72
 	}
 }
 
@@ -97,10 +95,10 @@ MAP_SIZES = {
 		'MAP_Y' : 615
 	},
 	'vancouver': {
-		# 508/991 / (49.295-49.224)/(123.252-123.04) ~= 111214.54 / 72804.85
-		# 0.512613522 / 0.33490566 = 1.530620659 ~= 1.527570485
+		# 770/991 / (49.336-49.224)/(123.252-123.031) ~= 111215.12 / 72760.72
+		# 0.776992936 / 0.50678733 = 1.533173562 ~= 1.528504941
 		'MAP_X' : 991,
-		'MAP_Y' : 508
+		'MAP_Y' : 770
 	}
 }
 
@@ -133,11 +131,11 @@ LABELS = {
 		]
 	},
 	'vancouver': {
-		'fontsize': 10,
+		'fontsize': 15,
 		'lines': [
-			(10, MAP_SIZES['vancouver']['MAP_Y'] - 20),
-			(10, MAP_SIZES['vancouver']['MAP_Y'] - 40),
-			(10, MAP_SIZES['vancouver']['MAP_Y'] - 60)
+			(20, MAP_SIZES['vancouver']['MAP_Y']*0.667 + 60),
+			(20, MAP_SIZES['vancouver']['MAP_Y']*0.667 + 30),
+			(20, MAP_SIZES['vancouver']['MAP_Y']*0.667)
 		]
 	}
 }
