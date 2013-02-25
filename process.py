@@ -405,31 +405,6 @@ def make_graph(data, city, first_filename, turn, second_filename = False,
 	timer.append((log_name + ': make_graph total, ms',
 		(time.time()-time_total_start)*1000.0))
 
-def get_stats(car_data):
-	# TODO: localize this, these are vancouver specific
-	lat_max = 40
-	lat_min = 55
-	long_max = -125
-	long_min = -120
-
-	for car in car_data:
-		lat = car['coordinates'][1]
-		lng = car['coordinates'][0]
-
-		if lat > lat_max:
-			lat_max = lat
-
-		if lat < lat_min:
-			lat_min = lat
-		
-		if lng > long_max:
-			long_max = lng
-		
-		if lng < long_min:
-			long_min = lng
-
-	return lat_min, lat_max, long_min, long_max
-
 def batch_process(city, starting_time, make_iterations = True, \
 	show_move_lines = True, max_files = False, file_dir = ''):
 
@@ -470,9 +445,6 @@ def batch_process(city, starting_time, make_iterations = True, \
 		timer.append((filepath + ': process_data, ms',
 			 (time.time()-time_process_start)*1000.0))
 		
-		stats = get_stats(json_data)
-		#print 'lat range: ' + str(stats[0]) + ' - ' + str(stats[1]),
-		#print 'lng range: ' + str(stats[2]) + ' - ' + str(stats[3])
 		print
 
 		second_filename = False
