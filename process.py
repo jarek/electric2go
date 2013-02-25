@@ -7,6 +7,7 @@ import os
 import sys
 import argparse
 import math
+import copy
 import time
 import shutil
 import simplejson as json
@@ -140,25 +141,80 @@ LABELS = {
 	}
 }
 
+# speed ranges are designated as: 0-5; 5-15; 15-30; 30+
+SPEED_CUTOFFS = [5, 15, 30, float('inf')]
+SPEED_COLOURS = ['r', 'y', 'g', 'b']
+
 timer = []
 DEBUG = False
 
 
-def process_data(json_data, data_time = None, previous_data = {}):
+def process_data(json_data, data_time = None, previous_data = {}, \
+	show_speeds = False, hold_for = 0, **extra_args):
+
+	args = locals()
+	
+	def dist(ll1, ll2):
+		# adapted from http://www.movable-type.co.uk/scripts/latlong.html
+		# see also http://stackoverflow.com/questions/27928/how-do-i-calculate-distance-between-two-latitude-longitude-points
+		# the js equivalent is used in sort.js - any changes
+		# should be reflected in both
+		def deg2rad(deg):
+			return deg * (math.pi/180.0)
+
+		R = 6371 # Radius of the earth in km
+		dLat = deg2rad(ll2[0]-ll1[0])
+		dLon = deg2rad(ll2[1]-ll1[1])
+
+		a = math.sin(dLat/2) * math.sin(dLat/2) + \
+			math.cos(deg2rad(ll1[0])) * math.cos(deg2rad(ll2[0])) * \
+			math.sin(dLon/2) * math.sin(dLon/2)
+
+		c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+		d = R * c # Distance in km
+		return d
+
 	data = previous_data
 	moved_cars = []
 
-	for car in data:
+	for vin in data.keys():
+		# if requested, save old state first, for up to HOLD_ON copies
+		if hold_for > 0 and vin.find('_') < 0:
+			# first move cache items back. 1 becomes 2, 0 becomes 1
+			for i in reversed(range(1, hold_for)):
+				# for hold_for=3 will do 2,1
+				curr = str(i) + '_' + vin # current key
+				prev = str(i-1) + '_' + vin # previous key
+
+				if prev in data:
+					data[curr] = copy.deepcopy(data[prev])
+			
+			# then 0 comes straight from the vehicle being cached
+			data['0_' + vin] = copy.deepcopy(data[vin])
+	
 		# need to reset out status for cases where cars are picked up 
 		# (and therefore disappear from json_data) before two cycles 
 		# of process_data. otherwise their just_moved is never updated.
 		# if necessary, just_moved will be set to true later
-		data[car]['just_moved'] = False
-	
+		if vin.find('_') < 0:
+			# except exclude 'held' points from just_moved clearing
+			data[vin]['just_moved'] = False
+
 	for car in json_data:
-		vin = car['vin']
-		lat = car['coordinates'][1]
-		lng = car['coordinates'][0]
+		if 'vin' in car:
+			vin = car['vin']
+			lat = car['coordinates'][1]
+			lng = car['coordinates'][0]
+			time = data_time
+		elif 'VehicleNo' in car:
+			vin = car['VehicleNo']
+			lat = car['Latitude']
+			lng = car['Longitude']
+			time = datetime.strptime(car['RecordedTime'], \
+				'%I:%M:%S %p')
+		else:
+			# no recognized data in this file
+			continue
 
 		if vin in previous_data:
 			if not (data[vin]['coords'][0] == lat and data[vin]['coords'][1] == lng):
@@ -168,18 +224,28 @@ def process_data(json_data, data_time = None, previous_data = {}):
 				data[vin]['just_moved'] = True
 
 				data[vin]['coords'] = [lat, lng]
-				data[vin]['seen'] = data_time
+				data[vin]['seen'] = time
+
+				if show_speeds is True:
+					# the distance calculation might be 
+					# particularly cpu intensive, 
+					# so only do if it requested
+					t_span = time - data[vin]['prev_seen']
+					t_span = t_span.total_seconds() / 3600.0
+					if t_span > 0:
+						data[vin]['distance'] = dist(data[vin]['coords'], data[vin]['prev_coords'])
+						data[vin]['speed'] = data[vin]['distance']/t_span
 
 				moved_cars.append(vin)
 				#print vin + ' moved from ' + str(data[vin]['prev_coords']) + ' to ' + str(data[vin]['coords'])
 				
 			else:
 				# car has not moved from last known position. just update time last seen
-				data[vin]['seen'] = data_time
+				data[vin]['seen'] = time
 				data[vin]['just_moved'] = False
 		else:
 			# 'new' car showing up, initialize it
-			data[vin] = {'coords': [lat, lng], 'seen': data_time, 'just_moved': False}
+			data[vin] = {'coords': [lat, lng], 'seen': time, 'just_moved': False}
 
 	return data,moved_cars
 
@@ -277,9 +343,12 @@ def make_graph_axes(city, log_name = ''):
 
 	return f,ax
 
-def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
+def make_graph_object(data, city, turn, show_move_lines = True, \
+	show_speeds = False, symbol = '.', log_name = '', **extra_args):
 	""" Creates and returns the matplotlib figure for the provided data.
 	The param `log_name` is used for logging only. """
+
+	args = locals()
 
 	# my lists of latitudes, longitudes, will be at most
 	# as lost as data (when all cars are currently being seen)
@@ -304,6 +373,11 @@ def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
 	lines_end_lat = []
 	lines_end_lng = []
 
+	speeds = []
+	for i in range(len(SPEED_CUTOFFS)):
+		# create the necessary amount of [lat, lng] baskets
+		speeds.append( [ [], [] ] )
+
 	car_count = 0
 
 	timer.append((log_name + ': make_graph init, ms',
@@ -312,10 +386,28 @@ def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
 	time_load_start = time.time()
 
 	for car in data:
-		if data[car]['seen'] == turn:
+		if data[car]['seen'] == turn or data[car]['just_moved']:
+			# The second condition is for buses, where positions
+			# are not logged exactly on the turn. 
+			# Since they're pretty much continuously moving except
+			# in really really bad traffic, this is an acceptable
+			# workaround.
+			# Note that cars that aren't moving have just_moved 
+			# set to false in process_data.
 			if is_latlng_in_bounds(city, data[car]['coords']):
 				latitudes[car_count] = data[car]['coords'][0]
 				longitudes[car_count] = data[car]['coords'][1]
+
+				if 'speed' in data[car]:
+					# find the right speed basket
+					i = 0
+					while i < len(speeds):
+						if data[car]['speed'] < SPEED_CUTOFFS[i]:
+							speeds[i][0].append(data[car]['coords'][0])
+							speeds[i][1].append(data[car]['coords'][1])
+							i = len(speeds) # break loop
+						else:
+							i = i + 1
 
 			car_count = car_count + 1
 
@@ -335,6 +427,11 @@ def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
 	lines_end_lat = map_latitude(city, np.array(lines_end_lat))
 	lines_end_lng = map_longitude(city, np.array(lines_end_lng))
 
+	if show_speeds:
+		for i in range(len(speeds)):
+			speeds[i][0] = map_latitude(city, np.array(speeds[i][0]))
+			speeds[i][1] = map_longitude(city, np.array(speeds[i][1]))
+
 	timer.append((log_name + ': make_graph load, ms',
 		(time.time()-time_load_start)*1000.0))
 
@@ -342,8 +439,15 @@ def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
 
 	time_plot_start = time.time()
 
-	plt.plot(longitudes, latitudes, 'b.') 
-	
+	if show_speeds is False:
+		plt.plot(longitudes, latitudes, 'b' + symbol)
+	else:
+		for i in range(len(speeds)):
+			# TODO: try to plot those with on bottom, under newer 
+			# points. might require changes a couple of lines above
+			# instead. reverse alphabetical sort by key?
+			plt.plot(speeds[i][1], speeds[i][0], SPEED_COLOURS[i] + symbol)
+
 	# add in lines for moving vehicles
 	if show_move_lines:
 		for i in range(len(lines_start_lat)):
@@ -366,11 +470,14 @@ def make_graph_object(data, city, turn, show_move_lines = True, log_name = ''):
 
 	return f
 
-def make_graph(data, city, first_filename, turn, second_filename = False, 
-	show_move_lines = True):
+def make_graph(data, city, first_filename, turn, second_filename = False, \
+	show_move_lines = True, show_speeds = False, symbol = '.', \
+	**extra_args):
 	""" Creates and saves matplotlib figure for provided data. 
 	If second_filename is specified, also copies the saved file to 
 	second_filename. """
+
+	args = locals()
 
 	global timer
 
@@ -379,8 +486,9 @@ def make_graph(data, city, first_filename, turn, second_filename = False,
 	# use a different variable name for clarity where it'll be used only
 	# for logging rather than actually accessing/creating files
 	log_name = first_filename
+	args['log_name'] = first_filename
 
-	f = make_graph_object(data, city, turn, show_move_lines, log_name)
+	f = make_graph_object(**args)
 
 	time_save_start = time.time()
 
@@ -406,7 +514,12 @@ def make_graph(data, city, first_filename, turn, second_filename = False,
 		(time.time()-time_total_start)*1000.0))
 
 def batch_process(city, starting_time, make_iterations = True, \
-	show_move_lines = True, max_files = False, file_dir = ''):
+	show_move_lines = True, max_files = False, file_dir = '', \
+	time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
+	show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
+	**extra_args):
+
+	args = locals()
 
 	global timer, DEBUG
 
@@ -436,17 +549,19 @@ def batch_process(city, starting_time, make_iterations = True, \
 		f = open(filepath, 'r')
 		json_text = f.read()
 		f.close()
-		json_data = json.loads(json_text).get('placemarks')
+		json_data = json.loads(json_text)
 
-		saved_data,moved_cars = process_data(json_data, t, saved_data)
+		if 'placemarks' in json_data:
+			json_data = json_data['placemarks']
+
+		saved_data,moved_cars = process_data(json_data, t, saved_data,
+			**args)
 		print 'total known: %d' % len(saved_data),
-		print 'moved: %02d' % len(moved_cars),
+		print 'moved: %02d' % len(moved_cars)
 
 		timer.append((filepath + ': process_data, ms',
 			 (time.time()-time_process_start)*1000.0))
 		
-		print
-
 		second_filename = False
 		if make_iterations:
 			second_filename = animation_files_prefix + '_' + \
@@ -455,16 +570,16 @@ def batch_process(city, starting_time, make_iterations = True, \
 		time_graph_start = time.time()
 
 		#make_csv(saved_data, city, filepath, t)
-		make_graph(saved_data, city, filepath, t, 
-			second_filename = second_filename, 
-			show_move_lines = show_move_lines)
+		make_graph(data = saved_data, first_filename = filepath, 
+			turn = t, second_filename = second_filename, **args)
 
 		timer.append((filepath + ': make_graph, ms',
 			(time.time()-time_graph_start)*1000.0))
 
-		# next, look five minutes from now (value stored in cars.py)
+		# find next file according to provided time_stemp (or default,
+		# which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
 		i = i + 1
-		t = t + timedelta(0, cars.DATA_COLLECTION_INTERVAL_MINUTES*60)
+		t = t + timedelta(0, time_step*60)
 		filepath = get_filepath(city, t, file_dir)
 
 		timer.append((filepath + ': total, ms',
@@ -490,15 +605,19 @@ def batch_process(city, starting_time, make_iterations = True, \
 	# show info for cars that had just stopped moving in the last dataset
 	print '\njust stopped on ' + str(t) + ':'
 	for vin in moved_cars:
-		travel_time = saved_data[vin]['seen'] - saved_data[vin]['prev_seen']
+		travel_time = (saved_data[vin]['seen'] -
+				saved_data[vin]['prev_seen']).total_seconds()
 		lat1,lng1 = saved_data[vin]['prev_coords']
 		lat2,lng2 = saved_data[vin]['coords']
-		dist = math.sqrt( (lat2-lat1)**2 + (lng2-lng1)**2 )
 		print vin,
 		print 'start: ' + str(lat1) + ',' + str(lng1),
 		print 'end: ' + str(lat2) + ',' + str(lng2),
 		print '\ttime: ' + str(travel_time),
-		print 'distance: ' + str(dist)
+		if 'distance' in saved_data[vin]:
+			print '\tdistance: ' + str(saved_data[vin]['distance']),
+		if 'speed' in saved_data[vin]:
+			print '\tspeed: ' + str(saved_data[vin]['speed']),
+		print
 
 	pass
 
@@ -511,21 +630,37 @@ def process_commandline():
 	parser.add_argument('-noiter', '--no-iter', action='store_true', 
 		help='do not create iterative-named files intended to make animating easier')
 	parser.add_argument('-nolines', '--no-lines', action='store_true',
-		help='do not show lines indicating cars\' moves')
+		help='do not show lines indicating vehicles\' moves')
 	parser.add_argument('-max', '--max-files', type=int, default=False,
 		help='limit maximum amount of files to process')
+	parser.add_argument('-step', '--time-step', type=int,
+		default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
+		help='analyze data for every TIME_STEP minutes (default %i)' %
+			cars.DATA_COLLECTION_INTERVAL_MINUTES)
+	parser.add_argument('-speeds', '--show_speeds', action='store_true', 
+		help='indicate vehicles\' speeds in addition to locations') 
+	parser.add_argument('-hold', '--hold-for', type=int, default=0,
+		help='keep drawn points on the map for HOLD_FOR rounds after \
+			they would have disappeared')
+	parser.add_argument('-symbol', type=str, default='.',
+		help='matplotlib symbol to indicate vehicles on the graph \
+			(default \'.\', larger \'o\')')
+	parser.add_argument('-buses', action='store_true', 
+		help='presets for graphing Translink bus movements, \
+			equivalent to -speeds -hold=3 -symbol o')
 	parser.add_argument('-debug', action='store_true',
 		help='print extra debug and timing messages')
 
 	args = parser.parse_args()
+	params = vars(args)
 
-	filename = args.starting_filename.lower()
 	DEBUG = args.debug
+	filename = args.starting_filename
 
 	city,starting_time = filename.rsplit('_', 1)
 
 	# strip off directory, if any.
-	file_dir,city = os.path.split(city)
+	file_dir,city = os.path.split(city.lower())
 
 	if not os.path.exists(filename):
 		if os.path.exists(os.path.join(cars.data_dir, filename)):
@@ -547,11 +682,19 @@ def process_commandline():
 		print 'time format not recognized: ' + filename
 		return
 
-	batch_process(city, starting_time, \
-		make_iterations = not args.no_iter, \
-		show_move_lines = not args.no_lines, \
-		max_files = args.max_files, \
-		file_dir = file_dir)
+	params['starting_time'] = starting_time
+	params['make_iterations'] = not args.no_iter
+	params['show_move_lines'] = not args.no_lines
+
+	params['city'] = city
+	params['file_dir'] = file_dir
+
+	if args.buses is True:
+		params['symbol'] = 'o'
+		params['hold_for'] = 3
+		params['show_speeds'] = True
+
+	batch_process(**params)
 
 
 if __name__ == '__main__':
