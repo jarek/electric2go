@@ -19,6 +19,20 @@ import cars
 KNOWN_CITIES = ['calgary', 'seattle', 'toronto', 'vancouver']
 
 MAP_LIMITS = {
+    'berlin': {
+        # rudimentary values for testing is_latlng_in_bounds function
+        'NORTH': 53,
+        'SOUTH': 52,
+        'EAST': 14,
+        'WEST': 13
+    },
+    'buenosaires': {
+        # rudimentary values for an unsupported city for testing
+        'NORTH': -34,
+        'SOUTH': -35,
+        'EAST': -58,
+        'WEST': -59
+    },
     'calgary': {
         'NORTH': 51.088425,
         'SOUTH': 50.984936,
@@ -77,6 +91,11 @@ DEGREE_LENGTHS = {
 
 MAP_SIZES = {
     # all these ratios are connected
+    'berlin': {
+        # fake values for testing
+        'MAP_X': 991,
+        'MAP_Y': 800
+    },
     'calgary': {
         # 978/991 / (51.088425-50.984936)/(114.16401-113.997314) ~= 111249.00 / 70137.28
         # 0.986881937 / 0.620824735 = 1.589630505 ~= 1.586160741
@@ -269,7 +288,6 @@ def is_latlng_in_bounds(city, lat, lng = False):
         lng = lat[1]
         lat = lat[0]
 
-    # TODO: currently these are north- and west-hemisphere specific
     is_lat = MAP_LIMITS[city]['SOUTH'] <= lat <= MAP_LIMITS[city]['NORTH']
     is_lng = MAP_LIMITS[city]['WEST'] <= lng <= MAP_LIMITS[city]['EAST']
 
@@ -288,14 +306,11 @@ def make_csv(data, city, filename, turn):
     f.close()
 
 def map_latitude(city, latitudes):
-    # TODO: this is also western hemisphere specific, probably needs abs()
-    # around the MAP_LIMITS - MAP_LIMITS
     return ((latitudes - MAP_LIMITS[city]['SOUTH']) / \
         (MAP_LIMITS[city]['NORTH'] - MAP_LIMITS[city]['SOUTH'])) * \
         MAP_SIZES[city]['MAP_Y']
 
 def map_longitude(city, longitudes):
-    # TODO: same as map_latitude
     return ((longitudes - MAP_LIMITS[city]['WEST']) / \
         (MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST'])) * \
         MAP_SIZES[city]['MAP_X']
