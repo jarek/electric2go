@@ -363,6 +363,7 @@ def make_graph_axes(city, background = False, log_name = ''):
 
 def make_graph_object(data, city, turn, show_move_lines = True, \
     show_speeds = False, symbol = '.', log_name = '', background = False,
+    time_offset = 0,
     **extra_args):
     """ Creates and returns the matplotlib figure for the provided data.
     The param `log_name` is used for logging only. """
@@ -471,14 +472,15 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     if show_move_lines:
         for i in range(len(lines_start_lat)):
             l = plt.Line2D([lines_start_lng[i], lines_end_lng[i]], \
-                [lines_start_lat[i], lines_end_lat[i]], color='grey')
+                [lines_start_lat[i], lines_end_lat[i]], color = '#aaaaaa')
             ax.add_line(l)
 
     # add labels
     fontsize = LABELS[city]['fontsize']
+    printed_time = turn + timedelta(0, time_offset*3600)
     ax.text(LABELS[city]['lines'][0][0], LABELS[city]['lines'][0][1], \
         cars.CITIES[city]['display'] + ' ' + \
-        turn.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
+        printed_time.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
     ax.text(LABELS[city]['lines'][1][0], LABELS[city]['lines'][1][1], \
         'available cars: %d' % car_count, fontsize=fontsize)
     ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
@@ -491,7 +493,7 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
 
 def make_graph(data, city, first_filename, turn, second_filename = False, \
     show_move_lines = True, show_speeds = False, symbol = '.', \
-    background = False, \
+    background = False, time_offset = 0, \
     **extra_args):
     """ Creates and saves matplotlib figure for provided data. 
     If second_filename is specified, also copies the saved file to 
@@ -535,7 +537,7 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
 
 def make_accessibility_graph(data, city, first_filename, turn, distance, \
     second_filename = False, show_move_lines = True, show_speeds = False, \
-    symbol = '.', **extra_args):
+    symbol = '.', time_offset = 0, **extra_args):
 
     args = locals()
 
@@ -586,7 +588,7 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     time_preprocess_start = time.time()
 
     accessible_colour = (255, 255, 255, 0) # white, fully transparent
-    inaccessible_colour = (239, 239, 239, 180) # #efefef, slightly transparent
+    inaccessible_colour = (239, 239, 239, 100) # #efefef, mostly transparent
 
     # generate basic background, for now uniformly indicating no cars available
     markers = np.empty(
@@ -701,7 +703,7 @@ def batch_process(city, starting_time, make_iterations = True, \
     show_move_lines = True, max_files = False, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
-    distance = False,
+    distance = False, time_offset = 0, \
     **extra_args):
 
     args = locals()
@@ -818,6 +820,8 @@ def process_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('starting_filename', type=str,
         help='name of first file to process')
+    parser.add_argument('-tz', '--time-offset', type=int, default=0,
+        help='offset times shown on graphs by TIME_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
         help='mark distance of DISTANCE meters from nearest car on map')
     parser.add_argument('-noiter', '--no-iter', action='store_true', 
