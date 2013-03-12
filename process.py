@@ -13,6 +13,7 @@ import shutil
 import simplejson as json
 import matplotlib.pyplot as plt
 import numpy as np
+import Image
 import cars
 
 
@@ -315,7 +316,7 @@ def map_longitude(city, longitudes):
         (MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST'])) * \
         MAP_SIZES[city]['MAP_X']
 
-def make_graph_axes(city, log_name = ''):
+def make_graph_axes(city, background = False, log_name = ''):
     """ Sets up figure area and axes for common properties for a city 
     to be graphed. The param `log_name` is used for logging only. """
 
@@ -336,12 +337,14 @@ def make_graph_axes(city, log_name = ''):
     f.set_size_inches(MAP_SIZES[city]['MAP_X']/dpi_adj_x/dpi, \
             MAP_SIZES[city]['MAP_Y']/dpi_adj_y/dpi)
 
-    # uncomment the second line below to include map directly in plot
-    # processing makes it look a bit worse than the original map - 
-    # so keeping the generated graph transparent and overlaying it 
-    # on source map is a good option too
-    #im = plt.imread(os.path.join(cars.data_dir, 'map.jpg'))
-    #implot = plt.imshow(im, origin='lower',aspect='auto')
+    if isinstance(background, basestring) and os.path.exists(background):
+        # matplotlib's processing makes the image look a bit worse than 
+        # the original map - so keeping the generated graph transparent 
+        # and overlaying it on source map post-render is a good option too
+        background = plt.imread(background)
+
+    if background:
+        implot = plt.imshow(background, origin = 'lower', aspect = 'auto')
 
     # TODO: this takes 50 ms each time. try to reuse the whole set of axes
     # rather than regenerating it each time
@@ -359,7 +362,8 @@ def make_graph_axes(city, log_name = ''):
     return f,ax
 
 def make_graph_object(data, city, turn, show_move_lines = True, \
-    show_speeds = False, symbol = '.', log_name = '', **extra_args):
+    show_speeds = False, symbol = '.', log_name = '', background = False,
+    **extra_args):
     """ Creates and returns the matplotlib figure for the provided data.
     The param `log_name` is used for logging only. """
 
@@ -450,7 +454,7 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     timer.append((log_name + ': make_graph load, ms',
         (time.time()-time_load_start)*1000.0))
 
-    f,ax = make_graph_axes(city, log_name)
+    f,ax = make_graph_axes(city, background, log_name)
 
     time_plot_start = time.time()
 
@@ -487,6 +491,7 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
 
 def make_graph(data, city, first_filename, turn, second_filename = False, \
     show_move_lines = True, show_speeds = False, symbol = '.', \
+    background = False, \
     **extra_args):
     """ Creates and saves matplotlib figure for provided data. 
     If second_filename is specified, also copies the saved file to 
@@ -528,10 +533,175 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
     timer.append((log_name + ': make_graph total, ms',
         (time.time()-time_total_start)*1000.0))
 
+def make_accessibility_graph(data, city, first_filename, turn, distance, \
+    second_filename = False, show_move_lines = True, show_speeds = False, \
+    symbol = '.', **extra_args):
+
+    args = locals()
+
+    global timer
+
+    time_total_start = time.time()
+
+    # use a different variable name for clarity where it'll be used only
+    # for logging rather than actually accessing/creating files
+    log_name = first_filename
+    args['log_name'] = first_filename
+
+    time_data_read_start = time.time()
+
+    # TODO: strictly speaking the iteration over data is copied and duplicated 
+    # from make_graph_object(). The perf penalty is unlikely to be large, but
+    # maintenance might be a pain should I want to change it in 
+    # make_graph_object(). So try to reorganize code to fix any duplications.
+
+    max_length = len(data)
+    car_count = 0
+    latitudes = np.empty(max_length)
+    longitudes = np.empty(max_length)
+
+    for car in data:
+        if data[car]['seen'] == turn or data[car]['just_moved']:
+            if is_latlng_in_bounds(city, data[car]['coords']):
+                latitudes[car_count] = data[car]['coords'][0]
+                longitudes[car_count] = data[car]['coords'][1]
+
+                car_count += 1
+
+    latitudes = np.round(map_latitude(city, latitudes[:car_count]))
+    longitudes = np.round(map_longitude(city, longitudes[:car_count]))
+
+    timer.append((log_name + ': make_accessibility_graph data read, ms',
+        (time.time()-time_data_read_start)*1000.0))
+
+    # The below is based off http://stackoverflow.com/questions/8647024/how-to-apply-a-disc-shaped-mask-to-a-numpy-array
+    # Basically, we build a True/False mask (master_mask) the same size 
+    # as the map. Each 'pixel' within the mask indicates whether the point 
+    # is within provided distance from a car.
+    # To build this, iterate over all cars and apply a circular mask of Trues
+    # (circle_mask) around the point indicating each car. We'll need to shift 
+    # things around near the borders of the map, but this is relatively
+    # straighforward.
+
+    time_preprocess_start = time.time()
+
+    accessible_colour = (255, 255, 255, 0) # white, fully transparent
+    inaccessible_colour = (239, 239, 239, 180) # #efefef, slightly transparent
+
+    # generate basic background, for now uniformly indicating no cars available
+    markers = np.empty(
+        (MAP_SIZES[city]['MAP_Y'], MAP_SIZES[city]['MAP_X'], 4),
+        dtype = np.uint8)
+    markers[:] = inaccessible_colour # can't use fill since it isn't a scalar
+
+    # find distance radius, in pixels
+    # take mean of latitude- and longitude-based numbers, 
+    # which is not quite correct but more than close enough
+    lat = MAP_LIMITS[city]['NORTH'] - MAP_LIMITS[city]['SOUTH']
+    lat_in_m = lat * DEGREE_LENGTHS[city]['LENGTH_OF_LATITUDE']
+    pixel_in_lat_m = lat_in_m / MAP_SIZES[city]['MAP_Y']
+
+    lng = MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST']
+    lng_in_m = lng * DEGREE_LENGTHS[city]['LENGTH_OF_LONGITUDE']
+    pixel_in_lng_m = lng_in_m / MAP_SIZES[city]['MAP_X']
+
+    pixel_in_m = (pixel_in_lat_m + pixel_in_lng_m) / 2 
+    radius = np.round(distance / pixel_in_m)
+
+    # generate master availability mask
+    master_mask = np.empty(
+        (MAP_SIZES[city]['MAP_Y'], MAP_SIZES[city]['MAP_X']),
+        dtype = np.bool)
+    master_mask.fill(False)
+    m_m_shape = master_mask.shape
+
+    # generate basic circle mask
+    y,x = np.ogrid[-radius: radius+1, -radius: radius+1]
+    circle_mask = x**2+y**2 <= radius**2
+    c_m_shape = circle_mask.shape
+
+    timer.append((log_name + ': make_accessibility_graph masks preprocess, ms',
+        (time.time()-time_preprocess_start)*1000.0))
+
+    time_iter_start = time.time()
+
+    for i in range(len(latitudes)):
+        # to just crudely mark a square area around lat/lng:
+        # markers[ (lat - radius) : (lat+radius), (lng-radius) : (lng+radius)] = accessible_colour
+
+        # mask is drawn from top-left corner. to center mask around the point:
+        x = latitudes[i] - radius
+        y = longitudes[i] - radius
+
+        # find various relevant locations within the matrix...
+
+        # cannot give a negative number as first param in slice
+        master_x_start = max(x, 0)
+        master_y_start = max(y, 0)
+        # but going over boundaries is ok, will trim automatically
+        master_x_end = x + c_m_shape[0]
+        master_y_end = y + c_m_shape[1]
+
+        circle_x_start = 0
+        circle_y_start = 0
+        circle_x_end = c_m_shape[0]
+        circle_y_end = c_m_shape[1]
+
+        if x < 0:   # trim off left side
+            circle_x_start = x * -1
+        if y < 0:   # trim off top
+            circle_y_start = y * -1
+        if master_x_end > m_m_shape[0]: # trim off right side
+            circle_x_end = (m_m_shape[0] - master_x_end)
+        if master_y_end > m_m_shape[1]: # trim off bottom
+            circle_y_end = (m_m_shape[1] - master_y_end)
+
+        # make sure to OR the masks so that earlier circles' Trues 
+        # aren't overwritten by later circles' Falses
+        master_mask[
+            master_x_start : master_x_end, 
+            master_y_start : master_y_end
+            ] |= circle_mask[
+                circle_x_start : circle_x_end, 
+                circle_y_start : circle_y_end]
+
+        #end for
+
+    timer.append((log_name + ': make_accessibility_graph mask iter, ms',
+        (time.time()-time_iter_start)*1000.0))
+
+    time_mask_apply_start = time.time()
+
+    # note: can also do something like this: markers[mask] -= 20
+    # and it updates everything - should be useful for relative values
+
+    markers[master_mask] = accessible_colour
+
+    timer.append((log_name + ': make_accessibility_graph mask apply, ms',
+        (time.time()-time_mask_apply_start)*1000.0))
+
+    time_bg_render_start = time.time()
+
+    args['background'] = Image.fromarray(markers, 'RGBA')
+
+    timer.append((log_name + ': make_accessibility_graph bg render, ms',
+        (time.time()-time_bg_render_start)*1000.0))
+
+    f = make_graph(**args)
+
+    timer.append((log_name + ': make_accessibility_graph total, ms',
+        (time.time()-time_total_start)*1000.0))
+
+    # TODO: this leaks memory when invoked in a loop (as batch_process 
+    # normally does), and runs out of memory on a 3 GB machine around
+    # iteration 250-260 for a Toronto-sized data set. Should probably
+    # try to figure out how to free things up a bit.
+
 def batch_process(city, starting_time, make_iterations = True, \
     show_move_lines = True, max_files = False, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
+    distance = False,
     **extra_args):
 
     args = locals()
@@ -585,10 +755,16 @@ def batch_process(city, starting_time, make_iterations = True, \
         time_graph_start = time.time()
 
         #make_csv(saved_data, city, filepath, t)
-        make_graph(data = saved_data, first_filename = filepath, 
-            turn = t, second_filename = second_filename, **args)
 
-        timer.append((filepath + ': make_graph, ms',
+        if distance is False:
+            make_graph(data = saved_data, first_filename = filepath, 
+                turn = t, second_filename = second_filename, **args)
+        else:
+            make_accessibility_graph(data = saved_data,
+                first_filename = filepath, turn = t,
+                second_filename = second_filename, **args)
+
+        timer.append((filepath + ': make_graph or _accessiblity_graph, ms',
             (time.time()-time_graph_start)*1000.0))
 
         # find next file according to provided time_stemp (or default,
@@ -642,8 +818,10 @@ def process_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('starting_filename', type=str,
         help='name of first file to process')
+    parser.add_argument('-d', '--distance', type=float, default=False,
+        help='mark distance of DISTANCE meters from nearest car on map')
     parser.add_argument('-noiter', '--no-iter', action='store_true', 
-        help='do not create iterative-named files intended to make animating easier')
+        help='ddo not create consecutively-named files for animating')
     parser.add_argument('-nolines', '--no-lines', action='store_true',
         help='do not show lines indicating vehicles\' moves')
     parser.add_argument('-max', '--max-files', type=int, default=False,
