@@ -127,28 +127,28 @@ LABELS = {
     'calgary': {
         'fontsize': 15,
         'lines': [
-            (MAP_SIZES['calgary']['MAP_X']*0.667,
-                    MAP_SIZES['calgary']['MAP_Y']-25),
-            (MAP_SIZES['calgary']['MAP_X']*0.667,
-                    MAP_SIZES['calgary']['MAP_Y']-50),
-            (MAP_SIZES['calgary']['MAP_X']*0.667,
-                    MAP_SIZES['calgary']['MAP_Y']-75)
+            (MAP_SIZES['calgary']['MAP_X']*0.75,
+                    MAP_SIZES['calgary']['MAP_Y']-120),
+            (MAP_SIZES['calgary']['MAP_X']*0.75,
+                    MAP_SIZES['calgary']['MAP_Y']-145),
+            (MAP_SIZES['calgary']['MAP_X']*0.75,
+                    MAP_SIZES['calgary']['MAP_Y']-170)
         ]
     },
     'seattle': {
         'fontsize': 15,
         'lines': [
-            (10, 60),
-            (10, 40),
-            (10, 20)
+            (15, 200),
+            (15, 175),
+            (15, 150)
         ]
     },
     'toronto': {
-        'fontsize': 10,
+        'fontsize': 15,
         'lines': [
-            (10, MAP_SIZES['toronto']['MAP_Y'] - 20),
-            (10, MAP_SIZES['toronto']['MAP_Y'] - 40),
-            (10, MAP_SIZES['toronto']['MAP_Y'] - 60)
+            (MAP_SIZES['toronto']['MAP_X'] * 0.75, 160),
+            (MAP_SIZES['toronto']['MAP_X'] * 0.75, 130),
+            (MAP_SIZES['toronto']['MAP_X'] * 0.75, 100)
         ]
     },
     'vancouver': {
