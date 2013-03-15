@@ -3,10 +3,6 @@
 
 from __future__ import unicode_literals
 import unittest
-import os
-import time
-from datetime import datetime
-from datetime import timedelta
 import numpy as np
 
 import process

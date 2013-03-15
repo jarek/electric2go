@@ -19,6 +19,52 @@ import cars
 
 KNOWN_CITIES = ['calgary', 'seattle', 'toronto', 'vancouver']
 
+BOUNDS = {
+    'berlin': {
+        # rudimentary values for testing is_latlng_in_bounds function
+        'NORTH': 53,
+        'SOUTH': 52,
+        'EAST': 14,
+        'WEST': 13
+    },
+    'buenosaires': {
+        # rudimentary values for an unsupported city for testing
+        'NORTH': -34,
+        'SOUTH': -35,
+        'EAST': -58,
+        'WEST': -59
+    },
+    'calgary': {
+        'NORTH': 51.088425,
+        'SOUTH': 50.984936,
+        'EAST': -113.997314,
+        'WEST': -114.16401
+    },
+    'seattle': {
+        'NORTH': 47.72344,
+        'SOUTH': 47.578247,
+        'EAST': -122.24557,
+        'WEST': -122.437126
+    },
+    'toronto': {
+        'NORTH': 43.72736,
+        'SOUTH': 43.625893,
+        'EAST': -79.2768,
+        'WEST': -79.50168
+    },
+    'vancouver': {
+        'NORTH': 49.336, # exact value 49.335735
+        'SOUTH': 49.224, # exact value 49.224716
+        'EAST':  -123.031, # exact value -123.03196
+        'WEST':  -123.252
+        # limit of home area is -123.21545; westernmost parking spot 
+        # at UBC is listed as centered on -123.2515
+        
+        # there's also parkspots in Richmond and Langley,
+        # I am ignoring them to make map more compact.
+    }
+}
+
 MAP_LIMITS = {
     'berlin': {
         # rudimentary values for testing is_latlng_in_bounds function
@@ -289,8 +335,8 @@ def is_latlng_in_bounds(city, lat, lng = False):
         lng = lat[1]
         lat = lat[0]
 
-    is_lat = MAP_LIMITS[city]['SOUTH'] <= lat <= MAP_LIMITS[city]['NORTH']
-    is_lng = MAP_LIMITS[city]['WEST'] <= lng <= MAP_LIMITS[city]['EAST']
+    is_lat = BOUNDS[city]['SOUTH'] <= lat <= BOUNDS[city]['NORTH']
+    is_lng = BOUNDS[city]['WEST'] <= lng <= BOUNDS[city]['EAST']
 
     return is_lat and is_lng
 
