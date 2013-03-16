@@ -17,9 +17,15 @@ import Image
 import cars
 
 
-KNOWN_CITIES = ['calgary', 'seattle', 'toronto', 'vancouver']
+KNOWN_CITIES = ['austin', 'calgary', 'seattle', 'toronto', 'vancouver']
 
 BOUNDS = {
+    'austin': {
+        'NORTH': 30.368, # exact value 30.367937, or 30.400427 incl The Domain
+        'SOUTH': 30.212, # exact value 30.212427
+        'EAST': -97.672, # exact value -97.672966
+        'WEST': -97.804  # exact value -97.803764
+    },
     'berlin': {
         # rudimentary values for testing is_latlng_in_bounds function
         'NORTH': 53,
@@ -66,6 +72,14 @@ BOUNDS = {
 }
 
 MAP_LIMITS = {
+    'austin': {
+        # values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 1:99776
+        'NORTH': 30.368,
+        'SOUTH': 30.212,
+        'EAST': -97.5774,
+        'WEST': -97.8986
+    },
     'berlin': {
         # rudimentary values for testing is_latlng_in_bounds function
         'NORTH': 53,
@@ -114,6 +128,11 @@ MAP_LIMITS = {
 DEGREE_LENGTHS = {
     # from http://www.csgnetwork.com/degreelenllavcalc.html
     # could calculate ourselves but meh. would need city's latitude
+    'austin': {
+        # for latitude 30.29
+        'LENGTH_OF_LATITUDE': 110857.33,
+        'LENGTH_OF_LONGITUDE': 96204.48
+    },
     'calgary': {
         # for latitude 51.04
         'LENGTH_OF_LATITUDE': 111249.00,
@@ -138,6 +157,12 @@ DEGREE_LENGTHS = {
 
 MAP_SIZES = {
     # all these ratios are connected
+    'austin': {
+        # 720/1280 / (30.368-30.212)/(97.8986-97.5774) ~= 110857.33 / 96204.48
+        # 0.5625 / 0.485678705 = 1.158173077 ~= 1.152309435
+        'MAP_X': 1280,
+        'MAP_Y': 720
+    },
     'berlin': {
         # fake values for testing
         'MAP_X': 991,
@@ -170,6 +195,14 @@ MAP_SIZES = {
 }
 
 LABELS = {
+    'austin': {
+        'fontsize': 20,
+        'lines': [
+            (20, MAP_SIZES['austin']['MAP_Y']-40),
+            (20, MAP_SIZES['austin']['MAP_Y']-70),
+            (20, MAP_SIZES['austin']['MAP_Y']-100)
+        ]
+    },
     'calgary': {
         'fontsize': 15,
         'lines': [
