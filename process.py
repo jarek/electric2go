@@ -5,6 +5,7 @@ from datetime import datetime
 from datetime import timedelta
 import os
 import sys
+import stat
 import argparse
 import math
 import copy
@@ -782,7 +783,7 @@ def batch_process(city, starting_time, make_iterations = True, \
     show_move_lines = True, max_files = False, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
-    distance = False, time_offset = 0, \
+    distance = False, time_offset = 0, web = False, \
     **extra_args):
 
     args = locals()
@@ -804,6 +805,8 @@ def batch_process(city, starting_time, make_iterations = True, \
         animation_files_filename)
 
     saved_data = {}
+
+    iter_filenames = []
 
     # loop as long as new files exist
     # if we have a limit specified, loop only until limit is reached
@@ -832,6 +835,7 @@ def batch_process(city, starting_time, make_iterations = True, \
         if make_iterations:
             second_filename = animation_files_prefix + '_' + \
                 str(i).rjust(3, '0') + '.png'
+            iter_filenames.append(second_filename)
 
         time_graph_start = time.time()
 
@@ -865,6 +869,31 @@ def batch_process(city, starting_time, make_iterations = True, \
 
     # print animation information if applicable
     if make_iterations:
+        if web:
+            crush_commands = []
+
+            crushed_dir = animation_files_prefix + '-crushed'
+            if not os.path.exists(crushed_dir):
+                os.makedirs(crushed_dir)
+
+            for filename in iter_filenames:
+                crush_commands.append('pngcrush %s %s' % (filename, 
+                    os.path.join(crushed_dir, os.path.basename(filename))))
+
+            crush_filebasename = animation_files_prefix
+            f = open(crush_filebasename + '-pngcrush', 'w')
+            print >> f, '\n'.join(crush_commands)
+            os.chmod(crush_filebasename + '-pngcrush', 
+                stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
+            f.close()
+
+            f = open(crush_filebasename + '-filenames', 'w')
+            print >> f, json.dumps(iter_filenames)
+            f.close()
+
+            print '\nto pngcrush:'
+            print './%s-pngcrush' % crush_filebasename
+
         background_path = os.path.relpath(os.path.join(cars.root_dir,
             'backgrounds/', '%s-background.png' % city))
         png_filepaths = animation_files_prefix + '_%03d.png'
@@ -904,7 +933,10 @@ def process_commandline():
     parser.add_argument('-d', '--distance', type=float, default=False,
         help='mark distance of DISTANCE meters from nearest car on map')
     parser.add_argument('-noiter', '--no-iter', action='store_true', 
-        help='ddo not create consecutively-named files for animating')
+        help='do not create consecutively-named files for animating')
+    parser.add_argument('-web', action='store_true',
+        help='create pngcrush script and JS filelist for HTML animation \
+            page use; forces NO_ITER to false')
     parser.add_argument('-nolines', '--no-lines', action='store_true',
         help='do not show lines indicating vehicles\' moves')
     parser.add_argument('-max', '--max-files', type=int, default=False,
@@ -969,6 +1001,9 @@ def process_commandline():
         params['symbol'] = 'o'
         params['hold_for'] = 3
         params['show_speeds'] = True
+
+    if args.web is True:
+        params['make_iterations'] = True
 
     batch_process(**params)
 
