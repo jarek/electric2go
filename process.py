@@ -668,6 +668,8 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     time_preprocess_start = time.time()
 
     accessible_colour = (255, 255, 255, 0) # white, fully transparent
+    accessible_multiplier = (1, 1, 1, 0.6)
+    # if using accessible_multiplier, 160 alpha for inaccessible looks better
     inaccessible_colour = (239, 239, 239, 100) # #efefef, mostly transparent
 
     # generate basic background, for now uniformly indicating no cars available
@@ -747,6 +749,9 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
                 circle_x_start : circle_x_end, 
                 circle_y_start : circle_y_end]
 
+        #markers[master_mask] *= accessible_multiplier
+        #master_mask.fill(False)
+
         #end for
 
     timer.append((log_name + ': make_accessibility_graph mask iter, ms',
@@ -754,8 +759,12 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
 
     time_mask_apply_start = time.time()
 
-    # note: can also do something like this: markers[mask] -= 20
-    # and it updates everything - should be useful for relative values
+    # note: can also do something like this: markers[mask] *= (1, 1, 1, 0.5)
+    # and it updates everything - should be useful for relative values.
+    # except it has to happen within the iteration as shown above, and is also
+    # pretty slow. like, adds 1.2 seconds per image slow. see if I can 
+    # optimize it somehow, but multiplying a million-item array, even masked,
+    # by a vector 200 times might just be inherently a bit slow :(
 
     markers[master_mask] = accessible_colour
 
