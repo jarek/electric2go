@@ -197,11 +197,13 @@ MAP_SIZES = {
 
 LABELS = {
     'austin': {
-        'fontsize': 20,
+        'fontsizes': [30, 22, 30, 18, 18],
         'lines': [
-            (20, MAP_SIZES['austin']['MAP_Y']-40),
-            (20, MAP_SIZES['austin']['MAP_Y']-70),
-            (20, MAP_SIZES['austin']['MAP_Y']-100)
+            (20, MAP_SIZES['austin']['MAP_Y']-50),
+            (20, MAP_SIZES['austin']['MAP_Y']-82),
+            (20, MAP_SIZES['austin']['MAP_Y']-122),
+            (20, MAP_SIZES['austin']['MAP_Y']-155),
+            (20, MAP_SIZES['austin']['MAP_Y']-180)
         ]
     },
     'calgary': {
@@ -556,15 +558,37 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
             ax.add_line(l)
 
     # add labels
-    fontsize = LABELS[city]['fontsize']
     printed_time = turn + timedelta(0, time_offset*3600)
-    ax.text(LABELS[city]['lines'][0][0], LABELS[city]['lines'][0][1], \
-        cars.CITIES[city]['display'] + ' ' + \
-        printed_time.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
-    ax.text(LABELS[city]['lines'][1][0], LABELS[city]['lines'][1][1], \
-        'available cars: %d' % car_count, fontsize=fontsize)
-    ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
-        'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
+    if 'fontsizes' in LABELS[city]:
+        # gradual transition to new labelling format - only for cities 
+        # that have fontsizes array defined
+
+        coords = LABELS[city]['lines']
+        fontsizes = LABELS[city]['fontsizes']
+
+        ax.text(coords[0][0], coords[0][1], 
+            cars.CITIES[city]['display'], fontsize = fontsizes[0])
+        ax.text(coords[1][0], coords[1][1],
+            printed_time.strftime('%B %d, %Y').replace(' 0',' '),
+            fontsize = fontsizes[1]) 
+        # the .replace is a bit of a hack but it works with no false positives
+        # until we get a year beginning with a zero, which shouldn't be 
+        # a problem for a while
+        ax.text(coords[2][0], coords[2][1], 
+            printed_time.strftime('%H:%M'), fontsize = fontsizes[2])
+        ax.text(coords[3][0], coords[3][1], 
+            'available cars: %d' % car_count, fontsize = fontsizes[3])
+        ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
+            len(lines_start_lat), fontsize = fontsizes[4])
+    else:
+        fontsize = LABELS[city]['fontsize']
+        ax.text(LABELS[city]['lines'][0][0], LABELS[city]['lines'][0][1], \
+            cars.CITIES[city]['display'] + ' ' + \
+            printed_time.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
+        ax.text(LABELS[city]['lines'][1][0], LABELS[city]['lines'][1][1], \
+            'available cars: %d' % car_count, fontsize=fontsize)
+        ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
+            'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
 
     timer.append((log_name + ': make_graph plot, ms',
         (time.time()-time_plot_start)*1000.0))
