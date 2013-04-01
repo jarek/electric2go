@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import os
+import math
 import time
 import cars
 
@@ -60,7 +61,7 @@ def format_car(car, city):
     else:
         # full charge range is approx 135 km, round down a bit
         # must end trip with more than 20% unless at charging station
-        range = 1.2 * (charge-20)
+        range = int(math.floor(1.2 * (charge-20)))
         info += 'Approx range: ' + str(range) + ' km, '
 
     info += 'charge: ' + str(charge) + '%'
@@ -126,6 +127,10 @@ def get_formatted_all_cities(requested_city):
 
     return 'car2go cities with a few electric vehicles: ' + ', '.join(formatted_cities)
 
+def pluralize(amount, text):
+    plural = 's' if amount != 1 else ''
+    return '%d %s%s' % (amount, text, plural)
+
 def print_timer_info(t = timer):
     for timepoint in t:
         print '<!--%s: %f-->' % (timepoint[0], timepoint[1])
@@ -147,10 +152,7 @@ def print_all_html():
 
     electric_cars,cache = get_formatted_electric_cars(requested_city)
 
-    count = len(electric_cars)
-    plural = 's' if count != 1 else ''
-
-    print '<h2>' + str(count) + ' electric car' + plural,
+    print '<h2>' + pluralize(len(electric_cars), 'electric car'),
     print 'currently available in ' + cars.CITIES[requested_city]['display'] + '</h2>'
 
     print format_all_cars_map(requested_city)
@@ -163,7 +165,8 @@ def print_all_html():
 
     print '<footer>',
     if cache:
-        print 'Using cached data. Data age: %i seconds, next refresh in %i seconds.' % (cache, cars.CACHE_PERIOD - cache)
+        print 'Using cached data. Data age: %s,' % pluralize(cache, 'second'),
+        print 'next refresh in %s.' % pluralize(cars.CACHE_PERIOD - cache, 'second')
     print 'This product uses the car2go API but is not endorsed or certified by car2go.</footer>'
     
     print '<script type="text/javascript">'
