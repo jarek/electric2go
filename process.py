@@ -821,7 +821,7 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     # iteration 250-260 for a Toronto-sized data set. Should probably
     # try to figure out how to free things up a bit.
 
-def batch_process(city, starting_time, make_iterations = True, \
+def batch_process(city, starting_time, dry = False, make_iterations = True, \
     show_move_lines = True, max_files = False, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
@@ -872,27 +872,29 @@ def batch_process(city, starting_time, make_iterations = True, \
 
         timer.append((filepath + ': process_data, ms',
              (time.time()-time_process_start)*1000.0))
+
+        if not dry:
         
-        second_filename = False
-        if make_iterations:
-            second_filename = animation_files_prefix + '_' + \
-                str(i).rjust(3, '0') + '.png'
-            iter_filenames.append(second_filename)
+            second_filename = False
+            if make_iterations:
+                second_filename = animation_files_prefix + '_' + \
+                    str(i).rjust(3, '0') + '.png'
+                iter_filenames.append(second_filename)
 
-        time_graph_start = time.time()
+            time_graph_start = time.time()
 
-        #make_csv(saved_data, city, filepath, t)
+            #make_csv(saved_data, city, filepath, t)
 
-        if distance is False:
-            make_graph(data = saved_data, first_filename = filepath, 
-                turn = t, second_filename = second_filename, **args)
-        else:
-            make_accessibility_graph(data = saved_data,
-                first_filename = filepath, turn = t,
-                second_filename = second_filename, **args)
+            if distance is False:
+                make_graph(data = saved_data, first_filename = filepath, 
+                    turn = t, second_filename = second_filename, **args)
+            else:
+                make_accessibility_graph(data = saved_data,
+                    first_filename = filepath, turn = t,
+                    second_filename = second_filename, **args)
 
-        timer.append((filepath + ': make_graph or _accessiblity_graph, ms',
-            (time.time()-time_graph_start)*1000.0))
+            timer.append((filepath + ': make_graph or _accessiblity_graph, ms',
+                (time.time()-time_graph_start)*1000.0))
 
         timer.append((filepath + ': total, ms',
             (time.time()-time_process_start)*1000.0))
@@ -910,7 +912,7 @@ def batch_process(city, starting_time, make_iterations = True, \
         timer = []
 
     # print animation information if applicable
-    if make_iterations:
+    if make_iterations and not dry:
         if web:
             crush_commands = []
 
@@ -970,6 +972,8 @@ def process_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('starting_filename', type=str,
         help='name of first file to process')
+    parser.add_argument('-dry', action='store_true',
+        help='dry run: do not generate any images')
     parser.add_argument('-tz', '--time-offset', type=int, default=0,
         help='offset times shown on graphs by TIME_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
