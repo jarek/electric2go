@@ -4,6 +4,7 @@
 import cgi
 import os
 import sys
+import math
 import pycurl
 import StringIO
 import simplejson as json
@@ -20,19 +21,19 @@ CACHE_PERIOD = 60 # cache data for this many seconds at most
 DATA_COLLECTION_INTERVAL_MINUTES = 5 # used in download.py, process.py
 
 CITIES = {
-    'amsterdam': {'electric': 'all'},
+    'amsterdam': {'of_interest': True, 'electric': 'all'},
     'austin': {'electric': 'some', 'number_first_address': True},
     'berlin': {'electric': 'some'},
-    'calgary': {'of_interest': True, 'number_first_address': True},
+    'calgary': {'number_first_address': True},
     'duesseldorf': {'display': 'Düsseldorf'},
     'hamburg': {},
     'koeln': {'display': 'Köln'},
     'london': {'number_first_address': True},
     'miami': {'number_first_address': True},
     'portland': {'electric': 'some', 'number_first_address': True},
-    'sandiego': {'display': 'San Diego', 'electric': 'all',
+    'sandiego': {'of_interest': True, 'display': 'San Diego', 'electric': 'all',
         'number_first_address': True},
-    'seattle': {'of_interest': True, 'number_first_address': True},
+    'seattle': {'number_first_address': True},
     'stuttgart': {'electric': 'all'}, 
     'toronto': {'of_interest': True, 'number_first_address': True},
     'ulm': {'electric': 'some'},
@@ -163,4 +164,25 @@ def get_city():
 
     return city
 
+def dist(ll1, ll2):
+    # adapted from http://www.movable-type.co.uk/scripts/latlong.html
+    # see also http://stackoverflow.com/questions/27928/how-do-i-calculate-distance-between-two-latitude-longitude-points
+
+    # the js equivalent of this code is used in sort.js
+    # - any changes should be reflected in both
+
+    def deg2rad(deg):
+        return deg * (math.pi/180.0)
+
+    R = 6371 # Radius of the earth in km
+    dLat = deg2rad(ll2[0]-ll1[0])
+    dLon = deg2rad(ll2[1]-ll1[1])
+
+    a = math.sin(dLat/2) * math.sin(dLat/2) + \
+        math.cos(deg2rad(ll1[0])) * math.cos(deg2rad(ll2[0])) * \
+        math.sin(dLon/2) * math.sin(dLon/2)
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = R * c # distance in km
+    return d
 
