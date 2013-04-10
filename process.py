@@ -419,6 +419,16 @@ def make_graph_axes(city, background = False, log_name = ''):
     f.set_size_inches(MAP_SIZES[city]['MAP_X']/dpi_adj_x/dpi, \
             MAP_SIZES[city]['MAP_Y']/dpi_adj_y/dpi)
 
+    # TODO: this takes 50 ms each time. try to reuse the whole set of axes
+    # rather than regenerating it each time
+    ax = f.add_subplot(111)
+    ax.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
+
+    # remove visible axes and figure frame
+    ax.axes.get_xaxis().set_visible(False)
+    ax.axes.get_yaxis().set_visible(False)
+    ax.set_frame_on(False)
+
     if isinstance(background, basestring) and os.path.exists(background):
         # matplotlib's processing makes the image look a bit worse than 
         # the original map - so keeping the generated graph transparent 
@@ -426,17 +436,7 @@ def make_graph_axes(city, background = False, log_name = ''):
         background = plt.imread(background)
 
     if background:
-        implot = plt.imshow(background, origin = 'lower', aspect = 'auto')
-
-    # TODO: this takes 50 ms each time. try to reuse the whole set of axes
-    # rather than regenerating it each time
-    plt.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
-
-    # remove visible axes and figure frame
-    ax = plt.gca()
-    ax.axes.get_xaxis().set_visible(False)
-    ax.axes.get_yaxis().set_visible(False)
-    ax.set_frame_on(False)
+        implot = ax.imshow(background, origin = 'lower', aspect = 'auto')
 
     timer.append((log_name + ': make_graph_axes, ms',
         (time.time()-time_plotsetup_start)*1000.0))
@@ -542,13 +542,13 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     time_plot_start = time.time()
 
     if show_speeds is False:
-        plt.plot(longitudes, latitudes, 'b' + symbol)
+        ax.plot(longitudes, latitudes, 'b' + symbol)
     else:
         for i in range(len(speeds)):
             # TODO: try to plot those with on bottom, under newer 
             # points. might require changes a couple of lines above
             # instead. reverse alphabetical sort by key?
-            plt.plot(speeds[i][1], speeds[i][0], SPEED_COLOURS[i] + symbol)
+            ax.plot(speeds[i][1], speeds[i][0], SPEED_COLOURS[i] + symbol)
 
     # add in lines for moving vehicles
     if show_move_lines:
@@ -570,7 +570,7 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
             cars.CITIES[city]['display'], fontsize = fontsizes[0])
         ax.text(coords[1][0], coords[1][1],
             printed_time.strftime('%B %d, %Y').replace(' 0',' '),
-            fontsize = fontsizes[1]) 
+            fontsize = fontsizes[1])
         # the .replace is a bit of a hack but it works with no false positives
         # until we get a year beginning with a zero, which shouldn't be 
         # a problem for a while
@@ -593,7 +593,7 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     timer.append((log_name + ': make_graph plot, ms',
         (time.time()-time_plot_start)*1000.0))
 
-    return f
+    return f,ax
 
 def make_graph(data, city, first_filename, turn, second_filename = False, \
     show_move_lines = True, show_speeds = False, symbol = '.', \
@@ -614,7 +614,7 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
     log_name = first_filename
     args['log_name'] = first_filename
 
-    f = make_graph_object(**args)
+    f,ax = make_graph_object(**args)
 
     time_save_start = time.time()
 
@@ -625,13 +625,22 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
     # svg and e/ps would have to be rendered before being animated, though
     # possibly making it a moot point
     image_first_filename = first_filename + '.png'
-    plt.savefig(image_first_filename, bbox_inches='tight', pad_inches=0, 
+    f.savefig(image_first_filename, bbox_inches='tight', pad_inches=0, 
         dpi=80, transparent=True)
 
     # if requested, also save with iterative filenames for ease of animation
     if not second_filename == False:
         # copying the file rather than saving again is a lot faster
         shutil.copyfile(image_first_filename, second_filename)
+
+    # close the plot to free the memory. memory is never freed otherwise until
+    # script is killed or exits.
+    # this line causes a matplotlib backend RuntimeError in a close_event()
+    # function ("wrapped C/C++ object of %S has been deleted") in every second
+    # iteration, but this appears to be async from main thread and 
+    # doesn't appear to influence the correctness of output, 
+    # so I'll leave it as is for the time being
+    plt.close(f)
 
     timer.append((log_name + ': make_graph save, ms',
         (time.time()-time_save_start)*1000.0))
@@ -802,7 +811,7 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     timer.append((log_name + ': make_accessibility_graph bg render, ms',
         (time.time()-time_bg_render_start)*1000.0))
 
-    f = make_graph(**args)
+    make_graph(**args)
 
     timer.append((log_name + ': make_accessibility_graph total, ms',
         (time.time()-time_total_start)*1000.0))
@@ -812,7 +821,7 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     # iteration 250-260 for a Toronto-sized data set. Should probably
     # try to figure out how to free things up a bit.
 
-def batch_process(city, starting_time, make_iterations = True, \
+def batch_process(city, starting_time, dry = False, make_iterations = True, \
     show_move_lines = True, max_files = False, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
@@ -863,36 +872,38 @@ def batch_process(city, starting_time, make_iterations = True, \
 
         timer.append((filepath + ': process_data, ms',
              (time.time()-time_process_start)*1000.0))
+
+        if not dry:
         
-        second_filename = False
-        if make_iterations:
-            second_filename = animation_files_prefix + '_' + \
-                str(i).rjust(3, '0') + '.png'
-            iter_filenames.append(second_filename)
+            second_filename = False
+            if make_iterations:
+                second_filename = animation_files_prefix + '_' + \
+                    str(i).rjust(3, '0') + '.png'
+                iter_filenames.append(second_filename)
 
-        time_graph_start = time.time()
+            time_graph_start = time.time()
 
-        #make_csv(saved_data, city, filepath, t)
+            #make_csv(saved_data, city, filepath, t)
 
-        if distance is False:
-            make_graph(data = saved_data, first_filename = filepath, 
-                turn = t, second_filename = second_filename, **args)
-        else:
-            make_accessibility_graph(data = saved_data,
-                first_filename = filepath, turn = t,
-                second_filename = second_filename, **args)
+            if distance is False:
+                make_graph(data = saved_data, first_filename = filepath, 
+                    turn = t, second_filename = second_filename, **args)
+            else:
+                make_accessibility_graph(data = saved_data,
+                    first_filename = filepath, turn = t,
+                    second_filename = second_filename, **args)
 
-        timer.append((filepath + ': make_graph or _accessiblity_graph, ms',
-            (time.time()-time_graph_start)*1000.0))
+            timer.append((filepath + ': make_graph or _accessiblity_graph, ms',
+                (time.time()-time_graph_start)*1000.0))
+
+        timer.append((filepath + ': total, ms',
+            (time.time()-time_process_start)*1000.0))
 
         # find next file according to provided time_stemp (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
         i = i + 1
         t = t + timedelta(0, time_step*60)
         filepath = get_filepath(city, t, file_dir)
-
-        timer.append((filepath + ': total, ms',
-            (time.time()-time_process_start)*1000.0))
 
         if DEBUG:
             print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
@@ -901,7 +912,7 @@ def batch_process(city, starting_time, make_iterations = True, \
         timer = []
 
     # print animation information if applicable
-    if make_iterations:
+    if make_iterations and not dry:
         if web:
             crush_commands = []
 
@@ -961,6 +972,8 @@ def process_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('starting_filename', type=str,
         help='name of first file to process')
+    parser.add_argument('-dry', action='store_true',
+        help='dry run: do not generate any images')
     parser.add_argument('-tz', '--time-offset', type=int, default=0,
         help='offset times shown on graphs by TIME_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
