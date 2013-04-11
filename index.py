@@ -165,8 +165,9 @@ def print_all_html():
 
     print '<footer>',
     if cache:
-        print 'Using cached data. Data age: %s,' % pluralize(cache, 'second'),
-        print 'next refresh in %s.' % pluralize(cars.CACHE_PERIOD - cache, 'second')
+        cache_age = time.time() - cache
+        print 'Using cached data. Data age: %s,' % pluralize(cache_age, 'second'),
+        print 'next refresh in %s.' % pluralize(cars.CACHE_PERIOD - cache_age, 'second')
     print 'This product uses the car2go API but is not endorsed or certified by car2go.</footer>'
     
     print '<script type="text/javascript">'

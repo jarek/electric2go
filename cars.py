@@ -9,7 +9,6 @@ import pycurl
 import StringIO
 import simplejson as json
 import time
-from datetime import datetime
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key={key}&format=json'
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
@@ -107,10 +106,10 @@ def get_all_cars_text(city, force_download = False):
     cached_data_filename = data_dir + 'current_%s' % city
     if os.path.exists(cached_data_filename) and not force_download:
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
-        cached_data_age = datetime.now() - datetime.fromtimestamp(cached_data_timestamp)
-        if cached_data_age.days == 0 and cached_data_age.seconds < CACHE_PERIOD:
-            cache = cached_data_age.seconds
-            timer.append(['using cached data, age in seconds', cached_data_age.seconds])
+        cached_data_age = time.time() - cached_data_timestamp
+        if cached_data_age < CACHE_PERIOD:
+            cache = cached_data_timestamp
+            timer.append(['using cached data, age in seconds', cached_data_age])
             f = open(cached_data_filename, 'r')
             json_text = f.read()
             f.close()
