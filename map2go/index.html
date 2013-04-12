@@ -1,0 +1,340 @@
+<!doctype html>
+
+<html lang="en">
+
+<title>map2go: car2go use in Austin during SXSW 2013</title>
+<meta charset="utf-8" />
+
+<style type="text/css" media="screen,projection">
+/*notmuchhere*/
+
+/* general page style */
+html,body { width: 100%; padding: 0; margin: 0; }
+body { background-image: url(../backgrounds/austin-bigcrushed.png);
+    background-position: center center; background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-family: trebuchet ms, serif; }
+/* TODO: specify smaller resolution background in CSS 
+and increase in JS if necessary based on window size */
+a { color: #009EE0; }
+
+/* actual map images - centred on the screen */
+img#background, img#current_map { width: 1280px; height: 720px; 
+    position: absolute; left: 50%; top: 50%; display: block; 
+    margin-left: -640px; margin-top: -360px; }
+img#current_map { display: none; } /* don't display initially, changed in js */
+
+/* initial instruction overlay centred on top of page */
+#initial_play_overlay { position: absolute; width: 300px; height: 190px;
+    left: 50%; top: 50%; margin-top: -95px; margin-left: -150px;
+    border-radius: 10px; padding: 5px; background: #eee;    
+    text-align: center; vertical-align: middle; }
+#initial_play_overlay p { margin-top: 30px; }
+#initial_play_overlay a { background: #009EE0; color: #222;
+    border-radius: 5px; padding: 10px;
+    font-size: 80px; text-decoration: none; }
+
+/* tabs to display additional information and content */
+.tab { display: block; width: 20%; background: #333; color: #efefef; 
+    position: absolute; top: 0; left: 4%; z-index: 60;
+    border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; }
+.tab p { margin: 10px; margin-right: 18px; }
+.tab p+p { display: none; }
+.tab:hover p+p { display: block; }
+
+/* position the four tabs spread out evenly across the top of the screen */
+.tab+.tab { left: 28%; }
+.tab+.tab+.tab { left: 52%; }
+.tab+.tab+.tab+.tab { left: 76%; }
+
+/* control buttons tab */
+.tab.buttons { text-align: center; background: #009EE0; }
+.tab.buttons a { padding: 0 4px; color: #eee; 
+    font-weight: bold; text-decoration: none; }
+.tab.buttons img.last { opacity: 0.3; margin-left: 1em; }
+
+/* note on top of screen, with noticeable background
+used for important messages, if any, and no-js notification */
+.note { position: absolute; top: 5em; left: 2em; z-index: 50;
+    padding: 1em; border: 1px solid yellow; background: #ffffd2; }
+
+img.offscreen { margin-left: -1000000px; height: 0px; }
+</style>
+
+<img id="background" src="../backgrounds/austin-backgroundfixedsmall.png" 
+alt="background map of the city" />
+
+<!-- src of img#current_map will be changed with javascript -->
+<img id="current_map" src="../backgrounds/austin-backgroundfixedsmall.png" 
+alt="map of current car2go positions and movements" />
+
+<div id="initial_play_overlay">
+<p><a href="javascript:play_pause()">play</a>
+<p>animation controls at top right
+</div>
+
+<noscript>
+<div class="note">
+<p>This page contains a frame-by-frame animation of car2go positions 
+and movements during the second weekend of SXSW 2013 in Austin.
+<p>The animation on this page uses Javascript. Your browser has likely
+disabled or doesn't support Javascript.
+<p>This animation is also available as
+<a href="https://www.youtube.com/watch?v=5nveWwk3VSg">a YouTube video</a>,
+which may be more accessible to those not running Javascript.
+</div>
+</noscript>
+
+<div class="tab"><p>about
+<p>This animation maps positions and movements of car2go vehicles 
+during the second weekend of SXSW 2013 in Austin.
+<p>car2go is a roaming one-way carshare: vehicles can be picked up 
+and dropped off anywhere within the operating area.
+<p>The highlighted area indicates a distance of ¼ mile (400 m) or less, 
+about five minutes' walk, from the nearest car. 
+<p>The car2go home area strip at The Domain in northern Austin is not included
+in this visualization.
+</div>
+
+<div class="tab"><p>embed
+<p>A <a href="https://www.youtube.com/watch?v=5nveWwk3VSg">YouTube video</a> 
+is available for simple embedding.
+</div>
+
+<div class="tab"><p>authors
+<p>Data processing and animation by 
+<a href="http://piorkowski.ca">Jarek&nbsp;Piórkowski</a>.
+<p>Background map from OpenStreetMap, 
+<a href="http://www.openstreetmap.org/copyright">
+©&nbsp;OpenStreetMap contributors</a>.
+<p>This product uses the car2go API data 
+but is not endorsed or certified by car2go.
+</div>
+
+<div class="tab buttons"><p>
+<!-- icons from and based on http://gemicon.net/ by http://turqois.com/-->
+<a href="javascript:image_back()">
+    <img src="../icons/previous.png" 
+    alt="previous frame" title="previous frame"></a>
+<a href="javascript:play_pause()">
+    <img src="../icons/play.png" id="image_pp"
+    alt="play or pause" title="play or pause"></a>
+<a href="javascript:image_forward()">
+    <img src="../icons/next.png"
+    alt="next frame" title="next frame"></a>
+<a href="javascript:reset()">
+    <img src="../icons/reset.png" id="image_reset" class="last"
+    alt="reset to first frame" title="reset to first frame"></a>
+</div>
+
+<div id="preload_container" class="offscreen"></div>
+
+<script type="text/javascript">
+/*notmuchhere*/
+
+var ICON_PATH = '../icons/';
+var ICON_PLAY = 'play.png';
+var ICON_PAUSE = 'pause.png';
+
+// filename description
+filename_prefix = "images/20130408-1617-austin_2013-03-14--17-10_";
+filename_suffix = ".png";
+filename_count = 1121;
+
+// globals
+var preloads = [];
+var preloaded = 0;
+var preload_threshold = 12; // preload frames when this many are left
+var preload_step = 24;      // preload this many frames next
+var preloading = false;
+var current_image_index = 0;
+var looping = false;
+
+// set up filenames array
+filenames = [];
+for (var i = 1; i <= filename_count; i++) {
+    var number = "00" + i;
+
+    if (i < 1000) {
+        // oops... should have used four-zero padding (0001), too late now
+        number = number.slice(-3);
+    } else {
+        number = i;
+    }
+
+    filenames.push(filename_prefix + number + filename_suffix);
+}
+
+// do an initial preload
+preload(0, preload_step);
+image_change(0); // load first image frame
+
+
+// UI control and loop functions /////
+
+function toggle(element, visible) {
+    var HIGH = 1.0;
+    var LOW = 0.3;
+
+    if (visible === true) {
+        element.style.opacity = HIGH;
+    } else {
+        element.style.opacity = LOW;
+    }
+}
+
+function play_pause() {
+    // GLOBAL ACCESSED: looping
+
+    // hide the initial overlay if still showing
+    document.getElementById('initial_play_overlay').style.display = 'none';
+
+    looping = !looping;
+
+    // reset only active when paused
+    toggle(document.getElementById('image_reset'), !looping);
+
+    if (looping) {
+        // if we're now supposed to loop, turn it on once more
+        loop();
+
+        // change button image to pause
+        document.getElementById('image_pp').src = ICON_PATH + ICON_PAUSE;
+    } else {
+        // paused
+        // change button image to play
+        document.getElementById('image_pp').src = ICON_PATH + ICON_PLAY;
+    }
+}
+
+function image_back() {
+    // TO BE USED WITH UI BUTTONS ONLY
+    // GLOBAL ACCESSED: looping
+
+    if (!looping) {
+        return image_change(-1);
+    }
+}
+
+function image_forward() {
+    // TO BE USED WITH UI BUTTONS ONLY
+    // GLOBAL ACCESSED: looping
+
+    if (!looping) {
+        return image_change(1);
+    }
+}
+
+function reset() {
+    // TO BE USED WITH UI BUTTONS ONLY
+    // GLOBAL ACCESSED: looping
+
+    // only active when paused or stopped
+    if (!looping) {
+        // reset won't do anything at start
+        toggle(document.getElementById('image_reset'), false);
+
+        // change back to playable
+        toggle(document.getElementById('image_pp'), true);
+        document.getElementById('image_pp').src = ICON_PATH + ICON_PLAY;
+
+        return image_change(current_image_index * -1);
+    }
+}
+
+
+// general purpose animation functions /////
+
+function image_change(delta) {
+    // GLOBALS ACCESSED: current_image_index, filenames
+
+    var current_map = document.getElementById('current_map');
+
+    // make sure map is showing
+    current_map.style.display = 'block';
+
+    var new_image_index = current_image_index + delta;
+
+    if (new_image_index >= 0 && new_image_index < filenames.length) {
+        current_image_index = new_image_index;
+        current_map.src = filenames[current_image_index];
+    }
+}
+
+function loop() {
+    // GLOBALS ACCESSED: looping, current_image_index, filenames, 
+    // preloaded, preloading, preload_step
+
+    if (!looping) {
+        // requested to stop playback
+        return;
+    }
+
+    // move forward one image
+    image_change(1);
+
+    if (current_image_index < filenames.length-1) {
+        setTimeout(loop, 125);
+
+        // remove previously preloaded images (to a point)
+        // from the DOM to avoid bombing the RAM
+        // NOTE: causes problems in Opera when starting the animation over,
+        // and doesn't seem to help RAM usage that much either. sigh...
+        if (current_image_index > preload_threshold) {
+            var index = current_image_index - preload_threshold
+            delete(preloads[index]);
+
+            // just delete the first one in the designated container
+            // because we're deleting consequentially it'll be the right one
+            // TODO: unless user manually goes back
+            // more than preload_threshold frames then restarts... hm, check
+            document.getElementById("preload_container").removeChild(document.getElementById("preload_container").children[0]);
+        }
+    } else {
+        // reached the end, stop looping
+        looping = false;
+
+        // change icons
+        toggle(document.getElementById('image_pp'), false);
+        toggle(document.getElementById('image_reset'), true);
+    }
+
+    // at my target rate of 8 fps, 12 frames is barely more than a second
+    // - consider upping preload syep doing current_index + 36 or something here, 
+    // and correspondingly larger value in initial preload() call
+    if (((current_image_index + preload_threshold) > preloaded) 
+        && (preloaded < filenames.length-1) 
+        && (preloading === false)) {
+        console.log('starting preload, current index ' + current_image_index 
+            + ', preloaded ' + preloaded + ', total ' + filenames.length)
+
+        preloading = true;
+        preload(current_image_index, preloaded + preload_step);
+    }
+}
+
+function preload(starting, ending) {
+    // GLOBALS: filenames, preloaded, preloading, preloads
+
+    ending = Math.min(ending, filenames.length - 1);
+
+    for (var i = starting; i <= ending; i++) {
+        preloads[i] = new Image();
+        preloads[i].src = filenames[i];
+
+        // various hacks to get it to preload correctly in various browsers
+        // just (new Image()).src isn't enough for opera
+        // and without height=0 firefox eventually introduces a scrollbar
+        // zzz, hacks
+        preloads[i].className = "offscreen";
+        document.getElementById("preload_container").appendChild(preloads[i]);
+    }
+
+    preloaded = ending;
+    preloading = false;
+
+    console.log('finished preloading, new preloaded ' + preloaded);
+}
+
+</script>
+
