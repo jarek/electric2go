@@ -63,7 +63,7 @@ def json_respond():
 
     results = results[:limit]
 
-    result = {'results': results}
+    result = {'placemarks': results}
 
     if cache:
         result['cache'] = True
