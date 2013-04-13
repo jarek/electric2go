@@ -18,7 +18,7 @@ import Image
 import cars
 
 
-KNOWN_CITIES = ['austin', 'calgary', 'seattle', 'toronto', 'vancouver']
+KNOWN_CITIES = ['austin', 'calgary', 'portland', 'seattle', 'toronto', 'vancouver']
 
 BOUNDS = {
     'austin': {
@@ -46,6 +46,12 @@ BOUNDS = {
         'SOUTH': 50.984936,
         'EAST': -113.997314,
         'WEST': -114.16401
+    },
+    'portland': {
+        'NORTH': 45.583, # exact value is 45.582718
+        'SOUTH': 45.435, # exact value is 45.435555, or 45.463924 excl PCC
+        'EAST': -122.557, # exact value is -122.557724
+        'WEST': -122.738 # exact value is -122.73726, or -122.72915 excl PCC
     },
     'seattle': {
         'NORTH': 47.72344,
@@ -101,6 +107,16 @@ MAP_LIMITS = {
         'EAST': -113.997314,
         'WEST': -114.16401
     },
+    'portland': {
+        # values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 1:77700 for 1920x1080, 116500 for 1280x720
+        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-122.83514,45.435,-122.45986,45.583&scale=116500&format=png for 1280x720
+        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-122.83514,45.435,-122.45986,45.583&scale=77700&format=png for 1920x1080
+        'NORTH': 45.583,
+        'SOUTH': 45.435,
+        'EAST': -122.45986,
+        'WEST': -122.83514
+    },
     'seattle': {
         'NORTH': 47.72344,
         'SOUTH': 47.578247,
@@ -139,6 +155,11 @@ DEGREE_LENGTHS = {
         'LENGTH_OF_LATITUDE': 111249.00,
         'LENGTH_OF_LONGITUDE': 70137.28
     },
+    'portland': {
+        # for latitude 45.52
+        'LENGTH_OF_LATITUDE': 111141.91,
+        'LENGTH_OF_LONGITUDE': 78130.36
+    },
     'seattle': {
         # for latitude 47.65
         'LENGTH_OF_LATITUDE': 111183.48,
@@ -174,6 +195,12 @@ MAP_SIZES = {
         # 0.986881937 / 0.620824735 = 1.589630505 ~= 1.586160741
         'MAP_X': 991,
         'MAP_Y': 978
+    },
+    'portland': {
+        # 1080/1920 / (45.583-45.435)/(122.83514-122.45986) ~= 111141.91 / 78130.36
+        # 0.5625 / 0.394372202 = 1.426317568 ~= 1.422518852
+        'MAP_X': 1920,
+        'MAP_Y': 1080,
     },
     'seattle': {
         # 991/879 / (47.72344-47.578247)/(122.437126-122.24557) ~= 111183.48 / 75128.68
@@ -215,6 +242,16 @@ LABELS = {
                     MAP_SIZES['calgary']['MAP_Y']-145),
             (MAP_SIZES['calgary']['MAP_X']*0.75,
                     MAP_SIZES['calgary']['MAP_Y']-170)
+        ]
+    },
+    'portland': {
+        'fontsizes': [30, 22, 30, 18, 18],
+        'lines': [
+            (20, MAP_SIZES['portland']['MAP_Y']-50),
+            (20, MAP_SIZES['portland']['MAP_Y']-82),
+            (20, MAP_SIZES['portland']['MAP_Y']-122),
+            (20, MAP_SIZES['portland']['MAP_Y']-155),
+            (20, MAP_SIZES['portland']['MAP_Y']-180)
         ]
     },
     'seattle': {
@@ -571,11 +608,12 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
         ax.text(coords[1][0], coords[1][1],
             printed_time.strftime('%B %d, %Y').replace(' 0',' '),
             fontsize = fontsizes[1])
-        # the .replace is a bit of a hack but it works with no false positives
+        # the .replace gets rid of leading zeros in day numbers.
+        # it's a bit of a hack but it works with no false positives
         # until we get a year beginning with a zero, which shouldn't be 
         # a problem for a while
         ax.text(coords[2][0], coords[2][1], 
-            printed_time.strftime('%H:%M'), fontsize = fontsizes[2])
+            printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
         ax.text(coords[3][0], coords[3][1], 
             'available cars: %d' % car_count, fontsize = fontsizes[3])
         ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
