@@ -14,6 +14,8 @@ import shutil
 import simplejson as json
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats as sps
+from collections import Counter
 import Image
 import cars
 
@@ -360,23 +362,40 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                 # car has moved since last known position
                 data[vin]['prev_coords'] = data[vin]['coords']
                 data[vin]['prev_seen'] = data[vin]['seen']
-                data[vin]['just_moved'] = True
-
                 data[vin]['coords'] = [lat, lng]
                 data[vin]['seen'] = time
+                data[vin]['just_moved'] = True
 
-                if show_speeds is True:
-                    # the distance calculation might be 
-                    # particularly cpu intensive, 
-                    # so only do if it requested
-                    t_span = time - data[vin]['prev_seen']
+                if 'fuel' in data[vin]:
+                    data[vin]['prev_fuel'] = data[vin]['fuel']
+                    data[vin]['fuel'] = car['fuel']
+
+                data[vin]['distance'] = dist(data[vin]['coords'], data[vin]['prev_coords'])
+                t_span = time - data[vin]['prev_seen']
+                data[vin]['duration'] = t_span.total_seconds()
+
+                trip_data = {
+                    'vin': vin,
+                    'from': data[vin]['prev_coords'],
+                    'to': data[vin]['coords'],
+                    'starting_time': data[vin]['prev_seen'],
+                    'ending_time': data[vin]['seen'],
+                    'distance': data[vin]['distance'],
+                    'duration': data[vin]['duration']
+                    }
+                if 'fuel' in data[vin]:
+                    trip_data['starting_fuel'] = data[vin]['prev_fuel']
+                    trip_data['ending_fuel'] = data[vin]['fuel']
+
+                if not 'trips' in data[vin]:
+                    data[vin]['trips'] = []
+                data[vin]['trips'].append(trip_data)
+
+                if t_span.total_seconds() > 0:
                     t_span = t_span.total_seconds() / 3600.0
-                    if t_span > 0:
-                        data[vin]['distance'] = dist(data[vin]['coords'], data[vin]['prev_coords'])
-                        data[vin]['speed'] = data[vin]['distance']/t_span
+                    data[vin]['speed'] = data[vin]['distance'] / t_span
 
                 moved_cars.append(vin)
-                #print vin + ' moved from ' + str(data[vin]['prev_coords']) + ' to ' + str(data[vin]['coords'])
                 
             else:
                 # car has not moved from last known position. just update time last seen
@@ -385,6 +404,8 @@ def process_data(json_data, data_time = None, previous_data = {}, \
         else:
             # 'new' car showing up, initialize it
             data[vin] = {'coords': [lat, lng], 'seen': time, 'just_moved': False}
+            if 'fuel' in car:
+                data[vin]['fuel'] = car['fuel']
 
     return data,moved_cars
 
@@ -854,16 +875,167 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     timer.append((log_name + ': make_accessibility_graph total, ms',
         (time.time()-time_total_start)*1000.0))
 
-    # TODO: this leaks memory when invoked in a loop (as batch_process 
-    # normally does), and runs out of memory on a 3 GB machine around
-    # iteration 250-260 for a Toronto-sized data set. Should probably
-    # try to figure out how to free things up a bit.
+def print_stats(saved_data, starting_time, t, time_step,
+    weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = False):
+    def trip_breakdown(trips, sorting_bins = [120, 300, 600],
+        sorting_lambda = False, label = False):
+        # uses stats['total_trips'] defined before calling this subfunction
+        lines = []
+        for i in sorting_bins:
+            if not sorting_lambda:
+                trip_count = sum(1 for x in trips if x > i)
+            else:
+                trip_count = sum(1 for x in trips if sorting_lambda(x, i))
+
+            trip_percent = trip_count * 1.0 / stats['total_trips']
+
+            if not label:
+                line = 'trips over %d hours: %s' % \
+                    (i/60, trip_count_stats(trip_count))
+            else:
+                line = label(i, trip_count_stats(trip_count))
+            lines.append(line)
+        return '\n'.join(lines)
+
+    def trip_count_stats(trip_count):
+        # uses time_days and stats['total_trips'] defined 
+        # before calling this subfunction
+        return '%d (%0.2f per day; %0.4f of all trips)' % \
+            (trip_count, trip_count/time_days, 
+            trip_count * 1.0 / stats['total_trips'])
+
+    def quartiles(data):
+        result = {}
+        for i in range(5):
+            result[(i*25)] = sps.scoreatpercentile(data, i*25)
+        return result
+
+    def format_quartiles(data, format = '%0.3f'):
+        result = ''
+        data = quartiles(data)
+        for percent in data:
+            result += '\t%d\t' % percent
+            result += format % data[percent]
+            result += '\n'
+        return result
+
+    def round_to(value, round_to):
+        return round_to*int(value*(1.0/round_to))
+
+    stats = {'total_vehicles': 0,
+        'total_trips': 0, 'trips': [],
+        'total_distance': 0, 'distances': [], 'distance_bins': [],
+        'total_duration': 0, 'durations': [], 'duration_bins': []}
+    weird = []
+    refueled = []
+    for vin in saved_data:
+        stats['total_vehicles'] += 1
+
+        trips = 0
+        if 'trips' in saved_data[vin]:
+            trips = len(saved_data[vin]['trips'])
+
+            for trip in saved_data[vin]['trips']:
+                if trip['distance'] <= weird_trip_distance_cutoff:
+                    weird.append(trip)
+
+                    if weird_trip_time_cutoff and \
+                        trip['duration'] <= weird_trip_time_cutoff:
+                        # do not count this trip... it's an anomaly
+                        trips -= 1
+                        continue
+
+                stats['total_trips'] += 1
+
+                stats['total_duration'] += trip['duration']/60
+                stats['durations'].append(trip['duration']/60)
+
+                # bin to nearest five minutes (if it isn't already)
+                stats['duration_bins'].append(round_to(trip['duration']/60, 5))
+
+                stats['total_distance'] += trip['distance']
+                stats['distances'].append(trip['distance'])
+
+                # bin to nearest 0.5 km
+                stats['distance_bins'].append(round_to(trip['distance'], 0.5))
+
+
+                if 'starting_fuel' in trip:
+                    if trip['ending_fuel'] > trip['starting_fuel']:
+                        refueled.append(trip)
+
+        stats['trips'].append(trips)
+
+    # subtracting time_step below to get last file actually processed
+    time_elapsed = t - timedelta(0, time_step*60) - starting_time
+    time_days = time_elapsed.total_seconds() / (24*60*60)
+    print '\ntime elapsed: %s (%0.3f days)' % (time_elapsed, time_days)
+
+    print '\ntotal trips: %d (%0.2f per day), total vehicles: %d' % \
+        (stats['total_trips'], stats['total_trips'] * 1.0 / time_days,
+        stats['total_vehicles'])
+
+    trip_counter = Counter(stats['trips'])
+    print '\nmean trips per car: %0.2f (%0.2f per day), stdev: %0.3f' % \
+        (np.mean(stats['trips']), np.mean(stats['trips']) / time_days, 
+        np.std(stats['trips']))
+    print 'most common trip counts: %s' % trip_counter.most_common(10)
+    print 'cars with zero trips: %d' % trip_counter[0]
+
+    print '\nmean distance per trip (km): %0.2f, stdev: %0.3f' % \
+        (np.mean(stats['distances']), np.std(stats['distances']))
+    print 'most common distances, rounded to nearest 0.5 km: %s' % \
+        Counter(stats['distance_bins']).most_common(10)
+    print trip_breakdown(stats['distances'], sorting_bins = [5, 10],
+        label = lambda dist, count: 'trips over %d km: %s' % (dist, count))
+    print 'distance quartiles: '
+    print format_quartiles(stats['distances'])
+
+    print 'mean duration per trip (minutes): %0.2f, stdev: %0.3f' % \
+        (np.mean(stats['durations']), np.std(stats['durations']))
+    print 'most common durations: %s' % \
+        Counter(stats['durations']).most_common(10)
+    print Counter(stats['duration_bins']).most_common(10)
+    print trip_breakdown(stats['durations'])
+    print 'duration quartiles: '
+    print format_quartiles(stats['durations'], format = '%d')
+
+    # this is a weirdness with the datasets: 
+    # some have lots of short (<50 m, even <10m) trips.
+    # e.g., the austin sxsw has about 90 trips per day like that.
+    # unfortunately the API doesn't give us mileage, so hard to tell if
+    # it was a round trip, or if a car even moved at all.
+    # not sure what to do with them yet...
+    durations = list(x['duration']/60 for x in weird)
+    distances = list(x['distance'] for x in weird)
+    distance_bins = list(int(1000*round_to(x['distance'], 0.005)) 
+        for x in weird)
+    fuel_uses = list(x['starting_fuel'] - x['ending_fuel'] for x in weird)
+
+    print '\ntrips reported shorter than %d m: %s' % \
+        (weird_trip_distance_cutoff * 1000, trip_count_stats(len(weird)))
+    print '\ndurations (minutes): mean %0.2f, stdev %0.3f' % \
+        (np.mean(durations), np.std(durations))
+    print 'most common durations: %s' %Counter(durations).most_common(10)
+    print trip_breakdown(durations)
+    print '\ndistances (km): mean %0.4f, stdev %0.4f, max %0.2f' % \
+        (np.mean(distances), np.std(distances), max(distances))
+    print 'most common distances in metres, rounded to nearest 5 m: %s' % \
+        Counter(distance_bins).most_common(10)
+    print '\nfuel use (in percent capacity): mean %d, stdev %0.3f, max %d' % \
+        (np.mean(fuel_uses), np.std(fuel_uses), max(fuel_uses))
+    print 'most common fuel uses: %s' % Counter(fuel_uses).most_common(10)
+    print trip_breakdown(fuel_uses, sorting_bins = [1, 5, 0],
+        sorting_lambda = (lambda x, i: (x > i) if i > 0 else (x < i)),
+        label = (lambda fuel, string: 
+            'more than %d pp fuel use: %s' % (fuel, string) if (fuel > 0) else
+            'refueled: %s' % string))
 
 def batch_process(city, starting_time, dry = False, make_iterations = True, \
     show_move_lines = True, max_files = False, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
-    distance = False, time_offset = 0, web = False, \
+    distance = False, time_offset = 0, web = False, stats = False, \
     **extra_args):
 
     args = locals()
@@ -1002,7 +1174,10 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
             print '\tspeed: ' + str(saved_data[vin]['speed']),
         print
 
-    pass
+    if stats:
+        print_stats(saved_data, starting_time, t, time_step)
+
+    print
 
 def process_commandline():
     global DEBUG
@@ -1012,6 +1187,8 @@ def process_commandline():
         help='name of first file to process')
     parser.add_argument('-dry', action='store_true',
         help='dry run: do not generate any images')
+    parser.add_argument('-s', '--stats', action='store_true',
+        help='generate and print some basic statistics about car2go use')
     parser.add_argument('-tz', '--time-offset', type=int, default=0,
         help='offset times shown on graphs by TIME_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
