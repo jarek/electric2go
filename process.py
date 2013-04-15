@@ -1034,6 +1034,8 @@ def print_stats(saved_data, starting_time, t, time_step,
     print '\ntotal trips: %d (%0.2f per day), total vehicles: %d' % \
         (stats['total_trips'], stats['total_trips'] * 1.0 / time_days,
         stats['total_vehicles'])
+    print 'mean total vehicle utilization (%% of day spent moving): %0.3f' % \
+        (stats['total_duration'] / stats['total_vehicles'] / (24*60*time_days))
 
     trip_counter = Counter(stats['trips'])
     print '\nmean trips per car: %0.2f (%0.2f per day), stdev: %0.3f' % \
@@ -1041,8 +1043,10 @@ def print_stats(saved_data, starting_time, t, time_step,
         np.std(stats['trips']))
     print 'most common trip counts: %s' % trip_counter.most_common(10)
     print 'cars with zero trips: %d' % trip_counter[0]
+    print 'trip count per day quartiles:'
+    print format_quartiles(np.array(stats['trips'])/time_days, format='%0.2f')
 
-    print '\nmean distance per trip (km): %0.2f, stdev: %0.3f' % \
+    print 'mean distance per trip (km): %0.2f, stdev: %0.3f' % \
         (np.mean(stats['distances']), np.std(stats['distances']))
     print 'most common distances, rounded to nearest 0.5 km: %s' % \
         Counter(stats['distance_bins']).most_common(10)
@@ -1053,9 +1057,8 @@ def print_stats(saved_data, starting_time, t, time_step,
 
     print 'mean duration per trip (minutes): %0.2f, stdev: %0.3f' % \
         (np.mean(stats['durations']), np.std(stats['durations']))
-    print 'most common durations: %s' % \
-        Counter(stats['durations']).most_common(10)
-    print Counter(stats['duration_bins']).most_common(10)
+    print 'most common durations, rounded to nearest 5 minutes: %s' % \
+        Counter(stats['duration_bins']).most_common(10)
     print trip_breakdown(stats['durations'])
     print 'duration quartiles: '
     print format_quartiles(stats['durations'], format = '%d')
