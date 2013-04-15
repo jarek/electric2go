@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as sps
 from collections import Counter
+from random import choice
 import Image
 import cars
 
@@ -344,11 +345,13 @@ def process_data(json_data, data_time = None, previous_data = {}, \
     for car in json_data:
         if 'vin' in car:
             vin = car['vin']
+            name = car['name']
             lat = car['coordinates'][1]
             lng = car['coordinates'][0]
             time = data_time
         elif 'VehicleNo' in car:
             vin = car['VehicleNo']
+            name = car['VehicleNo']
             lat = car['Latitude']
             lng = car['Longitude']
             time = datetime.strptime(car['RecordedTime'], \
@@ -387,8 +390,6 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                     trip_data['starting_fuel'] = data[vin]['prev_fuel']
                     trip_data['ending_fuel'] = data[vin]['fuel']
 
-                if not 'trips' in data[vin]:
-                    data[vin]['trips'] = []
                 data[vin]['trips'].append(trip_data)
 
                 if t_span.total_seconds() > 0:
@@ -403,7 +404,8 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                 data[vin]['just_moved'] = False
         else:
             # 'new' car showing up, initialize it
-            data[vin] = {'coords': [lat, lng], 'seen': time, 'just_moved': False}
+            data[vin] = {'name': name, 'coords': [lat, lng], 'seen': time,
+                'just_moved': False, 'trips': []}
             if 'fuel' in car:
                 data[vin]['fuel'] = car['fuel']
 
@@ -875,6 +877,64 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     timer.append((log_name + ': make_accessibility_graph total, ms',
         (time.time()-time_total_start)*1000.0))
 
+def trace_vehicle(data, provided_vin):
+    def format_trip(trip):
+        result  = 'start: %s at %f,%f' % \
+            (trip['starting_time'], trip['from'][0], trip['from'][1])
+        result += ', end: %s at %f,%f' % \
+            (trip['ending_time'], trip['to'][0], trip['to'][1])
+        result += '\n\tduration: %d minutes' % (trip['duration'] / 60)
+        result += '\tdistance: %0.2f km' % (trip['distance'])
+        result += '\tfuel: starting %d%%, ending %d%%' % \
+            (trip['starting_fuel'], trip['ending_fuel'])
+
+        if trip['ending_fuel'] > trip['starting_fuel']:
+            result += ' - refueled'
+
+        return result
+
+    vin = provided_vin
+    lines = []
+
+    if vin == 'random':
+        vin = choice(list(data.keys()))
+    elif vin == 'most_trips':
+        # pick the vehicle with most trips. in case of tie, pick first one
+        vin = max(data, key = lambda v: len(data[v]['trips']))
+        lines.append('vehicle with most trips is %s with %d trips' % \
+            (vin, len(data[vin]['trips'])))
+    elif vin == 'most_distance':
+        vin = max(data, 
+            key = lambda v: sum(t['distance'] for t in data[v]['trips']))
+        lines.append(
+            'vehicle with highest distance travelled is %s with %0.3f km' % \
+            (vin, sum(t['distance'] for t in data[vin]['trips'])))
+    elif vin == 'most_duration':
+        vin = max(data, 
+            key = lambda v: sum(t['duration'] for t in data[v]['trips']))
+        duration = sum(t['duration'] for t in data[vin]['trips'])/60
+        lines.append('vehicle with highest trip duration is %s ' \
+            'with %d minutes (%0.2f hours)' % (vin, duration, duration/60))
+    elif len(vin) != 17:
+        # try to treat as license plate, and find the VIN of the vehicle
+        # with such a plate
+        vin = vin.replace(' ', '')
+
+        for vehicle in data:
+            if data[vehicle]['name'].replace(' ', '') == vin:
+                vin = vehicle
+                break
+
+    if not vin in data:
+        return 'vehicle not found in dataset: %s' % provided_vin
+
+    trips = data[vin]['trips']
+    lines.append('trips for vehicle %s: (count %d)' % (vin, len(trips)))
+    for trip in trips:
+        lines.append(format_trip(trip))
+
+    return '\n'.join(lines)
+
 def print_stats(saved_data, starting_time, t, time_step,
     weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = False):
     def trip_breakdown(trips, sorting_bins = [120, 300, 600],
@@ -969,7 +1029,7 @@ def print_stats(saved_data, starting_time, t, time_step,
     # subtracting time_step below to get last file actually processed
     time_elapsed = t - timedelta(0, time_step*60) - starting_time
     time_days = time_elapsed.total_seconds() / (24*60*60)
-    print '\ntime elapsed: %s (%0.3f days)' % (time_elapsed, time_days)
+    print 'time elapsed: %s (%0.3f days)' % (time_elapsed, time_days)
 
     print '\ntotal trips: %d (%0.2f per day), total vehicles: %d' % \
         (stats['total_trips'], stats['total_trips'] * 1.0 / time_days,
@@ -1036,6 +1096,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
     distance = False, time_offset = 0, web = False, stats = False, \
+    trace = False, \
     **extra_args):
 
     args = locals()
@@ -1157,24 +1218,12 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         print '''avconv -loop 1 -r 8 -i %s -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d %s''' % (background_path, png_filepaths, i-1, mp4_path)
         # if i wanted to invoke this, just do os.system('avconv...')
 
-    # show info for cars that had just stopped moving in the last dataset
-    print '\njust stopped on ' + str(t) + ':'
-    for vin in moved_cars:
-        travel_time = (saved_data[vin]['seen'] -
-                saved_data[vin]['prev_seen']).total_seconds()
-        lat1,lng1 = saved_data[vin]['prev_coords']
-        lat2,lng2 = saved_data[vin]['coords']
-        print vin,
-        print 'start: ' + str(lat1) + ',' + str(lng1),
-        print 'end: ' + str(lat2) + ',' + str(lng2),
-        print '\ttime: ' + str(travel_time),
-        if 'distance' in saved_data[vin]:
-            print '\tdistance: ' + str(saved_data[vin]['distance']),
-        if 'speed' in saved_data[vin]:
-            print '\tspeed: ' + str(saved_data[vin]['speed']),
+    if trace:
         print
+        print trace_vehicle(saved_data, trace)
 
     if stats:
+        print
         print_stats(saved_data, starting_time, t, time_step)
 
     print
@@ -1189,6 +1238,10 @@ def process_commandline():
         help='dry run: do not generate any images')
     parser.add_argument('-s', '--stats', action='store_true',
         help='generate and print some basic statistics about car2go use')
+    parser.add_argument('-t', '--trace', type=str, default=False,
+        help='print out all trips of a vehicle found in the dataset; \
+            accepts license plates, VINs, \
+            "random", "most_trips", "most_distance", and "most_duration"')
     parser.add_argument('-tz', '--time-offset', type=int, default=0,
         help='offset times shown on graphs by TIME_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
