@@ -965,9 +965,16 @@ def print_stats(saved_data, starting_time, t, time_step,
     def trip_count_stats(trip_count):
         # uses time_days and stats['total_trips'] defined 
         # before calling this subfunction
-        return '%d (%0.2f per day; %0.4f of all trips)' % \
-            (trip_count, trip_count/time_days, 
-            trip_count * 1.0 / stats['total_trips'])
+
+        if abs(time_days-1.0) < 0.01:
+            # don't calculate trips per day if value is within 1% of a day
+            # that's close enough that the differences won't matter in practice
+            return '%d (%0.4f of all trips)' % \
+                (trip_count, trip_count * 1.0 / stats['total_trips'])
+        else:
+            return '%d (%0.2f per day; %0.4f of all trips)' % \
+                (trip_count, trip_count/time_days, 
+                trip_count * 1.0 / stats['total_trips'])
 
     def quartiles(data):
         result = {}
@@ -1043,9 +1050,12 @@ def print_stats(saved_data, starting_time, t, time_step,
         (stats['total_duration'] / stats['total_vehicles'] / (24*60*time_days))
 
     trip_counter = Counter(stats['trips'])
-    print '\nmean trips per car: %0.2f (%0.2f per day), stdev: %0.3f' % \
-        (np.mean(stats['trips']), np.mean(stats['trips']) / time_days, 
-        np.std(stats['trips']))
+    sys.stdout.write('\nmean trips per car: %0.2f' % np.mean(stats['trips']))
+    if abs(time_days-1.0) > 0.01:
+        print ' (%0.2f per day),' % (np.mean(stats['trips']) / time_days),
+    else:
+        print ',',
+    print 'stdev: %0.3f' % np.std(stats['trips'])
     print 'most common trip counts: %s' % trip_counter.most_common(10)
     print 'cars with zero trips: %d' % trip_counter[0]
     print 'trip count per day quartiles:'
@@ -1082,8 +1092,8 @@ def print_stats(saved_data, starting_time, t, time_step,
 
     print '\ntrips reported shorter than %d m: %s' % \
         (weird_trip_distance_cutoff * 1000, trip_count_stats(len(weird)))
-    print '\ndurations (minutes): mean %0.2f, stdev %0.3f' % \
-        (np.mean(durations), np.std(durations))
+    print '\ndurations (minutes): mean %0.2f, stdev %0.3f, max %d' % \
+        (np.mean(durations), np.std(durations), max(durations))
     print 'most common durations: %s' %Counter(durations).most_common(10)
     print trip_breakdown(durations)
     print '\ndistances (km): mean %0.4f, stdev %0.4f, max %0.2f' % \
