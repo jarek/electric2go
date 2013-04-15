@@ -57,10 +57,10 @@ BOUNDS = {
         'WEST': -122.738 # exact value is -122.73726, or -122.72915 excl PCC
     },
     'seattle': {
-        'NORTH': 47.72344,
-        'SOUTH': 47.578247,
-        'EAST': -122.24557,
-        'WEST': -122.437126
+        'NORTH': 47.724, # exact value is 47.723562
+        'SOUTH': 47.520, # exact value is 47.5208 - Fauntleroy Ferry
+        'EAST': -122.245, # exact value is -122.24517
+        'WEST': -122.437 # exact value is -122.43666
     },
     'toronto': {
         'NORTH': 43.72736,
@@ -121,10 +121,13 @@ MAP_LIMITS = {
         'WEST': -122.83514
     },
     'seattle': {
-        'NORTH': 47.72344,
-        'SOUTH': 47.578247,
-        'EAST': -122.24557,
-        'WEST': -122.437126
+        # values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 1 : 111350 for 1920x1080
+        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-122.61,47.52,-122.072,47.724&scale=111300&format=png
+        'NORTH': 47.724,
+        'SOUTH': 47.520,
+        'EAST': -122.072,
+        'WEST': -122.610
     },
     'toronto': {
         'NORTH': 43.72736,
@@ -164,9 +167,9 @@ DEGREE_LENGTHS = {
         'LENGTH_OF_LONGITUDE': 78130.36
     },
     'seattle': {
-        # for latitude 47.65
-        'LENGTH_OF_LATITUDE': 111183.48,
-        'LENGTH_OF_LONGITUDE': 75128.68
+        # for latitude 47.61
+        'LENGTH_OF_LATITUDE': 111182.70,
+        'LENGTH_OF_LONGITUDE': 75186.03
     },
     'toronto': {
         # for latitude 43.7
@@ -206,10 +209,10 @@ MAP_SIZES = {
         'MAP_Y': 1080,
     },
     'seattle': {
-        # 991/879 / (47.72344-47.578247)/(122.437126-122.24557) ~= 111183.48 / 75128.68
-        # 1.12741752 / 0.757966339 = 1.487424259 ~= 1.479907274
-        'MAP_X' : 879,
-        'MAP_Y' : 991
+        # 1080/1920 / (47.724-47.520)/(122.610-122.072) ~= 111182.70 / 75186.03
+        # 0.5625 / 0.379182156 = 1.483455883 ~= 1.478768064
+        'MAP_X' : 1920,
+        'MAP_Y' : 1080
     },
     'toronto': {
         # 615/991 / (43.72736-43.625893)/(79.50168-79.2768) ~= 111106.36 / 80609.20
@@ -258,11 +261,13 @@ LABELS = {
         ]
     },
     'seattle': {
-        'fontsize': 15,
+        'fontsizes': [35, 22, 30, 18, 18],
         'lines': [
-            (15, 200),
-            (15, 175),
-            (15, 150)
+            (400, MAP_SIZES['seattle']['MAP_Y']-55),
+            (400, MAP_SIZES['seattle']['MAP_Y']-93),
+            (400, MAP_SIZES['seattle']['MAP_Y']-132),
+            (400, MAP_SIZES['seattle']['MAP_Y']-170),
+            (400, MAP_SIZES['seattle']['MAP_Y']-195)
         ]
     },
     'toronto': {
