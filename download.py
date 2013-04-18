@@ -18,11 +18,14 @@ t = datetime.datetime.now()
 for city in cities:
     cars_text,cache = cars.get_all_cars_text(city, force_download = True)
 
-    f = open(cars.data_dir + 'current_%s' % city, 'w')
+    current_filename = cars.data_dir + 'current_%s' % city
+    f = open(current_filename, 'w')
     print >> f, cars_text
     f.close()
 
-    if cars.CITIES[city]['of_interest'] == True \
+    # save all information downloaded for now
+    #if cars.CITIES[city]['of_interest'] == True \
+    if True \
         and t.minute % cars.DATA_COLLECTION_INTERVAL_MINUTES == 0:
         filename = cars.filename_format % (city, \
             t.year, t.month, t.day, t.hour, t.minute)
@@ -32,3 +35,4 @@ for city in cities:
 
 print str(t),
 index.print_timer_info(cars.timer)
+

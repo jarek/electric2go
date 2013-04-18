@@ -17,7 +17,7 @@ MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=
 MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&sensor=false" alt="{alt}" />'.replace('&', '&amp;')
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
-DATA_COLLECTION_INTERVAL_MINUTES = 5 # used in download.py, process.py
+DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py
 
 CITIES = {
     'amsterdam': {'of_interest': True, 'electric': 'all'},
@@ -27,12 +27,12 @@ CITIES = {
     'duesseldorf': {'display': 'Düsseldorf'},
     'hamburg': {},
     'koeln': {'display': 'Köln'},
-    'london': {'number_first_address': True},
+    'london': {'of_interest': True, 'number_first_address': True},
     'miami': {'number_first_address': True},
     'portland': {'electric': 'some', 'number_first_address': True},
-    'sandiego': {'of_interest': True, 'display': 'San Diego', 'electric': 'all',
-        'number_first_address': True},
-    'seattle': {'number_first_address': True},
+    'sandiego': {'of_interest': True, 'display': 'San Diego', 
+        'electric': 'all', 'number_first_address': True},
+    'seattle': {'of_interest': True, 'number_first_address': True},
     'stuttgart': {'electric': 'all'}, 
     'toronto': {'of_interest': True, 'number_first_address': True},
     'ulm': {'electric': 'some'},
