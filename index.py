@@ -32,6 +32,11 @@ def format_address(address, city):
     if not cars.CITIES[city]['number_first_address']:
         return address
 
+    # If possible and appropriate, try to reformat street address 
+    # to more usual form used in English-speaking areas.
+    # Except for designated parking areas, API always returns 
+    # German-style "Main St 100", change it to "100 Main St"
+
     address_parts = address.split(',')
 
     street_parts = address_parts[0].split()
@@ -43,17 +48,21 @@ def format_address(address, city):
     return ','.join(address_parts)
 
 def format_latlng(ll):
-    return str(ll[1]) + ',' + str(ll[0])
+    return '%s,%s' % (ll[1], ll[0])
 
 def format_car(car, city):
+    # something in Python doesn't like the Unicode returned by API,
+    # so encode all strings explicitly
     for key in car:
         if isinstance(car[key], basestring):
             car[key] = car[key].encode('ascii','xmlcharrefreplace')
 
     coords = format_latlng(car['coordinates'])
+    address = format_address(car['address'], city)
 
-    info = '<section class="sort" data-loc="' + coords + '">'
-    info += '<h3>' + format_address(car['address'], city) + '</h3><p>'
+    info = '<section class="sort" data-loc="%s">' % coords
+    info += '<h3>%s</h3>' % address
+    info += '<p><!--vin: %s-->' % car['vin']
 
     charge = car['fuel']
     if charge < 20:
@@ -62,26 +71,29 @@ def format_car(car, city):
         # full charge range is approx 135 km, round down a bit
         # must end trip with more than 20% unless at charging station
         range = int(math.floor(1.2 * (charge-20)))
-        info += 'Approx range: ' + str(range) + ' km, '
+        info += 'Approx range: %s km, ' % range
 
-    info += 'charge: ' + str(charge) + '%'
+    info += 'charge: %s%%' % charge
 
     if car['charging']:
         info += ', charging<br/>'
     else:
         info += '<br/>'
 
-    info += 'Plate: ' + car['name'] + ', '
-    info += 'interior: ' + car['interior'].lower() + ', '
-    info += 'exterior: ' + car['exterior'].lower() + '<br/>\n'
+    info += 'Plate: %s, interior: %s, exterior: %s<br/>\n' % \
+        (car['name'], car['interior'].lower(), car['exterior'].lower())
 
-    mapurl = cars.MAPS_URL.replace('{ll}', coords).replace('{q}', car['address'].replace(' ','%20'))
-    info += 'Location: <a href="' + mapurl + '">' + coords + '</a>'
-    info += '<span class="distance" data-template=", approx distance: {dist} km"></span><br/>\n'
+    mapurl = cars.MAPS_URL.replace('{ll}', coords)
+    mapurl = mapurl.replace('{q}', address.replace(' ','%20'))
 
-    info += '<a href="' + mapurl + '">'
-    info += cars.MAPS_IMAGE_CODE.replace('{ll}', coords).replace('{q}', car['address'])
-    info += '</a>'
+    mapimg = cars.MAPS_IMAGE_CODE.replace('{ll}', coords)
+    mapimg = mapimg.replace('{q}', address)
+
+    info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
+    info += '<span class="distance" '
+    info += 'data-template=", approx distance: {dist} km"></span><br/>\n'
+
+    info += '<a href="%s">%s</a>' % (mapurl, mapimg)
     info += '</section>'
 
     return info
@@ -121,11 +133,14 @@ def get_formatted_all_cities(requested_city):
         # and there's no benefit over official apps for all-fleet.
         if data['electric'] == 'some':
             if city == requested_city:
-                formatted_cities.append('<strong>' + data['display'] + '</strong>')
+                formatted_cities.append(
+                    '<strong>%s</strong>' % data['display'])
             else:
-                formatted_cities.append('<a href="?city=' + city + '">' + data['display'] + '</a>')
+                formatted_cities.append(
+                    '<a href="?city=%s">%s</a>' % (city, data['display']))
 
-    return 'car2go cities with a few electric vehicles: ' + ', '.join(formatted_cities)
+    return 'car2go cities with a few electric vehicles: %s' % \
+        ', '.join(formatted_cities)
 
 def pluralize(amount, text):
     plural = 's' if amount != 1 else ''
@@ -144,16 +159,21 @@ def print_all_html():
 
     print '<!doctype html>'
     print '<meta charset="utf-8" />'
-    print '<title>electric car2go vehicles in ' + cars.CITIES[requested_city]['display'] + '</title>'
+    print '<title>electric car2go vehicles in %s</title>' % \
+        cars.CITIES[requested_city]['display']
+    print '''<!-- Hello! If you're interested, the source code for this page is
+        available at https://github.com/qviri/electric2go -->'''
     print '<style type="text/css" media="screen,projection">'
-    print import_file('style.css') + '</style>'
+    print import_file('style.css')
+    print '</style>'
 
-    print '<nav>' + get_formatted_all_cities(requested_city) + '</nav>'
+    print '<nav>%s</nav>' % get_formatted_all_cities(requested_city)
 
     electric_cars,cache = get_formatted_electric_cars(requested_city)
 
-    print '<h2>' + pluralize(len(electric_cars), 'electric car'),
-    print 'currently available in ' + cars.CITIES[requested_city]['display'] + '</h2>'
+    print '<h2>%s currently available in %s</h2>' % \
+        (pluralize(len(electric_cars), 'electric car'), 
+        cars.CITIES[requested_city]['display'])
 
     print format_all_cars_map(requested_city)
 
@@ -166,12 +186,15 @@ def print_all_html():
     print '<footer>',
     if cache:
         cache_age = time.time() - cache
-        print 'Using cached data. Data age: %s,' % pluralize(cache_age, 'second'),
-        print 'next refresh in %s.' % pluralize(cars.CACHE_PERIOD - cache_age, 'second')
-    print 'This product uses the car2go API but is not endorsed or certified by car2go.</footer>'
+        print 'Using cached data. Data age: %s, next refresh in %s.' % \
+            (pluralize(cache_age, 'second'),
+            pluralize(cars.CACHE_PERIOD - cache_age, 'second'))
+    print '''This product uses the car2go API 
+        but is not endorsed or certified by car2go.</footer>'''
     
     print '<script type="text/javascript">'
-    print import_file('sort.js') + '</script>'
+    print import_file('sort.js')
+    print '</script>'
 
     print_timer_info(cars.timer)
     print_timer_info()
@@ -179,3 +202,4 @@ def print_all_html():
 
 if __name__ == '__main__':
     print_all_html()
+
