@@ -1110,7 +1110,7 @@ def print_stats(saved_data, starting_time, t, time_step,
             'refueled: %s' % string))
 
 def batch_process(city, starting_time, dry = False, make_iterations = True, \
-    show_move_lines = True, max_files = False, file_dir = '', \
+    show_move_lines = True, max_files = False, max_skip = 0, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
     distance = False, time_offset = 0, web = False, stats = False, \
@@ -1126,6 +1126,19 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
         return os.path.join(file_dir, filename)
 
+    def load_file(filepath):
+        if not os.path.exists(filepath):
+            return False
+
+        f = open(filepath, 'r')
+        json_text = f.read()
+        f.close()
+
+        try:
+            return json.loads(json_text)
+        except:
+            return False
+
     i = 1
     t = starting_time
     filepath = get_filepath(city, starting_time, file_dir)
@@ -1139,17 +1152,14 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     iter_filenames = []
 
+    json_data = load_file(filepath)
+
     # loop as long as new files exist
     # if we have a limit specified, loop only until limit is reached
-    while os.path.exists(filepath) and (max_files is False or i <= max_files):
+    while json_data != False and (max_files is False or i <= max_files):
         time_process_start = time.time()
 
         print t,
-
-        f = open(filepath, 'r')
-        json_text = f.read()
-        f.close()
-        json_data = json.loads(json_text)
 
         if 'placemarks' in json_data:
             json_data = json_data['placemarks']
@@ -1193,6 +1203,31 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         i = i + 1
         t = t + timedelta(0, time_step*60)
         filepath = get_filepath(city, t, file_dir)
+
+        json_data = load_file(filepath)
+
+        if json_data == False:
+            print 'would stop at %s' % filepath
+
+        skipped = 0
+        next_t = t
+        while json_data == False and skipped < max_skip:
+            # this will detect and attempt to counteract missing or malformed 
+            # data files, unless instructed otherwise by max_skip = 0
+            skipped += 1
+
+            next_t = next_t + timedelta(0, time_step*60)
+            next_filepath = get_filepath(city, next_t, file_dir)
+            next_json_data = load_file(next_filepath)
+
+            print 'trying %s...' % next_filepath ,
+
+            if next_json_data != False:
+                print 'exists, using it instead' ,
+                shutil.copy2(next_filepath, filepath)
+                json_data = load_file(filepath)
+
+            print
 
         if DEBUG:
             print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
@@ -1273,6 +1308,9 @@ def process_commandline():
         help='do not show lines indicating vehicles\' moves')
     parser.add_argument('-max', '--max-files', type=int, default=False,
         help='limit maximum amount of files to process')
+    parser.add_argument('-skip', '--max-skip', type=int, default=3,
+        help='amount of missing or malformed sequential data files to try to \
+            work around (default 3; specify 0 to work only on data provided)')
     parser.add_argument('-step', '--time-step', type=int,
         default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
         help='analyze data for every TIME_STEP minutes (default %i)' %
