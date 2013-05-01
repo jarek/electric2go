@@ -5,8 +5,23 @@ process.make_graph refactor:
     create axes once and reuse them in the script. take care to make sure 
     changing graph backgrounds still work.
 
-    there's a memory leak and if i loop long enough i run out of memory.
-    might have to deallocate things/axes explicitly after saving the plots.
+    should also split up data generation and data graphing a bit more. 
+    in particular, I'm thinking of projects that would put a couple of hours'
+    or days' worth of position or trip data on one image (see below).
+
+process.bus:
+    current code is hacky and the result doesn't look good.
+
+    realistically, probably have to parse route info KMLs and match
+    bus positions to nearest stretch of route. naive way might be to loop
+    through each pixel along route (generated from KML) and find closest bus.
+    then colour the pixel with appropriate colour from the bus data.
+
+    halfway solutions that might work, but probably won't work well:
+    - for each bus, find closest bus in one consistent direction (E+S?)
+      and draw a line between the two with appropriate colour
+    - fancier: draw lines halfway to two closest buses, but that might sort of
+      require route comprehension... or ugly hardcodes
 
 process.make_accessibility_graph:
     extend the function to support gradual transparency and/or colour heatmap 
@@ -27,6 +42,17 @@ process.make_accessibility_graph:
     estimated discount only, since we dont know if 10 other people are driving 
     there), disguised as a map for time being. dynamically price all the things
 
+process.subset_graph:
+    limit the generated map area to a given set of boundaries to essentially
+    zoom in or focus on an area. obvious use case is to illustrate the claim
+    "there's never any car2gos in the West End"
+
+process.destination_graph:
+    where do cars leaving Vancouver's West End head to? where do cars arriving
+    in Seattle's South Lake Union come from? might be best done by limiting 
+    time period (e.g., only morning, only evening) and overlaying all trips 
+    on a static image rather than an animation.
+
 process.make_cleanness_graph:
     extend make_graph, using different colour indicators for 
     the different reported cleanness levels to answer the important
@@ -39,11 +65,18 @@ process.fuel_level:
     vehicles and cities with all-electric fleets (e.g.,do cars with 
     25-30% charge get orphaned until service brings them in to charge?)
 
-trace.find_car:
-    given a data file and a license plate or VIN, trace car's movements
-    during the day/in provided set of files. map them.
-    (this might be neat for tracing a car that moved the longest distance or
-    had the most trips during a day/time period.)
+process.commutes:
+    ratio/percentage of cars that enter/exit an area with given boundaries
+    during given timeframe. e.g.: between 9 am and 3 pm, how many cars are 
+    there in downtown Seattle or Calgary, how many arrive, how many leave?
+
+process.weather:
+    get historical weather info and crunch basic stats to see if car2go 
+    is more frequently used during bad weather. for bonus points, get weather
+    info automatically from city name and date/time of files being processed.
+
+    wunderground can be used as basic source of data - historical info is free
+    on developer plan (500 calls per day, 10 per minute).
 
 trace.cleanness:
     somehow visualize cars that went from indicated 'unacceptable'

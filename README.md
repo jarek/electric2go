@@ -59,7 +59,12 @@ Data is collected with download.py. Cities indicated as 'of\_interest': 'some'
 in CITIES dictionary in cars.py will have their information saved to 
 an appropriately-named file every cars.DATA\_COLLECTION\_INTERVAL\_MINUTES.
 
-Sample output: http://www.youtube.com/watch?v=z0zlYhF0lAs
+Sample output: http://www.youtube.com/watch?v=5nveWwk3VSg
+
+There is also some basic statistics (-s) and vehicle tracing (-trace).
+Keep in mind that the statistics are only as good as the data coming in.
+For instance, reserved cars disappear off the available vehicles list, 
+so any time reserved will be counted as trip time.
 
 Files involved:
 
