@@ -136,15 +136,13 @@ MAP_LIMITS = {
         'WEST': -79.50168
     },
     'vancouver': {
-        'NORTH': 49.336, # exact value 49.335735
-        'SOUTH': 49.224, # exact value 49.224716
-        'EAST':  -123.031, # exact value -123.03196
-        'WEST':  -123.252
-        # limit of home area is -123.21545; westernmost parking spot 
-        # at UBC is listed as centered on -123.2515
-        
-        # there's also parkspots in Richmond and Langley,
-        # I am ignoring them to make map more compact.
+        # E & W values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 1 : 63200 for 1920x1080
+        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-123.29415,49.224,-122.98885,49.336&scale=63200&format=png
+        'NORTH': 49.336,
+        'SOUTH': 49.224,
+        'EAST':  -122.98885,
+        'WEST':  -123.29415
     }
 }
 
@@ -221,10 +219,10 @@ MAP_SIZES = {
         'MAP_Y' : 615
     },
     'vancouver': {
-        # 770/991 / (49.336-49.224)/(123.252-123.031) ~= 111215.12 / 72760.72
-        # 0.776992936 / 0.50678733 = 1.533173562 ~= 1.528504941
-        'MAP_X' : 991,
-        'MAP_Y' : 770
+        # 1080/1920 / (49.336-49.224)/(123.29415-122.98885) ~= 111215.12 / 72760.72
+        # 0.5625 / 0.366852276 = 1.533314734 ~= 1.528504941
+        'MAP_X' : 1920,
+        'MAP_Y' : 1080
     }
 }
 
@@ -279,11 +277,13 @@ LABELS = {
         ]
     },
     'vancouver': {
-        'fontsize': 15,
+        'fontsizes': [35, 22, 30, 18, 18],
         'lines': [
-            (20, MAP_SIZES['vancouver']['MAP_Y']*0.667 + 60),
-            (20, MAP_SIZES['vancouver']['MAP_Y']*0.667 + 30),
-            (20, MAP_SIZES['vancouver']['MAP_Y']*0.667)
+            (20, MAP_SIZES['vancouver']['MAP_Y']-55),
+            (20, MAP_SIZES['vancouver']['MAP_Y']-93),
+            (20, MAP_SIZES['vancouver']['MAP_Y']-132),
+            (20, MAP_SIZES['vancouver']['MAP_Y']-170),
+            (20, MAP_SIZES['vancouver']['MAP_Y']-195)
         ]
     }
 }
