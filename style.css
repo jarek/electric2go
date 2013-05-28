@@ -1,48 +1,48 @@
 /*notmuchhere*/
 
 html {
-	font-family: Verdana, sans-serif;
-	font-size: 0.9em;
+    font-family: Verdana, sans-serif;
+    font-size: 0.9em;
 }
 
 body {
-	width: 90%;
-	margin: 2%;
-	background: #fafafa;
+    width: 90%;
+    margin: 2%;
+    background: #fafafa;
 }
 
 h1, h2, h3 {
-	font-family: Trebuchet MS, serif;
-	font-weight: normal;
-	letter-spacing: 1px;
+    font-family: Trebuchet MS, serif;
+    font-weight: normal;
+    letter-spacing: 1px;
 }
 
 h2 {
-	font-size: 180%;
+    font-size: 180%;
 }
 
 h3 {
-	font-size: 130%;
-	margin-bottom: 0;
+    font-size: 130%;
+    margin-bottom: 0;
 }
 
 p {
-	margin-top: 0.1em;
-	line-height: 1.3em;
+    margin-top: 0.1em;
+    line-height: 1.3em;
 }
 
 img {
-	margin-top: 0.3em;
+    margin-top: 0.3em;
 }
 
 footer {
-	font-size: 0.8em;
-	color: #888;
+    font-size: 0.8em;
+    color: #888;
 }
 
 .note {
-	padding: 1em;
-	border: 1px solid yellow;
-	background: #ffffd2;
+    padding: 1em;
+    border: 1px solid yellow;
+    background: #ffffd2;
 }
 
