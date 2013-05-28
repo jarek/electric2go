@@ -45,7 +45,14 @@ function order_cars(position) {
 		// and add it into the DOM using the template message
 		for (var i = 0; i < cars.length; i++) {
 			var dist = cars[i][0]; // the distance
+			var in_minutes = "";
 			var para = cars[i][1]; // the DOM object with car info
+
+			if (dist <= 2.4) {
+				// for less than 30 min walk, show approx walk duration
+				in_minutes = Math.floor(dist * 12.5);
+				in_minutes = ", about " + in_minutes + " min walk";
+			}
 
 			if (cars.length > 1) {
 				// if .length is 1 or 0, no sorting is required
@@ -80,6 +87,7 @@ function order_cars(position) {
 			var dist_str = dist_span.getAttribute("data-template");
 			// trim distance to one decimal digit
 			dist_str = dist_str.replace("{dist}", dist.toFixed(1));
+			dist_str = dist_str.replace("{min}", in_minutes);
 			dist_span.innerHTML = dist_str;
 		}
 	} catch (err) {

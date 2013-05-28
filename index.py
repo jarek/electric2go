@@ -104,7 +104,7 @@ def format_car(car, city, all_cars = False):
 
     info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
     info += '<span class="distance" '
-    info += 'data-template=", approx distance: {dist} km"></span><br/>\n'
+    info += 'data-template=", approx distance: {dist} km{min}"></span><br/>\n'
 
     info += '<a href="%s">%s</a>' % (mapurl, mapimg)
     info += '</section>'
