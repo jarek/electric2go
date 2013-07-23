@@ -16,29 +16,39 @@ MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="
 MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&markers=size:tiny|{other_ll}&center={ll}&visual_refresh=true&sensor=false" alt="map of {q}" width="300" height="250" />'.replace('&', '&amp;')
 MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&visual_refresh=true&sensor=false" alt="{alt}" width="300" height="250" id="multimap" />'.replace('&', '&amp;')
 
+# For zoom=15 and size 300x250, the map is less than 0.02 degrees across
+# in both directions. In practice the observed value varies from 
+# roughly 0.007385 degrees latitude to roughly 0.013326 degrees longitude
+# (both in Vancouver), with numbers in other cities both north and south
+# of Vancouver's latitude (Austin, Berlin) being fairly close.
+# If we change displayed map size, we might also need to update this value,
+# or come up with a formula to estimate it based on map size and zoom level.
+MAP_SIZE_IN_DEGREES = 0.02
+
 CACHE_PERIOD = 60 # cache data for this many seconds at most
-DATA_COLLECTION_INTERVAL_MINUTES = 5 # used in download.py, process.py
+DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py
 
 CITIES = {
-    'amsterdam': {'of_interest': True, 'electric': 'all'},
+    'amsterdam': {'electric': 'all'},
     'austin': {'electric': 'some', 'number_first_address': True},
     'berlin': {'electric': 'some'},
     'calgary': {'number_first_address': True},
     'duesseldorf': {'display': 'Düsseldorf'},
     'hamburg': {},
     'koeln': {'display': 'Köln'},
-    'london': {'of_interest': True, 'number_first_address': True},
+    'london': {'number_first_address': True},
     'miami': {'number_first_address': True},
-    'portland': {'electric': 'some', 'number_first_address': True},
-    'sandiego': {'of_interest': True, 'display': 'San Diego', 
-        'electric': 'all', 'number_first_address': True},
+    'portland': {'of_interest': True, 'electric': 'some', 
+        'number_first_address': True},
+    'sandiego': {'display': 'San Diego', 'electric': 'all',
+        'number_first_address': True},
     'seattle': {'of_interest': True, 'number_first_address': True},
     'stuttgart': {'electric': 'all'}, 
     'toronto': {'of_interest': True, 'number_first_address': True},
     'ulm': {'electric': 'some'},
     'vancouver': {'of_interest': True, 'electric': 'some',
         'number_first_address': True},
-    'washingtondc': {'display': 'Washington, D.C.',
+    'washingtondc': {'of_interest': True, 'display': 'Washington, D.C.',
         'number_first_address': True},
     'wien': {}
     }
