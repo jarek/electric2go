@@ -41,6 +41,24 @@ function order_cars(position) {
             return dst_a < dst_b ? -1 : (dst_a > dst_b ? 1 : 0);
         });
 
+        // if user has been geolocated as close by to at least one of the cars,
+        // add a marker indicating the user's position to the overview map.
+        // the use of the 2.4 km/30 min walk radius is a bit of a hack
+        // since I currently don't define the limits of the overview map
+        // and instead let google size it automatically based on the included
+        // marker. if I add a marker in a city across a continent,
+        // the overview map won't be terribly useful, so avoid doing that
+        // with an "at least one car in walking distance" heuristic.
+        if (cars[0][0] <= 2.4) { // distance of the closest car
+            var mapImage = document.getElementById('multimap');
+            if (mapImage) {
+                var withLocMarker = mapImage.src;
+                withLocMarker += "&markers=color:blue|size:small|";
+                withLocMarker += user_lat + "," + user_lng;
+                mapImage.src = withLocMarker;
+            }
+        }
+
         // sort list of cars in the DOM by approx distance,
         // and add it into the DOM using the template message
         for (var i = 0; i < cars.length; i++) {
