@@ -50,7 +50,7 @@ def format_address(address, city):
 def format_latlng(ll):
     return '%s,%s' % (ll[1], ll[0])
 
-def format_car(car, city):
+def format_car(car, city, all_cars = False):
     # something in Python doesn't like the Unicode returned by API,
     # so encode all strings explicitly
     for key in car:
@@ -86,12 +86,41 @@ def format_car(car, city):
     mapurl = cars.MAPS_URL.replace('{ll}', coords)
     mapurl = mapurl.replace('{q}', address.replace(' ','%20'))
 
+    # Show other nearby cars on map if they are within the map area.
+    # Include only the cars that would actually fit on the map
+    # (given zoom level and distance from this car's coords)
+    # to avoid unnecessarily long image URLs.
+    # We do this by simple subtraction of latitudes/longitudes and comparing
+    # against a reference value (declared with comments in cars.py).
+    # This has some error compared to proper Haversine distance calculation, 
+    # but at scales involved (~1 km) this shouldn't really matter, especially
+    # given the roughly 50-100% margin of error in the reference
+    # degree difference value.
+    other_ll = ''
+    if all_cars != False:
+        other_ll = []
+        for other_car in all_cars:
+            formatted = format_latlng(other_car['coordinates'])
+            if formatted != coords:
+                # if it's not the same car, compare with current car's coordinates
+
+                other_coords = other_car['coordinates']
+                lat_dist = abs(other_coords[0] - car['coordinates'][0])
+                lng_dist = abs(other_coords[1] - car['coordinates'][1])
+
+                if lat_dist < cars.MAP_SIZE_IN_DEGREES \
+                and lng_dist < cars.MAP_SIZE_IN_DEGREES:
+                    other_ll.append(formatted)
+
+        other_ll = '|'.join(other_ll)
+
     mapimg = cars.MAPS_IMAGE_CODE.replace('{ll}', coords)
+    mapimg = mapimg.replace('{other_ll}', other_ll)
     mapimg = mapimg.replace('{q}', address)
 
     info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
     info += '<span class="distance" '
-    info += 'data-template=", approx distance: {dist} km"></span><br/>\n'
+    info += 'data-template=", approx distance: {dist} km{min}"></span><br/>\n'
 
     info += '<a href="%s">%s</a>' % (mapurl, mapimg)
     info += '</section>'
@@ -119,7 +148,7 @@ def get_formatted_electric_cars(city):
     result = []
 
     for car in electric_cars:
-        result.append(format_car(car, city))
+        result.append(format_car(car, city, electric_cars))
 
     return result,cache
 
@@ -162,7 +191,7 @@ def print_all_html():
     print '<title>electric car2go vehicles in %s</title>' % \
         cars.CITIES[requested_city]['display']
     print '''<!-- Hello! If you're interested, the source code for this page is
-        available at https://github.com/qviri/electric2go -->'''
+        available at https://github.com/jarek/electric2go -->'''
     print '<style type="text/css" media="screen,projection">'
     print import_file('style.css')
     print '</style>'
