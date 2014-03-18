@@ -31,13 +31,14 @@ DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py
 CITIES = {
     'amsterdam': {'electric': 'all'},
     'austin': {'electric': 'some', 'number_first_address': True},
-    'berlin': {'electric': 'some'},
-    'calgary': {'number_first_address': True},
+    'berlin': {},
+    'calgary': {'of_interest': True, 'number_first_address': True},
     'duesseldorf': {'display': 'Düsseldorf'},
     'hamburg': {},
     'koeln': {'display': 'Köln'},
     'london': {'number_first_address': True},
     'miami': {'number_first_address': True},
+    'montreal': {'of_interest': True, 'number_first_address': True},
     'portland': {'of_interest': True, 'electric': 'some', 
         'number_first_address': True},
     'sandiego': {'display': 'San Diego', 'electric': 'all',
@@ -48,7 +49,7 @@ CITIES = {
     'ulm': {'electric': 'some'},
     'vancouver': {'of_interest': True, 'electric': 'some',
         'number_first_address': True},
-    'washingtondc': {'of_interest': True, 'display': 'Washington, D.C.',
+    'washingtondc': {'display': 'Washington, D.C.',
         'number_first_address': True},
     'wien': {}
     }
