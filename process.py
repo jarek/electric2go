@@ -377,6 +377,7 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                 if 'fuel' in data[vin]:
                     data[vin]['prev_fuel'] = data[vin]['fuel']
                     data[vin]['fuel'] = car['fuel']
+                    data[vin]['fuel_use'] = data[vin]['prev_fuel'] - car['fuel']
 
                 data[vin]['distance'] = dist(data[vin]['coords'], data[vin]['prev_coords'])
                 t_span = time - data[vin]['prev_seen']
@@ -389,11 +390,13 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                     'starting_time': data[vin]['prev_seen'],
                     'ending_time': data[vin]['seen'],
                     'distance': data[vin]['distance'],
-                    'duration': data[vin]['duration']
+                    'duration': data[vin]['duration'],
+                    'fuel_use': 0
                     }
                 if 'fuel' in data[vin]:
                     trip_data['starting_fuel'] = data[vin]['prev_fuel']
                     trip_data['ending_fuel'] = data[vin]['fuel']
+                    trip_data['fuel_use'] = data[vin]['fuel_use']
 
                 data[vin]['trips'].append(trip_data)
 
@@ -942,7 +945,9 @@ def trace_vehicle(data, provided_vin):
     return '\n'.join(lines)
 
 def print_stats(saved_data, starting_time, t, time_step,
-    weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = False):
+    weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = 5,
+    # time cutoff should be 2 for 1 minute step data
+    weird_trip_fuel_cutoff = 1):
     def trip_breakdown(trips, sorting_bins = [120, 300, 600],
         sorting_lambda = False, label = False):
         # uses stats['total_trips'] defined before calling this subfunction
@@ -1001,6 +1006,7 @@ def print_stats(saved_data, starting_time, t, time_step,
         'total_distance': 0, 'distances': [], 'distance_bins': [],
         'total_duration': 0, 'durations': [], 'duration_bins': []}
     weird = []
+    suspected_round_trip = []
     refueled = []
     for vin in saved_data:
         stats['total_vehicles'] += 1
@@ -1010,12 +1016,16 @@ def print_stats(saved_data, starting_time, t, time_step,
             trips = len(saved_data[vin]['trips'])
 
             for trip in saved_data[vin]['trips']:
+                    
                 if trip['distance'] <= weird_trip_distance_cutoff:
-                    weird.append(trip)
-
-                    if weird_trip_time_cutoff and \
-                        trip['duration'] <= weird_trip_time_cutoff:
+                    suspected_round_trip.append(trip)
+                    test_duration = weird_trip_time_cutoff * 60 # min  to sec
+                    print trip
+                    if trip['duration'] <= test_duration and \
+                        trip['fuel_use'] <= weird_trip_fuel_cutoff:
                         # do not count this trip... it's an anomaly
+                        print 'weird'
+                        weird.append(trip)
                         trips -= 1
                         continue
 
@@ -1086,6 +1096,8 @@ def print_stats(saved_data, starting_time, t, time_step,
     # unfortunately the API doesn't give us mileage, so hard to tell if
     # it was a round trip, or if a car even moved at all.
     # not sure what to do with them yet...
+    #weird_backup = weird
+    #weird = suspected_round_trip
     durations = list(x['duration']/60 for x in weird)
     distances = list(x['distance'] for x in weird)
     distance_bins = list(int(1000*round_to(x['distance'], 0.005)) 
@@ -1102,7 +1114,7 @@ def print_stats(saved_data, starting_time, t, time_step,
         (np.mean(distances), np.std(distances), max(distances))
     print 'most common distances in metres, rounded to nearest 5 m: %s' % \
         Counter(distance_bins).most_common(10)
-    print '\nfuel use (in percent capacity): mean %d, stdev %0.3f, max %d' % \
+    print '\nfuel use (in percent capacity): mean %0.2f, stdev %0.3f, max %d' % \
         (np.mean(fuel_uses), np.std(fuel_uses), max(fuel_uses))
     print 'most common fuel uses: %s' % Counter(fuel_uses).most_common(10)
     print trip_breakdown(fuel_uses, sorting_bins = [1, 5, 0],
@@ -1269,12 +1281,15 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         png_filepaths = animation_files_prefix + '_%03d.png'
         mp4_path = animation_files_prefix + '.mp4'
 
-        # note that the framerate below (-r 24) needs to be a multiple of 8,
-        # so 24 not 30, 8 not 5, etc.
-        # otherwise, for some reason, not all frames are included in the 
-        # resulting mp4 and it ends too soon.
+        framerate = 8
+        frames = i-1
+        if time_step < 5:
+            framerate = 30
+            # for framerates over 25, avconv assumes conversion from 25 fps
+            frames = (frames/25)*30
+
         print '\nto animate:'
-        print '''avconv -loop 1 -r 24 -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (background_path, png_filepaths, i-1, mp4_path)
+        print '''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path)
         # if i wanted to invoke this, just do os.system('avconv...')
 
     if trace:
