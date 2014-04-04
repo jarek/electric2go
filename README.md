@@ -74,6 +74,12 @@ Files involved:
 - process.py: creates maps and visualizations based on the data
 - backgrounds/\* - city maps from openstreetmap used as video backgrounds
 
+Similar projects
+----------------
+
+- https://github.com/mattsacks/disposable-cars/
+- http://www.comparecarshares.com/
+
 Legal stuff
 -----------
 

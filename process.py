@@ -14,7 +14,7 @@ import shutil
 import simplejson as json
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.stats as sps
+#import scipy.stats as sps
 from collections import Counter
 from random import choice
 import Image
@@ -644,8 +644,9 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
             printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
         ax.text(coords[3][0], coords[3][1], 
             'available cars: %d' % car_count, fontsize = fontsizes[3])
-        ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
-            len(lines_start_lat), fontsize = fontsizes[4])
+        # TODO: maybe have an option to include this
+        #ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
+        #    len(lines_start_lat), fontsize = fontsizes[4])
     else:
         fontsize = LABELS[city]['fontsize']
         ax.text(LABELS[city]['lines'][0][0], LABELS[city]['lines'][0][1], \
@@ -979,7 +980,8 @@ def print_stats(saved_data, starting_time, t, time_step,
     def quartiles(data):
         result = {}
         for i in range(5):
-            result[(i*25)] = sps.scoreatpercentile(data, i*25)
+            pass
+            #result[(i*25)] = sps.scoreatpercentile(data, i*25)
         return result
 
     def format_quartiles(data, format = '%0.3f'):
@@ -1267,8 +1269,12 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         png_filepaths = animation_files_prefix + '_%03d.png'
         mp4_path = animation_files_prefix + '.mp4'
 
+        # note that the framerate below (-r 24) needs to be a multiple of 8,
+        # so 24 not 30, 8 not 5, etc.
+        # otherwise, for some reason, not all frames are included in the 
+        # resulting mp4 and it ends too soon.
         print '\nto animate:'
-        print '''avconv -loop 1 -r 8 -i %s -vf 'movie=%s [over], [in][over] overlay' -b 1920000 -frames %d %s''' % (background_path, png_filepaths, i-1, mp4_path)
+        print '''avconv -loop 1 -r 24 -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (background_path, png_filepaths, i-1, mp4_path)
         # if i wanted to invoke this, just do os.system('avconv...')
 
     if trace:
