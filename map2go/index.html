@@ -19,7 +19,7 @@ and increase in JS if necessary based on window size */
 a { color: #009EE0; }
 
 /* actual map images - centred on the screen */
-img#background, img#current_map { width: 1280px; height: 720px; 
+#map_embed, img#background, img#current_map { width: 1280px; height: 720px; 
     position: absolute; left: 50%; top: 50%; display: block; 
     margin-left: -640px; margin-top: -360px; }
 img#current_map { display: none; } /* don't display initially, changed in js */
@@ -28,7 +28,7 @@ img#current_map { display: none; } /* don't display initially, changed in js */
 #initial_play_overlay { position: absolute; width: 300px; height: 190px;
     left: 50%; top: 50%; margin-top: -95px; margin-left: -150px;
     border-radius: 10px; padding: 5px; background: #eee;    
-    text-align: center; vertical-align: middle; }
+    text-align: center; vertical-align: middle; display:none }
 #initial_play_overlay p { margin-top: 30px; }
 #initial_play_overlay a { background: #009EE0; color: #222;
     border-radius: 5px; padding: 10px;
@@ -63,6 +63,8 @@ img.offscreen { margin-left: -1000000px; height: 0px; }
 
 <img id="background" src="../backgrounds/austin-backgroundfixedsmall.png" 
 alt="background map of the city" />
+
+<iframe id="map_embed" width="1280" height="725" src="https://www.youtube-nocookie.com/embed/5nveWwk3VSg?rel=0&modestbranding=1&showinfo=0&controls=2&autoplay=0&theme=light&hd=1&fs=1" frameborder="0" allowfullscreen></iframe>
 
 <!-- src of img#current_map will be changed with javascript -->
 <img id="current_map" src="../backgrounds/austin-backgroundfixedsmall.png" 
