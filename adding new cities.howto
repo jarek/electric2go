@@ -1,0 +1,49 @@
+
+pull down https://www.car2go.com/api/v2.1/operationareas?loc=montreal&oauth_consumer_key=car2gowebsite&format=json
+(change loc param for other cities, check the ajax requests car2go.com makes if in doubt)
+
+
+put the placemarks array into a python var - in this example the variable is named "pl"
+
+
+the following works for north-and-west quarter-sphere, would need tweaking for addresses with latitudes south or longitudes east. might be able to get logic for this out of existing code or tests as I recall implementing that
+
+max([max([c for c in x['coordinates'] if c < 0]) for x in pl]) #east edge
+min([min([c for c in x['coordinates'] if c < 0]) for x in pl]) #west edge
+
+max([max([c for c in x['coordinates'] if c > 0]) for x in pl]) #north edge
+min([min([c for c in x['coordinates'] if c > 0]) for x in pl]) #south edge
+
+
+paste these into process.py BOUNDS dict
+
+
+unfortunately OSM seems to have changed their PNG export interface so finding correct dimensions for the map will take a bit of trial and error
+
+start with this URL:
+
+http://render.openstreetmap.org/cgi-bin/export?bbox=WEST,SOUTH,EAST,NORTH&scale=69333&format=png
+
+aka
+
+http://render.openstreetmap.org/cgi-bin/export?bbox=WEST,SOUTH,EAST,NORTH&scale=69333&format=png
+
+
+check the size of the exported image, then adjust scale to get desired size in the limiting dimension. (if you want to do 16:9 ratio, the north-south dimension will almost always be the limiting one)
+
+then symmetrically expand the limits in the other dimension to get the pixel direction correct.
+
+assuming we're expanding east-west:
+- divide desired horizontal dimension of the image by the current one: e.g. 1920/653 = 2.940275651
+- find the midpoint with (EAST_LONG+WEST_LONG)/2, and how much longitude is on either side: e.g. (-73.662 + -73.548) / 2 = -73.605 with +/- 0.057
+- scale either side: 2.940275651×0.057 = 0.167595712
+- new dimensions will be -73.605 with +/- 0.167595712 => -73.772595712, -73.437404288
+- might need to adjust this a tiny bit to get the right pixel dimension, I got 1922x1080 with the exact numbers and had to trim to -73.7725, -73.4375. try to keep the centre in the same position (-73.7725 + -73.4375)/2 = -73.605
+
+
+put the adjusted limits into process.py MAP_LIMITS dict. put the scale and the direct URL in a comment
+
+greyscale the map image: in gimp, do hue/lightness/saturation and change lightness = 100, saturation = -100
+
+then pngcrush to make the file size smaller
+
