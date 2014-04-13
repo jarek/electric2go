@@ -50,6 +50,12 @@ BOUNDS = {
         'EAST': -113.997314,
         'WEST': -114.16401
     },
+    'montreal': {
+        'NORTH': 45.584, # exact value is 45.58317
+        'SOUTH': 45.452, # exact value is 45.452515
+        'EAST': -73.548, # exact value is -73.548615
+        'WEST': -73.662 # exact value is -73.661095
+    },
     'portland': {
         'NORTH': 45.583, # exact value is 45.582718
         'SOUTH': 45.435, # exact value is 45.435555, or 45.463924 excl PCC
@@ -109,6 +115,15 @@ MAP_LIMITS = {
         'SOUTH': 50.984936,
         'EAST': -113.997314,
         'WEST': -114.16401
+    },
+    'montreal': {
+        # E&W values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 69333 for 1920x1080
+        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-73.7725,45.452,-73.4375,45.584&scale=69333&format=png
+        'NORTH': 45.584,
+        'SOUTH': 45.452,
+        'EAST': -73.4375,
+        'WEST': -73.7725
     },
     'portland': {
         # values are different than home area bounds - 16:9 aspect ratio
