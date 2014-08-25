@@ -93,3 +93,30 @@ more visualization ideas:
 
     could be almost art~~~
 
+another video (2013-06-02):
+    have a video/animation that emphasizes cars being picked up,
+    to stress usage?
+    would also be good for round-trip longer carshares like modo
+
+more stats (2013-05-02):
+    In stats, collect idle times between trips.
+    I suspect heavily binomial distribution - most are grabbed right away
+    or wait a long time - or might show up as a fat, long tail
+
+    Calculate and show idle times by times of day.
+    11 pm - 7 am, 7 am - 6 pm, 6 pm - 11 pm, or something.
+    Can do every hour to find the transition points
+
+further possible data classifications:
+    When a destination is popular (day/week) or which destinations
+    are strongly popular to enter / leave at given time
+
+interactive/web display:
+    Starting and ending positions, with line between them
+    Do it interactive?
+    Have a file with all trips - in a day? Load with js
+    On mouseover/touch, search for trips starting and show them
+    Have a switch to trips ending. Or show both - blue and red or something
+    If feeling fancy can autogenerate list files on the hour or something
+    HTML 5? Canvas? Just need to draw lines, shouldn't be demanding performance
+
