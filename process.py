@@ -84,6 +84,13 @@ BOUNDS = {
         
         # there's also parkspots in Richmond and Langley,
         # I am ignoring them to make map more compact.
+    },
+    'wien': {
+        'NORTH': 48.29633,
+        'SOUTH': 48.14736,
+        'EAST': 16.48181,
+        'WEST': 16.279331
+        # excluded parkspots outside of main home area and at airport
     }
 }
 
@@ -158,6 +165,15 @@ MAP_LIMITS = {
         'SOUTH': 49.224,
         'EAST':  -122.98885,
         'WEST':  -123.29415
+    },
+    'wien': {
+        # E&W values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 82237 for 1920x1080
+        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=16.181987,48.1474,16.579154,48.2963&scale=82237&format=png
+        'NORTH': 48.29633,
+        'SOUTH': 48.14736,
+        'EAST': 16.48181,
+        'WEST': 16.279331
     }
 }
 
@@ -193,6 +209,11 @@ DEGREE_LENGTHS = {
         # for latitude 49.28
         'LENGTH_OF_LATITUDE': 111215.12,
         'LENGTH_OF_LONGITUDE': 72760.72
+    },
+    'wien': {
+        # for latitude 48.22
+        'LENGTH_OF_LATITUDE': 111194.56,
+        'LENGTH_OF_LONGITUDE': 74307.49
     }
 }
 
@@ -238,6 +259,10 @@ MAP_SIZES = {
         # 0.5625 / 0.366852276 = 1.533314734 ~= 1.528504941
         'MAP_X' : 1920,
         'MAP_Y' : 1080
+    },
+    'wien': {
+        'MAP_X': 1920,
+        'MAP_Y': 1080
     }
 }
 
