@@ -21,7 +21,7 @@ import Image
 import cars
 
 
-KNOWN_CITIES = ['austin', 'calgary', 'portland', 'seattle', 'toronto', 'vancouver']
+KNOWN_CITIES = ['austin', 'calgary', 'portland', 'seattle', 'toronto', 'vancouver', 'wien']
 
 BOUNDS = {
     'austin': {
@@ -324,6 +324,16 @@ LABELS = {
             (20, MAP_SIZES['vancouver']['MAP_Y']-132),
             (20, MAP_SIZES['vancouver']['MAP_Y']-170),
             (20, MAP_SIZES['vancouver']['MAP_Y']-195)
+        ]
+    },
+    'wien': {
+        'fontsizes': [35, 22, 30, 18, 18],
+        'lines': [
+            (200, MAP_SIZES['wien']['MAP_Y']-55),
+            (200, MAP_SIZES['wien']['MAP_Y']-93),
+            (200, MAP_SIZES['wien']['MAP_Y']-132),
+            (200, MAP_SIZES['wien']['MAP_Y']-170),
+            (200, MAP_SIZES['wien']['MAP_Y']-195)
         ]
     }
 }
