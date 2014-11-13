@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # coding=utf-8
 
 import cgi
@@ -118,7 +118,7 @@ def get_all_cars_text(city, force_download = False):
             f.close()
 
     if json_text == None:   
-        json_text = get_URL(API_URL.replace('{loc}', city).replace('{key}', OAUTH_KEY))
+        json_text = get_URL(API_URL.format(loc = city, key = OAUTH_KEY))
 
     return json_text,cache
 

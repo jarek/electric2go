@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # coding=utf-8
 
 import os
@@ -83,8 +83,7 @@ def format_car(car, city, all_cars = False):
     info += 'Plate: %s, interior: %s, exterior: %s<br/>\n' % \
         (car['name'], car['interior'].lower(), car['exterior'].lower())
 
-    mapurl = cars.MAPS_URL.replace('{ll}', coords)
-    mapurl = mapurl.replace('{q}', address.replace(' ','%20'))
+    mapurl = cars.MAPS_URL.format(ll = coords, q = address.replace(' ','%20'))
 
     # Show other nearby cars on map if they are within the map area.
     # Include only the cars that would actually fit on the map
@@ -114,9 +113,8 @@ def format_car(car, city, all_cars = False):
 
         other_ll = '|'.join(other_ll)
 
-    mapimg = cars.MAPS_IMAGE_CODE.replace('{ll}', coords)
-    mapimg = mapimg.replace('{other_ll}', other_ll)
-    mapimg = mapimg.replace('{q}', address)
+    mapimg = cars.MAPS_IMAGE_CODE.format( \
+            ll = coords, other_ll = other_ll, q = address)
 
     info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
     info += '<span class="distance" '
@@ -138,8 +136,8 @@ def format_all_cars_map(city):
 
     coords = list(format_latlng(car['coordinates']) for car in all_cars)
 
-    code = cars.MAPS_MULTI_CODE.replace('{ll}', '|'.join(coords))
-    code = code.replace('{alt}', 'map of all available cars')
+    code = cars.MAPS_MULTI_CODE.format( \
+            ll = '|'.join(coords), alt = 'map of all available cars')
 
     return code
 
