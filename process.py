@@ -172,8 +172,8 @@ MAP_LIMITS = {
         # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=16.181987,48.1474,16.579154,48.2963&scale=82237&format=png
         'NORTH': 48.29633,
         'SOUTH': 48.14736,
-        'EAST': 16.181987,
-        'WEST': 16.579154
+        'EAST': 16.579154,
+        'WEST': 16.181987
     }
 }
 
