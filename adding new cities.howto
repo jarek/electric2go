@@ -1,19 +1,11 @@
+get bounds of operational areas:
 
-pull down https://www.car2go.com/api/v2.1/operationareas?loc=montreal&oauth_consumer_key=car2gowebsite&format=json
-(change loc param for other cities, check the ajax requests car2go.com makes if in doubt)
+jarek@x1:~/projects/electric2go$ python
+>>> import city
+>>> city.get_lat_long_extent('milano')
+(9.27821, 9.066236, 45.535522, 45.398983)
 
-
-put the placemarks array into a python var - in this example the variable is named "pl"
-
-
-the following works for north-and-west quarter-sphere, would need tweaking for addresses with latitudes south or longitudes east. might be able to get logic for this out of existing code or tests as I recall implementing that
-
-max([max([c for c in x['coordinates'] if c < 0]) for x in pl]) #east edge
-min([min([c for c in x['coordinates'] if c < 0]) for x in pl]) #west edge
-
-max([max([c for c in x['coordinates'] if c > 0]) for x in pl]) #north edge
-min([min([c for c in x['coordinates'] if c > 0]) for x in pl]) #south edge
-
+(some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - you might need to manually code to exclude them, adapting code in city.py)
 
 paste these into process.py BOUNDS dict
 
