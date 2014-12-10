@@ -21,7 +21,7 @@ import Image
 import cars
 
 
-KNOWN_CITIES = ['austin', 'calgary', 'portland', 'seattle', 'toronto', 'vancouver', 'wien']
+KNOWN_CITIES = ['austin', 'calgary', 'milano', 'portland', 'seattle', 'toronto', 'vancouver', 'wien']
 
 BOUNDS = {
     'austin': {
@@ -50,11 +50,23 @@ BOUNDS = {
         'EAST': -113.997314,
         'WEST': -114.16401
     },
+    'milano': {
+        'NORTH': 45.535522,
+        'SOUTH': 45.398983,
+        'EAST': 9.27821,
+        'WEST': 9.066236
+    },
     'montreal': {
         'NORTH': 45.584, # exact value is 45.58317
         'SOUTH': 45.452, # exact value is 45.452515
         'EAST': -73.548, # exact value is -73.548615
         'WEST': -73.662 # exact value is -73.661095
+    },
+    'muenchen': {
+        'NORTH': 48.353886,
+        'SOUTH': 48.077793,
+        'EAST': 11.791836,
+        'WEST': 11.437262
     },
     'portland': {
         'NORTH': 45.583, # exact value is 45.582718
@@ -123,6 +135,15 @@ MAP_LIMITS = {
         'EAST': -113.997314,
         'WEST': -114.16401
     },
+    'milano': {
+        # E&W values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 71644 for 1920x1080, use 107466 for 1280x720
+        # http://render.openstreetmap.org/cgi-bin/export?bbox=8.999183,45.398983,9.345263,45.535522&scale=71644&format=png
+        'NORTH': 45.535522,
+        'SOUTH': 45.398983,
+        'EAST': 9.345263,
+        'WEST': 8.999183
+    },
     'montreal': {
         # E&W values are different than home area bounds - 16:9 aspect ratio
         # map scale is 69333 for 1920x1080
@@ -190,6 +211,11 @@ DEGREE_LENGTHS = {
         'LENGTH_OF_LATITUDE': 111249.00,
         'LENGTH_OF_LONGITUDE': 70137.28
     },
+    'milano': {
+        # for latitude 45.47
+        'LENGTH_OF_LATITUDE': 111140.93,
+        'LENGTH_OF_LONGITUDE': 78199.53
+    },
     'portland': {
         # for latitude 45.52
         'LENGTH_OF_LATITUDE': 111141.91,
@@ -235,6 +261,10 @@ MAP_SIZES = {
         # 0.986881937 / 0.620824735 = 1.589630505 ~= 1.586160741
         'MAP_X': 991,
         'MAP_Y': 978
+    },
+    'milano': {
+        'MAP_X': 1920,
+        'MAP_Y': 1080
     },
     'portland': {
         # 1080/1920 / (45.583-45.435)/(122.83514-122.45986) ~= 111141.91 / 78130.36
@@ -286,6 +316,16 @@ LABELS = {
                     MAP_SIZES['calgary']['MAP_Y']-145),
             (MAP_SIZES['calgary']['MAP_X']*0.75,
                     MAP_SIZES['calgary']['MAP_Y']-170)
+        ]
+    },
+    'milano': {
+        'fontsizes': [35, 22, 30, 18, 18],
+        'lines': [
+            (200, MAP_SIZES['milano']['MAP_Y']-55),
+            (200, MAP_SIZES['milano']['MAP_Y']-93),
+            (200, MAP_SIZES['milano']['MAP_Y']-132),
+            (200, MAP_SIZES['milano']['MAP_Y']-170),
+            (200, MAP_SIZES['milano']['MAP_Y']-195)
         ]
     },
     'portland': {
