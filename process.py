@@ -21,7 +21,7 @@ import Image
 import cars
 
 
-KNOWN_CITIES = ['austin', 'calgary', 'milano', 'portland', 'seattle', 'toronto', 'vancouver', 'wien']
+KNOWN_CITIES = ['austin', 'calgary', 'milano', 'muenchen', 'portland', 'seattle', 'toronto', 'vancouver', 'wien']
 
 BOUNDS = {
     'austin': {
@@ -63,9 +63,10 @@ BOUNDS = {
         'WEST': -73.662 # exact value is -73.661095
     },
     'muenchen': {
-        'NORTH': 48.353886,
+        # excludes two outlying island operation areas at airport and at TUM-Garching
+        'NORTH': 48.202038,
         'SOUTH': 48.077793,
-        'EAST': 11.791836,
+        'EAST': 11.660093,
         'WEST': 11.437262
     },
     'portland': {
@@ -153,6 +154,15 @@ MAP_LIMITS = {
         'EAST': -73.4375,
         'WEST': -73.7725
     },
+    'muenchen': {
+        # E&W values are different than home area bounds - 16:9 aspect ratio
+        # map scale is 68490 for 1920x1080
+        # http://render.openstreetmap.org/cgi-bin/export?bbox=11.38323453,48.077793,11.71412047,48.202038&scale=68490&format=png
+        'NORTH': 48.202038,
+        'SOUTH': 48.077793,
+        'EAST': 11.71412047,
+        'WEST': 11.38323453
+    },
     'portland': {
         # values are different than home area bounds - 16:9 aspect ratio
         # map scale is 1:77700 for 1920x1080, 116500 for 1280x720
@@ -216,6 +226,11 @@ DEGREE_LENGTHS = {
         'LENGTH_OF_LATITUDE': 111140.93,
         'LENGTH_OF_LONGITUDE': 78199.53
     },
+    'muenchen': {
+        # for latitude 48.14
+        'LENGTH_OF_LATITUDE': 111193.01,
+        'LENGTH_OF_LONGITUDE': 74423.20
+    },
     'portland': {
         # for latitude 45.52
         'LENGTH_OF_LATITUDE': 111141.91,
@@ -263,6 +278,10 @@ MAP_SIZES = {
         'MAP_Y': 978
     },
     'milano': {
+        'MAP_X': 1920,
+        'MAP_Y': 1080
+    },
+    'muenchen': {
         'MAP_X': 1920,
         'MAP_Y': 1080
     },
@@ -326,6 +345,16 @@ LABELS = {
             (200, MAP_SIZES['milano']['MAP_Y']-132),
             (200, MAP_SIZES['milano']['MAP_Y']-170),
             (200, MAP_SIZES['milano']['MAP_Y']-195)
+        ]
+    },
+    'muenchen': {
+        'fontsizes': [35, 22, 30, 18, 18],
+        'lines': [
+            (200, MAP_SIZES['muenchen']['MAP_Y']-55),
+            (200, MAP_SIZES['muenchen']['MAP_Y']-93),
+            (200, MAP_SIZES['muenchen']['MAP_Y']-132),
+            (200, MAP_SIZES['muenchen']['MAP_Y']-170),
+            (200, MAP_SIZES['muenchen']['MAP_Y']-195)
         ]
     },
     'portland': {
