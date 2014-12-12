@@ -420,26 +420,6 @@ def process_data(json_data, data_time = None, previous_data = {}, \
 
     args = locals()
     
-    def dist(ll1, ll2):
-        # adapted from http://www.movable-type.co.uk/scripts/latlong.html
-        # see also http://stackoverflow.com/questions/27928/how-do-i-calculate-distance-between-two-latitude-longitude-points
-        # the js equivalent is used in sort.js - any changes
-        # should be reflected in both
-        def deg2rad(deg):
-            return deg * (math.pi/180.0)
-
-        R = 6371 # Radius of the earth in km
-        dLat = deg2rad(ll2[0]-ll1[0])
-        dLon = deg2rad(ll2[1]-ll1[1])
-
-        a = math.sin(dLat/2) * math.sin(dLat/2) + \
-            math.cos(deg2rad(ll1[0])) * math.cos(deg2rad(ll2[0])) * \
-            math.sin(dLon/2) * math.sin(dLon/2)
-
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-        d = R * c # Distance in km
-        return d
-
     data = previous_data
     moved_cars = []
 
@@ -498,7 +478,7 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                     data[vin]['fuel'] = car['fuel']
                     data[vin]['fuel_use'] = data[vin]['prev_fuel'] - car['fuel']
 
-                data[vin]['distance'] = dist(data[vin]['coords'], data[vin]['prev_coords'])
+                data[vin]['distance'] = cars.dist(data[vin]['coords'], data[vin]['prev_coords'])
                 t_span = time - data[vin]['prev_seen']
                 data[vin]['duration'] = t_span.total_seconds()
 
