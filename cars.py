@@ -10,19 +10,6 @@ import simplejson as json
 import time
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key={key}&format=json'
-MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
-MAPS_IFRAME_CODE = '<iframe width="300" height="250" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.ca/maps?q={q}&amp;ll={ll}&amp;t=m&amp;z=15&amp;output=embed"></iframe>'.replace('&', '&amp;')
-MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&markers=size:tiny|{other_ll}&center={ll}&visual_refresh=true&sensor=false" alt="map of {q}" width="300" height="250" />'.replace('&', '&amp;')
-MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&visual_refresh=true&sensor=false" alt="{alt}" width="300" height="250" id="multimap" />'.replace('&', '&amp;')
-
-# For zoom=15 and size 300x250, the map is less than 0.02 degrees across
-# in both directions. In practice the observed value varies from 
-# roughly 0.007385 degrees latitude to roughly 0.013326 degrees longitude
-# (both in Vancouver), with numbers in other cities both north and south
-# of Vancouver's latitude (Austin, Berlin) being fairly close.
-# If we change displayed map size, we might also need to update this value,
-# or come up with a formula to estimate it based on map size and zoom level.
-MAP_SIZE_IN_DEGREES = 0.02
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
 DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py

@@ -6,6 +6,20 @@ import math
 import time
 import cars
 
+
+MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
+MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&markers=size:tiny|{other_ll}&center={ll}&visual_refresh=true&sensor=false" alt="map of {q}" width="300" height="250" />'.replace('&', '&amp;')
+MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&visual_refresh=true&sensor=false" alt="{alt}" width="300" height="250" id="multimap" />'.replace('&', '&amp;')
+
+# For zoom=15 and size 300x250, the map is less than 0.02 degrees across
+# in both directions. In practice the observed value varies from 
+# roughly 0.007385 degrees latitude to roughly 0.013326 degrees longitude
+# (both in Vancouver), with numbers in other cities both north and south
+# of Vancouver's latitude (Austin, Berlin) being fairly close.
+# If we change displayed map size, we might also need to update this value,
+# or come up with a formula to estimate it based on map size and zoom level.
+MAP_SIZE_IN_DEGREES = 0.02
+
 timer = []
 
 def import_file(filename):
@@ -83,14 +97,14 @@ def format_car(car, city, all_cars = False):
     info += 'Plate: %s, interior: %s, exterior: %s<br/>\n' % \
         (car['name'], car['interior'].lower(), car['exterior'].lower())
 
-    mapurl = cars.MAPS_URL.format(ll = coords, q = address.replace(' ','%20'))
+    mapurl = MAPS_URL.format(ll = coords, q = address.replace(' ','%20'))
 
     # Show other nearby cars on map if they are within the map area.
     # Include only the cars that would actually fit on the map
     # (given zoom level and distance from this car's coords)
     # to avoid unnecessarily long image URLs.
     # We do this by simple subtraction of latitudes/longitudes and comparing
-    # against a reference value (declared with comments in cars.py).
+    # against a reference value (declared with comments above).
     # This has some error compared to proper Haversine distance calculation, 
     # but at scales involved (~1 km) this shouldn't really matter, especially
     # given the roughly 50-100% margin of error in the reference
@@ -107,13 +121,13 @@ def format_car(car, city, all_cars = False):
                 lat_dist = abs(other_coords[0] - car['coordinates'][0])
                 lng_dist = abs(other_coords[1] - car['coordinates'][1])
 
-                if lat_dist < cars.MAP_SIZE_IN_DEGREES \
-                and lng_dist < cars.MAP_SIZE_IN_DEGREES:
+                if lat_dist < MAP_SIZE_IN_DEGREES \
+                and lng_dist < MAP_SIZE_IN_DEGREES:
                     other_ll.append(formatted)
 
         other_ll = '|'.join(other_ll)
 
-    mapimg = cars.MAPS_IMAGE_CODE.format( \
+    mapimg = MAPS_IMAGE_CODE.format( \
             ll = coords, other_ll = other_ll, q = address)
 
     info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
@@ -136,7 +150,7 @@ def format_all_cars_map(city):
 
     coords = list(format_latlng(car['coordinates']) for car in all_cars)
 
-    code = cars.MAPS_MULTI_CODE.format( \
+    code = MAPS_MULTI_CODE.format( \
             ll = '|'.join(coords), alt = 'map of all available cars')
 
     return code
