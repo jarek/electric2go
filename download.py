@@ -5,12 +5,13 @@ import datetime
 import os
 import sys
 import cars
+import city
 import index
 
 if len(sys.argv) > 1 and sys.argv[1].lower() == 'all':
-    cities = [city for city in cars.CITIES \
-        if cars.CITIES[city]['electric'] == 'some' 
-        or cars.CITIES[city]['of_interest'] == True]
+    cities = [city_key for city_key in city.CITIES \
+        if city.CITIES[city_key]['electric'] == 'some' 
+        or city.CITIES[city_key]['of_interest'] == True]
 else:
     cities = [ cars.get_city() ]
 

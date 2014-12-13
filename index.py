@@ -5,6 +5,7 @@ import os
 import math
 import time
 import cars
+import city
 
 
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
@@ -42,8 +43,8 @@ def import_file(filename):
 
     return result
 
-def format_address(address, city):
-    if not cars.CITIES[city]['number_first_address']:
+def format_address(address, city_name):
+    if not city.CITIES[city_name]['number_first_address']:
         return address
 
     # If possible and appropriate, try to reformat street address 
@@ -167,18 +168,18 @@ def get_formatted_electric_cars(city):
 def get_formatted_all_cities(requested_city):
     formatted_cities = []
 
-    for city,data in sorted(cars.CITIES.iteritems()):
+    for city_key,data in sorted(city.CITIES.iteritems()):
         # show only cities that have some electric cars,
         # but not a full fleet of electric.
         # there's nothing to show for cities that don't have any,
         # and there's no benefit over official apps for all-fleet.
         if data['electric'] == 'some':
-            if city == requested_city:
+            if city_key == requested_city:
                 formatted_cities.append(
                     '<strong>%s</strong>' % data['display'])
             else:
                 formatted_cities.append(
-                    '<a href="?city=%s">%s</a>' % (city, data['display']))
+                    '<a href="?city=%s">%s</a>' % (city_key, data['display']))
 
     return 'car2go cities with a few electric vehicles: %s' % \
         ', '.join(formatted_cities)
@@ -201,7 +202,7 @@ def print_all_html():
     print '<!doctype html>'
     print '<meta charset="utf-8" />'
     print '<title>electric car2go vehicles in %s</title>' % \
-        cars.CITIES[requested_city]['display']
+        city.CITIES[requested_city]['display']
     print '''<!-- Hello! If you're interested, the source code for this page is
         available at https://github.com/jarek/electric2go -->'''
     print '<style type="text/css" media="screen,projection">'
@@ -214,7 +215,7 @@ def print_all_html():
 
     print '<h2>%s currently available in %s</h2>' % \
         (pluralize(len(electric_cars), 'electric car'), 
-        cars.CITIES[requested_city]['display'])
+        city.CITIES[requested_city]['display'])
 
     print format_all_cars_map(requested_city)
 

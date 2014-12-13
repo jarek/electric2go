@@ -19,393 +19,8 @@ from collections import Counter
 from random import choice
 import Image
 import cars
+from city import CITIES, KNOWN_CITIES
 
-
-KNOWN_CITIES = ['austin', 'calgary', 'milano', 'muenchen', 'portland', 'seattle', 'toronto', 'vancouver', 'wien']
-
-BOUNDS = {
-    'austin': {
-        'NORTH': 30.368, # exact value 30.367937, or 30.400427 incl The Domain
-        'SOUTH': 30.212, # exact value 30.212427
-        'EAST': -97.672, # exact value -97.672966
-        'WEST': -97.804  # exact value -97.803764
-    },
-    'berlin': {
-        # rudimentary values for testing is_latlng_in_bounds function
-        'NORTH': 53,
-        'SOUTH': 52,
-        'EAST': 14,
-        'WEST': 13
-    },
-    'buenosaires': {
-        # rudimentary values for an unsupported city for testing
-        'NORTH': -34,
-        'SOUTH': -35,
-        'EAST': -58,
-        'WEST': -59
-    },
-    'calgary': {
-        'NORTH': 51.088425,
-        'SOUTH': 50.984936,
-        'EAST': -113.997314,
-        'WEST': -114.16401
-    },
-    'milano': {
-        'NORTH': 45.535522,
-        'SOUTH': 45.398983,
-        'EAST': 9.27821,
-        'WEST': 9.066236
-    },
-    'montreal': {
-        'NORTH': 45.584, # exact value is 45.58317
-        'SOUTH': 45.452, # exact value is 45.452515
-        'EAST': -73.548, # exact value is -73.548615
-        'WEST': -73.662 # exact value is -73.661095
-    },
-    'muenchen': {
-        # excludes two outlying island operation areas at airport and at TUM-Garching
-        'NORTH': 48.202038,
-        'SOUTH': 48.077793,
-        'EAST': 11.660093,
-        'WEST': 11.437262
-    },
-    'portland': {
-        'NORTH': 45.583, # exact value is 45.582718
-        'SOUTH': 45.435, # exact value is 45.435555, or 45.463924 excl PCC
-        'EAST': -122.557, # exact value is -122.557724
-        'WEST': -122.738 # exact value is -122.73726, or -122.72915 excl PCC
-    },
-    'seattle': {
-        'NORTH': 47.724, # exact value is 47.723562
-        'SOUTH': 47.520, # exact value is 47.5208 - Fauntleroy Ferry
-        'EAST': -122.245, # exact value is -122.24517
-        'WEST': -122.437 # exact value is -122.43666
-    },
-    'toronto': {
-        'NORTH': 43.72736,
-        'SOUTH': 43.625893,
-        'EAST': -79.2768,
-        'WEST': -79.50168
-    },
-    'vancouver': {
-        'NORTH': 49.336, # exact value 49.335735
-        'SOUTH': 49.224, # exact value 49.224716
-        'EAST':  -123.031, # exact value -123.03196
-        'WEST':  -123.252
-        # limit of home area is -123.21545; westernmost parking spot 
-        # at UBC is listed as centered on -123.2515
-        
-        # there's also parkspots in Richmond and Langley,
-        # I am ignoring them to make map more compact.
-    },
-    'wien': {
-        'NORTH': 48.29633,
-        'SOUTH': 48.14736,
-        'EAST': 16.48181,
-        'WEST': 16.279331
-        # excluded parkspots outside of main home area and at airport
-    }
-}
-
-MAP_LIMITS = {
-    'austin': {
-        # values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 1:99776
-        'NORTH': 30.368,
-        'SOUTH': 30.212,
-        'EAST': -97.5774,
-        'WEST': -97.8986
-    },
-    'berlin': {
-        # rudimentary values for testing is_latlng_in_bounds function
-        'NORTH': 53,
-        'SOUTH': 52,
-        'EAST': 14,
-        'WEST': 13
-    },
-    'buenosaires': {
-        # rudimentary values for an unsupported city for testing
-        'NORTH': -34,
-        'SOUTH': -35,
-        'EAST': -58,
-        'WEST': -59
-    },
-    'calgary': {
-        'NORTH': 51.088425,
-        'SOUTH': 50.984936,
-        'EAST': -113.997314,
-        'WEST': -114.16401
-    },
-    'milano': {
-        # E&W values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 71644 for 1920x1080, use 107466 for 1280x720
-        # http://render.openstreetmap.org/cgi-bin/export?bbox=8.999183,45.398983,9.345263,45.535522&scale=71644&format=png
-        'NORTH': 45.535522,
-        'SOUTH': 45.398983,
-        'EAST': 9.345263,
-        'WEST': 8.999183
-    },
-    'montreal': {
-        # E&W values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 69333 for 1920x1080
-        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-73.7725,45.452,-73.4375,45.584&scale=69333&format=png
-        'NORTH': 45.584,
-        'SOUTH': 45.452,
-        'EAST': -73.4375,
-        'WEST': -73.7725
-    },
-    'muenchen': {
-        # E&W values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 68490 for 1920x1080
-        # http://render.openstreetmap.org/cgi-bin/export?bbox=11.38323453,48.077793,11.71412047,48.202038&scale=68490&format=png
-        'NORTH': 48.202038,
-        'SOUTH': 48.077793,
-        'EAST': 11.71412047,
-        'WEST': 11.38323453
-    },
-    'portland': {
-        # values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 1:77700 for 1920x1080, 116500 for 1280x720
-        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-122.83514,45.435,-122.45986,45.583&scale=116500&format=png for 1280x720
-        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-122.83514,45.435,-122.45986,45.583&scale=77700&format=png for 1920x1080
-        'NORTH': 45.583,
-        'SOUTH': 45.435,
-        'EAST': -122.45986,
-        'WEST': -122.83514
-    },
-    'seattle': {
-        # values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 1 : 111350 for 1920x1080
-        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-122.61,47.52,-122.072,47.724&scale=111300&format=png
-        'NORTH': 47.724,
-        'SOUTH': 47.520,
-        'EAST': -122.072,
-        'WEST': -122.610
-    },
-    'toronto': {
-        'NORTH': 43.72736,
-        'SOUTH': 43.625893,
-        'EAST': -79.2768,
-        'WEST': -79.50168
-    },
-    'vancouver': {
-        # E & W values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 1 : 63200 for 1920x1080
-        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-123.29415,49.224,-122.98885,49.336&scale=63200&format=png
-        'NORTH': 49.336,
-        'SOUTH': 49.224,
-        'EAST':  -122.98885,
-        'WEST':  -123.29415
-    },
-    'wien': {
-        # E&W values are different than home area bounds - 16:9 aspect ratio
-        # map scale is 82237 for 1920x1080
-        # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=16.181987,48.1474,16.579154,48.2963&scale=82237&format=png
-        'NORTH': 48.29633,
-        'SOUTH': 48.14736,
-        'EAST': 16.579154,
-        'WEST': 16.181987
-    }
-}
-
-DEGREE_LENGTHS = {
-    # from http://www.csgnetwork.com/degreelenllavcalc.html
-    # could calculate ourselves but meh. would need city's latitude
-    'austin': {
-        # for latitude 30.29
-        'LENGTH_OF_LATITUDE': 110857.33,
-        'LENGTH_OF_LONGITUDE': 96204.48
-    },
-    'calgary': {
-        # for latitude 51.04
-        'LENGTH_OF_LATITUDE': 111249.00,
-        'LENGTH_OF_LONGITUDE': 70137.28
-    },
-    'milano': {
-        # for latitude 45.47
-        'LENGTH_OF_LATITUDE': 111140.93,
-        'LENGTH_OF_LONGITUDE': 78199.53
-    },
-    'muenchen': {
-        # for latitude 48.14
-        'LENGTH_OF_LATITUDE': 111193.01,
-        'LENGTH_OF_LONGITUDE': 74423.20
-    },
-    'portland': {
-        # for latitude 45.52
-        'LENGTH_OF_LATITUDE': 111141.91,
-        'LENGTH_OF_LONGITUDE': 78130.36
-    },
-    'seattle': {
-        # for latitude 47.61
-        'LENGTH_OF_LATITUDE': 111182.70,
-        'LENGTH_OF_LONGITUDE': 75186.03
-    },
-    'toronto': {
-        # for latitude 43.7
-        'LENGTH_OF_LATITUDE': 111106.36,
-        'LENGTH_OF_LONGITUDE': 80609.20
-    },
-    'vancouver': {
-        # for latitude 49.28
-        'LENGTH_OF_LATITUDE': 111215.12,
-        'LENGTH_OF_LONGITUDE': 72760.72
-    },
-    'wien': {
-        # for latitude 48.22
-        'LENGTH_OF_LATITUDE': 111194.56,
-        'LENGTH_OF_LONGITUDE': 74307.49
-    }
-}
-
-MAP_SIZES = {
-    # all these ratios are connected
-    'austin': {
-        # 720/1280 / (30.368-30.212)/(97.8986-97.5774) ~= 110857.33 / 96204.48
-        # 0.5625 / 0.485678705 = 1.158173077 ~= 1.152309435
-        'MAP_X': 1280,
-        'MAP_Y': 720
-    },
-    'berlin': {
-        # fake values for testing
-        'MAP_X': 991,
-        'MAP_Y': 800
-    },
-    'calgary': {
-        # 978/991 / (51.088425-50.984936)/(114.16401-113.997314) ~= 111249.00 / 70137.28
-        # 0.986881937 / 0.620824735 = 1.589630505 ~= 1.586160741
-        'MAP_X': 991,
-        'MAP_Y': 978
-    },
-    'milano': {
-        'MAP_X': 1920,
-        'MAP_Y': 1080
-    },
-    'muenchen': {
-        'MAP_X': 1920,
-        'MAP_Y': 1080
-    },
-    'portland': {
-        # 1080/1920 / (45.583-45.435)/(122.83514-122.45986) ~= 111141.91 / 78130.36
-        # 0.5625 / 0.394372202 = 1.426317568 ~= 1.422518852
-        'MAP_X': 1920,
-        'MAP_Y': 1080,
-    },
-    'seattle': {
-        # 1080/1920 / (47.724-47.520)/(122.610-122.072) ~= 111182.70 / 75186.03
-        # 0.5625 / 0.379182156 = 1.483455883 ~= 1.478768064
-        'MAP_X' : 1920,
-        'MAP_Y' : 1080
-    },
-    'toronto': {
-        # 615/991 / (43.72736-43.625893)/(79.50168-79.2768) ~= 111106.36 / 80609.20
-        # 0.620585267 / 0.451205087 = 1.375395103 ~= 1.37833349
-        'MAP_X' : 991,
-        'MAP_Y' : 615
-    },
-    'vancouver': {
-        # 1080/1920 / (49.336-49.224)/(123.29415-122.98885) ~= 111215.12 / 72760.72
-        # 0.5625 / 0.366852276 = 1.533314734 ~= 1.528504941
-        'MAP_X' : 1920,
-        'MAP_Y' : 1080
-    },
-    'wien': {
-        'MAP_X': 1920,
-        'MAP_Y': 1080
-    }
-}
-
-LABELS = {
-    'austin': {
-        'fontsizes': [30, 22, 30, 18, 18],
-        'lines': [
-            (20, MAP_SIZES['austin']['MAP_Y']-50),
-            (20, MAP_SIZES['austin']['MAP_Y']-82),
-            (20, MAP_SIZES['austin']['MAP_Y']-122),
-            (20, MAP_SIZES['austin']['MAP_Y']-155),
-            (20, MAP_SIZES['austin']['MAP_Y']-180)
-        ]
-    },
-    'calgary': {
-        'fontsize': 15,
-        'lines': [
-            (MAP_SIZES['calgary']['MAP_X']*0.75,
-                    MAP_SIZES['calgary']['MAP_Y']-120),
-            (MAP_SIZES['calgary']['MAP_X']*0.75,
-                    MAP_SIZES['calgary']['MAP_Y']-145),
-            (MAP_SIZES['calgary']['MAP_X']*0.75,
-                    MAP_SIZES['calgary']['MAP_Y']-170)
-        ]
-    },
-    'milano': {
-        'fontsizes': [35, 22, 30, 18, 18],
-        'lines': [
-            (200, MAP_SIZES['milano']['MAP_Y']-55),
-            (200, MAP_SIZES['milano']['MAP_Y']-93),
-            (200, MAP_SIZES['milano']['MAP_Y']-132),
-            (200, MAP_SIZES['milano']['MAP_Y']-170),
-            (200, MAP_SIZES['milano']['MAP_Y']-195)
-        ]
-    },
-    'muenchen': {
-        'fontsizes': [35, 22, 30, 18, 18],
-        'lines': [
-            (200, MAP_SIZES['muenchen']['MAP_Y']-55),
-            (200, MAP_SIZES['muenchen']['MAP_Y']-93),
-            (200, MAP_SIZES['muenchen']['MAP_Y']-132),
-            (200, MAP_SIZES['muenchen']['MAP_Y']-170),
-            (200, MAP_SIZES['muenchen']['MAP_Y']-195)
-        ]
-    },
-    'portland': {
-        'fontsizes': [30, 22, 30, 18, 18],
-        'lines': [
-            (20, MAP_SIZES['portland']['MAP_Y']-50),
-            (20, MAP_SIZES['portland']['MAP_Y']-82),
-            (20, MAP_SIZES['portland']['MAP_Y']-122),
-            (20, MAP_SIZES['portland']['MAP_Y']-155),
-            (20, MAP_SIZES['portland']['MAP_Y']-180)
-        ]
-    },
-    'seattle': {
-        'fontsizes': [35, 22, 30, 18, 18],
-        'lines': [
-            (400, MAP_SIZES['seattle']['MAP_Y']-55),
-            (400, MAP_SIZES['seattle']['MAP_Y']-93),
-            (400, MAP_SIZES['seattle']['MAP_Y']-132),
-            (400, MAP_SIZES['seattle']['MAP_Y']-170),
-            (400, MAP_SIZES['seattle']['MAP_Y']-195)
-        ]
-    },
-    'toronto': {
-        'fontsize': 15,
-        'lines': [
-            (MAP_SIZES['toronto']['MAP_X'] * 0.75, 160),
-            (MAP_SIZES['toronto']['MAP_X'] * 0.75, 130),
-            (MAP_SIZES['toronto']['MAP_X'] * 0.75, 100)
-        ]
-    },
-    'vancouver': {
-        'fontsizes': [35, 22, 30, 18, 18],
-        'lines': [
-            (20, MAP_SIZES['vancouver']['MAP_Y']-55),
-            (20, MAP_SIZES['vancouver']['MAP_Y']-93),
-            (20, MAP_SIZES['vancouver']['MAP_Y']-132),
-            (20, MAP_SIZES['vancouver']['MAP_Y']-170),
-            (20, MAP_SIZES['vancouver']['MAP_Y']-195)
-        ]
-    },
-    'wien': {
-        'fontsizes': [35, 22, 30, 18, 18],
-        'lines': [
-            (200, MAP_SIZES['wien']['MAP_Y']-55),
-            (200, MAP_SIZES['wien']['MAP_Y']-93),
-            (200, MAP_SIZES['wien']['MAP_Y']-132),
-            (200, MAP_SIZES['wien']['MAP_Y']-170),
-            (200, MAP_SIZES['wien']['MAP_Y']-195)
-        ]
-    }
-}
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
 SPEED_CUTOFFS = [5, 15, 30, float('inf')]
@@ -538,8 +153,8 @@ def is_latlng_in_bounds(city, lat, lng = False):
         lng = lat[1]
         lat = lat[0]
 
-    is_lat = BOUNDS[city]['SOUTH'] <= lat <= BOUNDS[city]['NORTH']
-    is_lng = BOUNDS[city]['WEST'] <= lng <= BOUNDS[city]['EAST']
+    is_lat = CITIES[city]['BOUNDS']['SOUTH'] <= lat <= CITIES[city]['BOUNDS']['NORTH']
+    is_lng = CITIES[city]['BOUNDS']['WEST'] <= lng <= CITIES[city]['BOUNDS']['EAST']
 
     return is_lat and is_lng
 
@@ -556,14 +171,16 @@ def make_csv(data, city, filename, turn):
     f.close()
 
 def map_latitude(city, latitudes):
-    return ((latitudes - MAP_LIMITS[city]['SOUTH']) / \
-        (MAP_LIMITS[city]['NORTH'] - MAP_LIMITS[city]['SOUTH'])) * \
-        MAP_SIZES[city]['MAP_Y']
+    city_data = CITIES[city]
+    return ((latitudes - city_data['MAP_LIMITS']['SOUTH']) / \
+        (city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH'])) * \
+        city_data['MAP_SIZES']['MAP_Y']
 
 def map_longitude(city, longitudes):
-    return ((longitudes - MAP_LIMITS[city]['WEST']) / \
-        (MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST'])) * \
-        MAP_SIZES[city]['MAP_X']
+    city_data = CITIES[city]
+    return ((longitudes - city_data['MAP_LIMITS']['WEST']) / \
+        (city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST'])) * \
+        city_data['MAP_SIZES']['MAP_X']
 
 def make_graph_axes(city, background = False, log_name = ''):
     """ Sets up figure area and axes for common properties for a city 
@@ -581,15 +198,17 @@ def make_graph_axes(city, background = False, log_name = ''):
     dpi_adj_x = 0.775
     dpi_adj_y = 0.8
 
+    city_data = CITIES[city]
+
     # TODO: the two below take ~20 ms. try to reuse
     f = plt.figure(dpi=dpi)
-    f.set_size_inches(MAP_SIZES[city]['MAP_X']/dpi_adj_x/dpi, \
-            MAP_SIZES[city]['MAP_Y']/dpi_adj_y/dpi)
+    f.set_size_inches(city_data['MAP_SIZES']['MAP_X']/dpi_adj_x/dpi, \
+            city_data['MAP_SIZES']['MAP_Y']/dpi_adj_y/dpi)
 
     # TODO: this takes 50 ms each time. try to reuse the whole set of axes
     # rather than regenerating it each time
     ax = f.add_subplot(111)
-    ax.axis([0, MAP_SIZES[city]['MAP_X'], 0, MAP_SIZES[city]['MAP_Y']])
+    ax.axis([0, city_data['MAP_SIZES']['MAP_X'], 0, city_data['MAP_SIZES']['MAP_Y']])
 
     # remove visible axes and figure frame
     ax.axes.get_xaxis().set_visible(False)
@@ -724,17 +343,19 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
                 [lines_start_lat[i], lines_end_lat[i]], color = '#aaaaaa')
             ax.add_line(l)
 
+    city_data = CITIES[city]
+
     # add labels
     printed_time = turn + timedelta(0, time_offset*3600)
-    if 'fontsizes' in LABELS[city]:
+    if 'fontsizes' in city_data['LABELS']:
         # gradual transition to new labelling format - only for cities 
         # that have fontsizes array defined
 
-        coords = LABELS[city]['lines']
-        fontsizes = LABELS[city]['fontsizes']
+        coords = city_data['LABELS']['lines']
+        fontsizes = city_data['LABELS']['fontsizes']
 
         ax.text(coords[0][0], coords[0][1], 
-            cars.CITIES[city]['display'], fontsize = fontsizes[0])
+            city_data['display'], fontsize = fontsizes[0])
         ax.text(coords[1][0], coords[1][1],
             printed_time.strftime('%B %d, %Y').replace(' 0',' '),
             fontsize = fontsizes[1])
@@ -750,13 +371,13 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
         #ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
         #    len(lines_start_lat), fontsize = fontsizes[4])
     else:
-        fontsize = LABELS[city]['fontsize']
-        ax.text(LABELS[city]['lines'][0][0], LABELS[city]['lines'][0][1], \
-            cars.CITIES[city]['display'] + ' ' + \
+        fontsize = city_data['LABELS']['fontsize']
+        ax.text(city_data['LABELS']['lines'][0][0], city_data['LABELS']['lines'][0][1], \
+            city_data['LABELS']['display'] + ' ' + \
             printed_time.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
-        ax.text(LABELS[city]['lines'][1][0], LABELS[city]['lines'][1][1], \
+        ax.text(city_data['LABELS']['lines'][1][0], city_data['LABELS']['lines'][1][1], \
             'available cars: %d' % car_count, fontsize=fontsize)
-        ax.text(LABELS[city]['lines'][2][0], LABELS[city]['lines'][2][1], \
+        ax.text(city_data['LABELS']['lines'][2][0], city_data['LABELS']['lines'][2][1], \
             'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
 
     timer.append((log_name + ': make_graph plot, ms',
@@ -874,29 +495,31 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     # if using accessible_multiplier, 160 alpha for inaccessible looks better
     inaccessible_colour = (239, 239, 239, 100) # #efefef, mostly transparent
 
+    city_data = CITIES[city]
+
     # generate basic background, for now uniformly indicating no cars available
     markers = np.empty(
-        (MAP_SIZES[city]['MAP_Y'], MAP_SIZES[city]['MAP_X'], 4),
+        (city_data['MAP_SIZES']['MAP_Y'], city_data['MAP_SIZES']['MAP_X'], 4),
         dtype = np.uint8)
     markers[:] = inaccessible_colour # can't use fill since it isn't a scalar
 
     # find distance radius, in pixels
     # take mean of latitude- and longitude-based numbers, 
     # which is not quite correct but more than close enough
-    lat = MAP_LIMITS[city]['NORTH'] - MAP_LIMITS[city]['SOUTH']
-    lat_in_m = lat * DEGREE_LENGTHS[city]['LENGTH_OF_LATITUDE']
-    pixel_in_lat_m = lat_in_m / MAP_SIZES[city]['MAP_Y']
+    lat = city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH']
+    lat_in_m = lat * city_data['DEGREE_LENGTHS']['LENGTH_OF_LATITUDE']
+    pixel_in_lat_m = lat_in_m / city_data['MAP_SIZES']['MAP_Y']
 
-    lng = MAP_LIMITS[city]['EAST'] - MAP_LIMITS[city]['WEST']
-    lng_in_m = lng * DEGREE_LENGTHS[city]['LENGTH_OF_LONGITUDE']
-    pixel_in_lng_m = lng_in_m / MAP_SIZES[city]['MAP_X']
+    lng = city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST']
+    lng_in_m = lng * city_data['DEGREE_LENGTHS']['LENGTH_OF_LONGITUDE']
+    pixel_in_lng_m = lng_in_m / city_data['MAP_SIZES']['MAP_X']
 
     pixel_in_m = (pixel_in_lat_m + pixel_in_lng_m) / 2 
     radius = np.round(distance / pixel_in_m)
 
     # generate master availability mask
     master_mask = np.empty(
-        (MAP_SIZES[city]['MAP_Y'], MAP_SIZES[city]['MAP_X']),
+        (city_data['MAP_SIZES']['MAP_Y'], city_data['MAP_SIZES']['MAP_X']),
         dtype = np.bool)
     master_mask.fill(False)
     m_m_shape = master_mask.shape

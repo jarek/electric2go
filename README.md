@@ -37,6 +37,7 @@ A sample crontab entry is included in `crontab` file.
 Files involved:
 
 - cars.py: contains data retrieval and parsing logic
+- city.py: stores list of cities with some electric cars
 - index.py: contains display logic and HTML pasta
 - sort.js: sorts car list by distance from user's reported geolocation
 - style.css
@@ -71,6 +72,7 @@ Files involved:
 - cars.py: data retrieval logic and constants
 - download.py: downloads and saves information for selected cities
 - crontab: sample crontab entry for invoking download.py
+- city.py: stores list of known cities and their properties
 - process.py: creates maps and visualizations based on the data
 - backgrounds/\* - city maps from openstreetmap used as video backgrounds
 

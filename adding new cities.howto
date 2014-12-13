@@ -7,7 +7,7 @@ jarek@x1:~/projects/electric2go$ python
 
 (some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - you might need to manually code to exclude them, adapting code in city.py)
 
-paste these into process.py BOUNDS dict
+paste these into city.py BOUNDS dict for the city
 
 
 unfortunately OSM seems to have changed their PNG export interface so finding correct dimensions for the map will take a bit of trial and error
@@ -33,7 +33,7 @@ assuming we're expanding east-west:
 - might need to adjust this a tiny bit to get the right pixel dimension, I got 1922x1080 with the exact numbers and had to trim to -73.7725, -73.4375. try to keep the centre in the same position (-73.7725 + -73.4375)/2 = -73.605
 
 
-put the adjusted limits into process.py MAP_LIMITS dict. put the scale and the direct URL in a comment
+put the adjusted limits into city.py MAP_LIMITS dict for the city. put the scale and the direct URL in a comment
 
 greyscale the map image: in gimp, do hue/lightness/saturation and change lightness = 100, saturation = -100
 
