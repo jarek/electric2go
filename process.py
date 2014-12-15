@@ -4,7 +4,6 @@
 from datetime import datetime
 from datetime import timedelta
 import os
-import sys
 import stat
 import argparse
 import math
@@ -133,21 +132,6 @@ def process_data(json_data, data_time = None, previous_data = {}, \
 
     return data,moved_cars
 
-def find_clusters():
-    # TODO: find clusters of close-by cars (for n cars within a d radius
-    # or something) and graph the clusters. preferably over time.
-    # knn maybe?
-    # I notice spots where cars tend to gather - this might be clearer
-    # to see on a map showing just the cars within the hotspots rather
-    # than all cars.
-
-    # make_graph() should be able to use the data as-is, or with minor 
-    # changes. mark just_moved as False for all cars to prevent trip lines
-    # from being drawn (except possibly for cars moving directly between
-    # clusters?)
-
-    pass
-
 def is_latlng_in_bounds(city, lat, lng = False):
     if lng == False:
         lng = lat[1]
@@ -157,18 +141,6 @@ def is_latlng_in_bounds(city, lat, lng = False):
     is_lng = CITIES[city]['BOUNDS']['WEST'] <= lng <= CITIES[city]['BOUNDS']['EAST']
 
     return is_lat and is_lng
-
-def make_csv(data, city, filename, turn):
-    text = []
-    for car in data:
-        [lat,lng] = data[car]['coords']
-        if data[car]['seen'] == turn \
-            and is_latlng_in_bounds(city, lat, lng):
-            text.append(car + ',' + str(lat) + ',' + str(lng))
-
-    f = open(filename + '.csv', 'w')
-    print >> f, '\n'.join(text)
-    f.close()
 
 def map_latitude(city, latitudes):
     city_data = CITIES[city]
@@ -239,7 +211,7 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     args = locals()
 
     # my lists of latitudes, longitudes, will be at most
-    # as lost as data (when all cars are currently being seen)
+    # as long as data (when all cars are currently being seen)
     # and usually around 1/2 - 2/3rd the size. pre-allocating 
     # zeros and keeping track of the actual size is the most 
     # memory-efficient thing to do, i think.
@@ -784,7 +756,7 @@ def print_stats(saved_data, starting_time, t, time_step,
         (stats['total_duration'] / stats['total_vehicles'] / (24*60*time_days))
 
     trip_counter = Counter(stats['trips'])
-    sys.stdout.write('\nmean trips per car: %0.2f' % np.mean(stats['trips']))
+    print '\nmean trips per car: %0.2f' % (np.mean(stats['trips'])),
     if abs(time_days-1.0) > 0.01:
         print ' (%0.2f per day),' % (np.mean(stats['trips']) / time_days),
     else:
@@ -918,8 +890,6 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
             time_graph_start = time.time()
 
-            #make_csv(saved_data, city, filepath, t)
-
             if distance is False:
                 make_graph(data = saved_data, first_filename = filepath, 
                     turn = t, second_filename = second_filename, **args)
@@ -928,7 +898,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
                     first_filename = filepath, turn = t,
                     second_filename = second_filename, **args)
 
-            timer.append((filepath + ': make_graph or _accessiblity_graph, ms',
+            timer.append((filepath + ': make_graph or _accessibility_graph, ms',
                 (time.time()-time_graph_start)*1000.0))
 
         timer.append((filepath + ': total, ms',
@@ -1084,13 +1054,8 @@ def process_commandline():
     file_dir,city = os.path.split(city.lower())
 
     if not os.path.exists(filename):
-        if os.path.exists(os.path.join(cars.data_dir, filename)):
-            # try to use 'data/' directory automatically, if suitable
-            file_dir = cars.data_dir
-        else:
-            # otherwise we can't find that file
-            print 'file not found: ' + filename
-            return
+        print 'file not found: ' + filename
+        return
 
     if not city in KNOWN_CITIES:
         print 'unsupported city: ' + city
