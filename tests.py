@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 
-import process
+from car2goprocess import graph as process_graph
 import city
 
 class process_helper_functions(unittest.TestCase):
@@ -17,32 +17,32 @@ class process_helper_functions(unittest.TestCase):
             'buenosaires': [-34.3,-58.5]
         }
 
-        self.assertTrue(process.is_latlng_in_bounds('vancouver', 
+        self.assertTrue(city.is_latlng_in_bounds('vancouver', 
             VALUES['vancouver']))
-        self.assertTrue(process.is_latlng_in_bounds('toronto', 
+        self.assertTrue(city.is_latlng_in_bounds('toronto', 
             VALUES['toronto']))
-        self.assertTrue(process.is_latlng_in_bounds('wien',
+        self.assertTrue(city.is_latlng_in_bounds('wien',
             VALUES['wien']))
         # TODO: this was intended to test correctness of calculation for
         # southern hemisphere
-        #self.assertTrue(process.is_latlng_in_bounds('buenosaires',
+        #self.assertTrue(city.is_latlng_in_bounds('buenosaires',
         #    VALUES['buenosaires']))
 
     def test_map_latitude(self):
-        toronto_res = process.map_latitude('toronto', np.array([43.65]))
+        toronto_res = process_graph.map_latitude('toronto', np.array([43.65]))
         self.assertGreaterEqual(toronto_res, 0)
         self.assertLessEqual(toronto_res, city.CITIES['toronto']['MAP_SIZES']['MAP_Y'])
 
-        wien_res = process.map_latitude('wien', np.array([48.2]))
+        wien_res = process_graph.map_latitude('wien', np.array([48.2]))
         self.assertGreaterEqual(wien_res, 0)
         self.assertLessEqual(wien_res, city.CITIES['wien']['MAP_SIZES']['MAP_Y'])
 
     def test_map_longitude(self):
-        toronto_res = process.map_longitude('toronto', np.array([-79.3]))
+        toronto_res = process_graph.map_longitude('toronto', np.array([-79.3]))
         self.assertGreaterEqual(toronto_res, 0)
         self.assertLessEqual(toronto_res, city.CITIES['toronto']['MAP_SIZES']['MAP_X'])
 
-        wien_res = process.map_longitude('wien', np.array([16.4]))
+        wien_res = process_graph.map_longitude('wien', np.array([16.4]))
         self.assertGreaterEqual(wien_res, 0)
         self.assertLessEqual(wien_res, city.CITIES['wien']['MAP_SIZES']['MAP_X'])
 

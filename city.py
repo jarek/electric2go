@@ -411,7 +411,7 @@ def get_operation_areas(city):
 
     return json.loads(data_text).get('placemarks')
 
-def get_lat_long_extent(city):
+def get_latlng_extent(city):
     areas = get_operation_areas(city)
 
     latitudes = []
@@ -427,4 +427,14 @@ def get_lat_long_extent(city):
 
     # return max/mins for all operation areas
     return max(latitudes), min(latitudes), max(longitudes), min(longitudes)
+
+def is_latlng_in_bounds(city, lat, lng = False):
+    if lng == False:
+        lng = lat[1]
+        lat = lat[0]
+
+    is_lat = CITIES[city]['BOUNDS']['SOUTH'] <= lat <= CITIES[city]['BOUNDS']['NORTH']
+    is_lng = CITIES[city]['BOUNDS']['WEST'] <= lng <= CITIES[city]['BOUNDS']['EAST']
+
+    return is_lat and is_lng
 

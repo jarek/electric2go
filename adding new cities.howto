@@ -2,7 +2,7 @@ get bounds of operational areas:
 
 jarek@x1:~/projects/electric2go$ python
 >>> import city
->>> city.get_lat_long_extent('milano')
+>>> city.get_latlng_extent('milano')
 (9.27821, 9.066236, 45.535522, 45.398983)
 
 (some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - you might need to manually code to exclude them, adapting code in city.py)
