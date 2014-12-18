@@ -11,7 +11,7 @@ import time
 
 import cars
 from city import CITIES, KNOWN_CITIES
-from car2goprocess import stats as process_stats, graph as process_graph
+from car2goprocess import stats as process_stats, graph as process_graph, dump as process_dump
 
 
 timer = []
@@ -126,7 +126,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
     distance = False, time_offset = 0, web = False, stats = False, \
-    trace = False, \
+    trace = False, dump_trips = False, dump_vehicle = False, \
     **extra_args):
 
     args = locals()
@@ -298,6 +298,13 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         print
         process_stats.print_stats(saved_data, starting_time, t, time_step)
 
+    if dump_trips:
+        filename = dump_trips
+        process_dump.dump_trips(saved_data, filename)
+
+    if dump_vehicle:
+        process_dump.dump_vehicle(saved_data, dump_vehicle)
+
     print
 
 def process_commandline():
@@ -314,6 +321,11 @@ def process_commandline():
         help='print out all trips of a vehicle found in the dataset; \
             accepts license plates, VINs, \
             "random", "most_trips", "most_distance", and "most_duration"')
+    parser.add_argument('-dt', '--dump-trips', type=str, default=False,
+        help='dump JSON of all trips to filename passed as param')
+    parser.add_argument('-dv', '--dump-vehicle', type=str, default=False,
+        help='specify vehicle''s VIN to get a JSON of its trips written \
+            to file named {vin}_trips.json')
     parser.add_argument('-tz', '--time-offset', type=int, default=0,
         help='offset times shown on graphs by TIME_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
