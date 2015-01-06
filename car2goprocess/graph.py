@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Image
 
-from city import CITIES, KNOWN_CITIES, is_latlng_in_bounds
+from city import CITIES, KNOWN_CITIES, is_latlng_in_bounds, get_mean_pixel_size
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -19,6 +19,7 @@ SPEED_COLOURS = ['r', 'y', 'g', 'b']
 timer = []
 
 
+# strictly not correct as lat/lng isn't a grid, but close enough at city scales
 def map_latitude(city, latitudes):
     city_data = CITIES[city]
     return ((latitudes - city_data['MAP_LIMITS']['SOUTH']) / \
@@ -77,6 +78,41 @@ def make_graph_axes(city, background = False, log_name = ''):
         (time.time()-time_plotsetup_start)*1000.0))
 
     return f,ax
+
+def plot_points(ax, points, symbol):
+    ys, xs, colours = zip(*points)
+    colours = [colour + symbol for colour in colours]
+
+    ax.plot(xs, ys, colours)
+
+    return ax
+
+def plot_geopoints(ax, city, geopoints, symbol):
+    lats, lngs, colours = zip(*geopoints)
+
+    latitudes = map_latitude(city, lats)
+    longitudes = map_longitude(city, lngs)
+
+    return plot_points(ax, zip(latitudes, longitudes, colours), symbol)
+
+def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, color = '#aaaaaa'):
+    for i in range(len(lines_start_y)):
+        l = plt.Line2D([lines_start_x[i], lines_end_x[i]], \
+                [lines_start_y[i], lines_end_y[i]], color = color)
+        ax.add_line(l)
+
+    return ax
+
+def plot_geolines(ax, city, lines, color = '#aaaaaa'):
+    lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng = zip(*lines)
+
+    # translate into map coordinates
+    lines_start_y = map_latitude(city, np.array(lines_start_lat))
+    lines_start_x = map_longitude(city, np.array(lines_start_lng))
+    lines_end_y = map_latitude(city, np.array(lines_end_lat))
+    lines_end_x = map_longitude(city, np.array(lines_end_lng))
+
+    return plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, color)
 
 def make_graph_object(data, city, turn, show_move_lines = True, \
     show_speeds = False, symbol = '.', log_name = '', background = False,
@@ -155,20 +191,6 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
                 lines_end_lat.append(data[car]['coords'][0])
                 lines_end_lng.append(data[car]['coords'][1])
 
-    # translate into map coordinates
-    latitudes = map_latitude(city, latitudes)
-    longitudes = map_longitude(city, longitudes)
-
-    lines_start_lat = map_latitude(city, np.array(lines_start_lat))
-    lines_start_lng = map_longitude(city, np.array(lines_start_lng))
-    lines_end_lat = map_latitude(city, np.array(lines_end_lat))
-    lines_end_lng = map_longitude(city, np.array(lines_end_lng))
-
-    if show_speeds:
-        for i in range(len(speeds)):
-            speeds[i][0] = map_latitude(city, np.array(speeds[i][0]))
-            speeds[i][1] = map_longitude(city, np.array(speeds[i][1]))
-
     timer.append((log_name + ': make_graph load, ms',
         (time.time()-time_load_start)*1000.0))
 
@@ -177,20 +199,20 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     time_plot_start = time.time()
 
     if show_speeds is False:
-        ax.plot(longitudes, latitudes, 'b' + symbol)
+        #ax.plot(longitudes, latitudes, 'b' + symbol)
+        ax = plot_geopoints(ax, city, zip(latitudes, longitudes, 'b' * len(latitudes)), symbol)
     else:
         for i in range(len(speeds)):
             # TODO: try to plot those with on bottom, under newer 
             # points. might require changes a couple of lines above
             # instead. reverse alphabetical sort by key?
-            ax.plot(speeds[i][1], speeds[i][0], SPEED_COLOURS[i] + symbol)
+
+            # note this syntax only works when SPEED_COLOURS are one-character strings
+            ax = plot_geopoints(ax, city, zip(speeds[i][0], speeds[i][1], SPEED_COLOURS * len(speeds[i])), symbol)
 
     # add in lines for moving vehicles
     if show_move_lines:
-        for i in range(len(lines_start_lat)):
-            l = plt.Line2D([lines_start_lng[i], lines_end_lng[i]], \
-                [lines_start_lat[i], lines_end_lat[i]], color = '#aaaaaa')
-            ax.add_line(l)
+        ax = plot_geolines(ax, city, zip(lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng))
 
     city_data = CITIES[city]
 
@@ -353,17 +375,7 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     markers[:] = inaccessible_colour # can't use fill since it isn't a scalar
 
     # find distance radius, in pixels
-    # take mean of latitude- and longitude-based numbers, 
-    # which is not quite correct but more than close enough
-    lat = city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH']
-    lat_in_m = lat * city_data['DEGREE_LENGTHS']['LENGTH_OF_LATITUDE']
-    pixel_in_lat_m = lat_in_m / city_data['MAP_SIZES']['MAP_Y']
-
-    lng = city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST']
-    lng_in_m = lng * city_data['DEGREE_LENGTHS']['LENGTH_OF_LONGITUDE']
-    pixel_in_lng_m = lng_in_m / city_data['MAP_SIZES']['MAP_X']
-
-    pixel_in_m = (pixel_in_lat_m + pixel_in_lng_m) / 2 
+    pixel_in_m = get_mean_pixel_size(city)
     radius = np.round(distance / pixel_in_m)
 
     # generate master availability mask
