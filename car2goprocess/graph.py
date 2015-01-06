@@ -83,81 +83,69 @@ def plot_points(ax, points, symbol):
     ys, xs, colours = zip(*points)
     colours = [colour + symbol for colour in colours]
 
-    ax.plot(xs, ys, colours)
+    # see if there are different colours in the set, or if they're all the same
+    same_colour = True
+    first_colour = colours[0]
+    for colour in colours:
+        if colour != first_colour:
+            same_colour = False
+            break
+
+    if same_colour:
+        # if same colour, we can plot them all at once
+        ax.plot(xs, ys, colours[0])
+    else:
+        # for now just plot each one separately. this isn't optimal but oh well
+        for x,y,colour in zip(xs, ys, colours):
+            ax.plot(x, y, colour)
 
     return ax
 
 def plot_geopoints(ax, city, geopoints, symbol):
     lats, lngs, colours = zip(*geopoints)
 
-    latitudes = map_latitude(city, lats)
-    longitudes = map_longitude(city, lngs)
+    latitudes = map_latitude(city, np.array(lats))
+    longitudes = map_longitude(city, np.array(lngs))
 
     return plot_points(ax, zip(latitudes, longitudes, colours), symbol)
 
-def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, color = '#aaaaaa'):
+def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour = '#aaaaaa'):
     for i in range(len(lines_start_y)):
         l = plt.Line2D([lines_start_x[i], lines_end_x[i]], \
-                [lines_start_y[i], lines_end_y[i]], color = color)
+                [lines_start_y[i], lines_end_y[i]], color = colour)
         ax.add_line(l)
 
     return ax
 
-def plot_geolines(ax, city, lines, color = '#aaaaaa'):
-    lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng = zip(*lines)
-
+def plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour = '#aaaaaa'):
     # translate into map coordinates
     lines_start_y = map_latitude(city, np.array(lines_start_lat))
     lines_start_x = map_longitude(city, np.array(lines_start_lng))
     lines_end_y = map_latitude(city, np.array(lines_end_lat))
     lines_end_x = map_longitude(city, np.array(lines_end_lng))
 
-    return plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, color)
+    return plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour)
 
-def make_graph_object(data, city, turn, show_move_lines = True, \
-    show_speeds = False, symbol = '.', log_name = '', background = False,
-    time_offset = 0,
-    **extra_args):
-    """ Creates and returns the matplotlib figure for the provided data.
-    The param `log_name` is used for logging only. """
+def plot_trips(ax, city, trips, colour = '#aaaaaa'):
+    lines_start_lat = [t['from'][0] for t in trips]
+    lines_start_lng = [t['from'][1] for t in trips]
+    lines_end_lat = [t['to'][0] for t in trips]
+    lines_end_lng = [t['to'][1] for t in trips]
 
-    args = locals()
+    return plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
-    # my lists of latitudes, longitudes, will be at most
-    # as long as data (when all cars are currently being seen)
-    # and usually around 1/2 - 2/3rd the size. pre-allocating 
-    # zeros and keeping track of the actual size is the most 
-    # memory-efficient thing to do, i think.
-    # (I have to use numpy arrays to transform coordinates. 
-    # and numpy array appends are not in place.)
+def process_data_frame(data, city, turn, log_name, show_speeds = False):
+    # extracts vehicle positions and most recent trips from one frame's worth of data
+    # that came from process.py process_data()
+
     global timer
-    time_init_start = time.time()
-
-    max_length = len(data)
-
-    latitudes = np.empty(max_length)
-    longitudes = np.empty(max_length)
-    
-    # lists for the lines will be usually 5-30 long or so. 
-    # i'll keep them as standard python for the appends 
-    # and convert later
-    lines_start_lat = []
-    lines_start_lng = []
-    lines_end_lat = []
-    lines_end_lng = []
-
-    speeds = []
-    for i in range(len(SPEED_CUTOFFS)):
-        # create the necessary amount of [lat, lng] baskets
-        speeds.append( [ [], [] ] )
-
-    car_count = 0
-
-    timer.append((log_name + ': make_graph init, ms',
-        (time.time()-time_init_start)*1000.0))
 
     time_load_start = time.time()
 
+    positions = []
+    trips = []
+
+    # process data list to extract vehicle positions and trips
     for car in data:
         if data[car]['seen'] == turn or data[car]['just_moved']:
             # The second condition is for buses, where positions
@@ -168,55 +156,69 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
             # Note that cars that aren't moving have just_moved 
             # set to false in process_data.
             if is_latlng_in_bounds(city, data[car]['coords']):
-                latitudes[car_count] = data[car]['coords'][0]
-                longitudes[car_count] = data[car]['coords'][1]
+                position = data[car]['coords']
 
-                if 'speed' in data[car]:
+                if show_speeds and 'speed' in data[car]:
                     # find the right speed basket
-                    i = 0
-                    while i < len(speeds):
+                    for i in range(len(SPEED_CUTOFFS)):
                         if data[car]['speed'] < SPEED_CUTOFFS[i]:
-                            speeds[i][0].append(data[car]['coords'][0])
-                            speeds[i][1].append(data[car]['coords'][1])
-                            i = len(speeds) # break loop
-                        else:
-                            i = i + 1
+                            position.append(SPEED_COLOURS[i])
+                            break
+                
+                if len(position) == 2:
+                    # we're not classifying speeds, or speed not found in loop above
+                    position.append('b')
 
-            car_count = car_count + 1
+                positions.append(position)
 
-            # if car has just moved, add a line from previous point to current point
+            # if car has just moved, extract the most recent trip
             if data[car]['just_moved'] == True:
-                lines_start_lat.append(data[car]['prev_coords'][0])
-                lines_start_lng.append(data[car]['prev_coords'][1])
-                lines_end_lat.append(data[car]['coords'][0])
-                lines_end_lng.append(data[car]['coords'][1])
+                trips.append(data[car]['trips'][-1])
 
-    timer.append((log_name + ': make_graph load, ms',
+    timer.append((log_name + ': process_data_frame, ms',
         (time.time()-time_load_start)*1000.0))
+
+    return {'positions': positions, 'trips': trips}
+
+def make_graph_object(data, city, turn, show_move_lines = True, \
+    show_speeds = False, symbol = '.', log_name = '', background = False,
+    time_offset = 0,
+    **extra_args):
+    """ Creates and returns the matplotlib figure for the provided data.
+    The param `log_name` is used for logging only. """
+
+    args = locals()
+
+    global timer
+    time_init_start = time.time()
+
+    # keep track of positions and trips using a simple expanding list.
+    # performance bottlenecks are elsewhere (particularly actually graphing)
+    # and this makes the code a fair bit simpler
+    positions = []
+    trips = []
+
+    timer.append((log_name + ': make_graph init, ms',
+        (time.time()-time_init_start)*1000.0))
+
+    # load in vehicle positions and trips finished in this time frame
+    data_frame_info = process_data_frame(data, city, turn, log_name, show_speeds)
+    positions = data_frame_info['positions']
+    trips = data_frame_info['trips']
 
     f,ax = make_graph_axes(city, background, log_name)
 
     time_plot_start = time.time()
 
-    if show_speeds is False:
-        #ax.plot(longitudes, latitudes, 'b' + symbol)
-        ax = plot_geopoints(ax, city, zip(latitudes, longitudes, 'b' * len(latitudes)), symbol)
-    else:
-        for i in range(len(speeds)):
-            # TODO: try to plot those with on bottom, under newer 
-            # points. might require changes a couple of lines above
-            # instead. reverse alphabetical sort by key?
-
-            # note this syntax only works when SPEED_COLOURS are one-character strings
-            ax = plot_geopoints(ax, city, zip(speeds[i][0], speeds[i][1], SPEED_COLOURS * len(speeds[i])), symbol)
+    # plot points for vehicles
+    ax = plot_geopoints(ax, city, positions, symbol)
 
     # add in lines for moving vehicles
     if show_move_lines:
-        ax = plot_geolines(ax, city, zip(lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng))
-
-    city_data = CITIES[city]
+        ax = plot_trips(ax, city, trips)
 
     # add labels
+    city_data = CITIES[city]
     printed_time = turn + timedelta(0, time_offset*3600)
     if 'fontsizes' in city_data['LABELS']:
         # gradual transition to new labelling format - only for cities 
@@ -237,19 +239,19 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
         ax.text(coords[2][0], coords[2][1], 
             printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
         ax.text(coords[3][0], coords[3][1], 
-            'available cars: %d' % car_count, fontsize = fontsizes[3])
+            'available cars: %d' % len(positions), fontsize = fontsizes[3])
         # TODO: maybe have an option to include this
         #ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
-        #    len(lines_start_lat), fontsize = fontsizes[4])
+        #    len(trips), fontsize = fontsizes[4])
     else:
         fontsize = city_data['LABELS']['fontsize']
         ax.text(city_data['LABELS']['lines'][0][0], city_data['LABELS']['lines'][0][1], \
             city_data['LABELS']['display'] + ' ' + \
             printed_time.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
         ax.text(city_data['LABELS']['lines'][1][0], city_data['LABELS']['lines'][1][1], \
-            'available cars: %d' % car_count, fontsize=fontsize)
+            'available cars: %d' % len(positions), fontsize=fontsize)
         ax.text(city_data['LABELS']['lines'][2][0], city_data['LABELS']['lines'][2][1], \
-            'moved this round: %d' % len(lines_start_lat), fontsize=fontsize)
+            'moved this round: %d' % len(trips), fontsize=fontsize)
 
     timer.append((log_name + ': make_graph plot, ms',
         (time.time()-time_plot_start)*1000.0))
@@ -324,31 +326,11 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     log_name = first_filename
     args['log_name'] = first_filename
 
-    time_data_read_start = time.time()
-
-    # TODO: strictly speaking the iteration over data is copied and duplicated 
-    # from make_graph_object(). The perf penalty is unlikely to be large, but
-    # maintenance might be a pain should I want to change it in 
-    # make_graph_object(). So try to reorganize code to fix any duplications.
-
-    max_length = len(data)
-    car_count = 0
-    latitudes = np.empty(max_length)
-    longitudes = np.empty(max_length)
-
-    for car in data:
-        if data[car]['seen'] == turn or data[car]['just_moved']:
-            if is_latlng_in_bounds(city, data[car]['coords']):
-                latitudes[car_count] = data[car]['coords'][0]
-                longitudes[car_count] = data[car]['coords'][1]
-
-                car_count += 1
-
-    latitudes = np.round(map_latitude(city, latitudes[:car_count]))
-    longitudes = np.round(map_longitude(city, longitudes[:car_count]))
-
-    timer.append((log_name + ': make_accessibility_graph data read, ms',
-        (time.time()-time_data_read_start)*1000.0))
+    # load in latitudes and longitudes of vehicle positions
+    data_frame_info = process_data_frame(data, city, turn, log_name)
+    latitudes,longitudes,speeds = zip(*data_frame_info['positions'])
+    latitudes = np.round(map_latitude(city, np.array(latitudes)))
+    longitudes = np.round(map_longitude(city, np.array(longitudes)))
 
     # The below is based off http://stackoverflow.com/questions/8647024/how-to-apply-a-disc-shaped-mask-to-a-numpy-array
     # Basically, we build a True/False mask (master_mask) the same size 

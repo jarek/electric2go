@@ -441,7 +441,7 @@ def is_latlng_in_bounds(city, lat, lng = False):
 def get_pixel_size(city):
     # find the length in metres represented by one pixel on graph in both lat and lng direction
 
-    city_data = CITIES['city']
+    city_data = CITIES[city]
 
     lat_range = city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH']
     lat_in_m = lat_range * city_data['DEGREE_LENGTHS']['LENGTH_OF_LATITUDE']
