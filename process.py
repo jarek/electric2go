@@ -155,14 +155,9 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
     t = starting_time
     filepath = get_filepath(city, starting_time, file_dir)
 
-    animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
-        '-' + os.path.basename(filepath)
-    animation_files_prefix = os.path.join(os.path.dirname(filepath), 
-        animation_files_filename)
+    data_frames = []
 
     saved_data = {}
-
-    iter_filenames = []
 
     json_data = load_file(filepath)
 
@@ -184,31 +179,9 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         timer.append((filepath + ': process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
-        if not dry:
-        
-            second_filename = False
-            if make_iterations:
-                second_filename = animation_files_prefix + '_' + \
-                    str(i).rjust(3, '0') + '.png'
-                iter_filenames.append(second_filename)
+        data_frames.append( (t, filepath, copy.deepcopy(saved_data)) )
 
-            time_graph_start = time.time()
-
-            if distance is False:
-                process_graph.make_graph(data = saved_data, first_filename = filepath, 
-                    turn = t, second_filename = second_filename, **args)
-            else:
-                process_graph.make_accessibility_graph(data = saved_data,
-                    first_filename = filepath, turn = t,
-                    second_filename = second_filename, **args)
-
-            timer.append((filepath + ': make_graph or _accessibility_graph, ms',
-                (time.time()-time_graph_start)*1000.0))
-
-        timer.append((filepath + ': total, ms',
-            (time.time()-time_process_start)*1000.0))
-
-        # find next file according to provided time_stemp (or default,
+        # find next file according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
         i = i + 1
         t = t + timedelta(0, time_step*60)
@@ -241,11 +214,50 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
         if DEBUG:
             print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
-            print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
 
         # reset timer to only keep information about one file at a time
         timer = []
-        process_graph.timer = []
+
+    # set up params for iteratively-named images
+    animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
+        '-' + os.path.basename(filepath)
+    animation_files_prefix = os.path.join(os.path.dirname(filepath), 
+        animation_files_filename)
+    iter_filenames = []
+
+    # generate images
+    if not dry:
+        for index, data in enumerate(data_frames):
+            turn, filepath, data_frame = data
+            
+            # reset timer to only keep information about one file at a time
+            timer = []
+            process_graph.timer = []
+
+            second_filename = False
+            if make_iterations:
+                second_filename = animation_files_prefix + '_' + \
+                    str(index).rjust(3, '0') + '.png'
+                iter_filenames.append(second_filename)
+
+            time_graph_start = time.time()
+
+            if distance is False:
+                process_graph.make_graph(data = data_frame, first_filename = filepath, 
+                    turn = turn, second_filename = second_filename, **args)
+            else:
+                process_graph.make_accessibility_graph(data = data_frame,
+                    first_filename = filepath, turn = turn,
+                    second_filename = second_filename, **args)
+
+            time_graph = (time.time() - time_graph_start) * 1000.0
+            timer.append((filepath + ': make_graph or _accessibility_graph, ms', time_graph))
+
+            print turn, 'generated graph in %d ms' % time_graph
+
+            if DEBUG:
+                print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
+                print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
 
     # print animation information if applicable
     if make_iterations and not dry:
@@ -280,7 +292,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         mp4_path = animation_files_prefix + '.mp4'
 
         framerate = 8
-        frames = i-1
+        frames = i - 1
         if time_step < 5:
             framerate = 30
             # for framerates over 25, avconv assumes conversion from 25 fps
