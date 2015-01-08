@@ -5,6 +5,7 @@ import os
 import stat
 import argparse
 import copy
+import shutil
 import simplejson as json
 from datetime import datetime, timedelta
 import time
@@ -127,6 +128,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
     show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
     distance = False, time_offset = 0, web = False, stats = False, \
     trace = False, dump_trips = False, dump_vehicle = False, \
+    all_positions_image = False, \
     **extra_args):
 
     args = locals()
@@ -302,6 +304,9 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         print '''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path)
         # if i wanted to invoke this, just do os.system('avconv...')
 
+    if all_positions_image:
+        process_graph.make_positions_graph(data_frames, city, all_positions_image)
+
     if trace:
         print
         print process_stats.trace_vehicle(saved_data, trace)
@@ -344,6 +349,9 @@ def process_commandline():
         help='mark distance of DISTANCE meters from nearest car on map')
     parser.add_argument('-noiter', '--no-iter', action='store_true', 
         help='do not create consecutively-named files for animating')
+    parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
+        help='create image of all vehicle positions in the dataset \
+            and save to ALL_POSITIONS_IMAGE')
     parser.add_argument('-web', action='store_true',
         help='create pngcrush script and JS filelist for HTML animation \
             page use; forces NO_ITER to false')

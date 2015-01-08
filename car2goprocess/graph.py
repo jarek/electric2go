@@ -294,7 +294,7 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
     # if requested, also save with iterative filenames for ease of animation
     if not second_filename == False:
         # copying the file rather than saving again is a lot faster
-        shutil.copyfile(image_first_filename, second_filename)
+        shutil.copy2(image_first_filename, second_filename)
 
     # close the plot to free the memory. memory is never freed otherwise until
     # script is killed or exits.
@@ -310,6 +310,24 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
 
     timer.append((log_name + ': make_graph total, ms',
         (time.time()-time_total_start)*1000.0))
+
+def make_positions_graph(data_frames, city, image_name, show_speeds = False):
+    # read out all recorded positions into one huge list
+    all_positions = []
+    for turn, filepath, data_frame in data_frames:
+        data = process_data_frame(data_frame, city, turn, filepath, show_speeds)
+        all_positions.extend(data['positions'])
+
+    # set up axes
+    f,ax = make_graph_axes(city, False, image_name)
+
+    # plot points
+    ax = plot_geopoints(ax, city, all_positions, '.')
+
+    # render graph to file. this will take a while with more points
+    f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
+
+    plt.close(f)
 
 def make_accessibility_graph(data, city, first_filename, turn, distance, \
     second_filename = False, show_move_lines = True, show_speeds = False, \
