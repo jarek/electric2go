@@ -66,7 +66,7 @@ def trace_vehicle(data, provided_vin):
 
     return '\n'.join(lines)
 
-def print_stats(saved_data, starting_time, t, time_step,
+def print_stats(all_trips, last_data_frame, starting_time, t, time_step,
     weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = 5,
     # time cutoff should be 2 for 1 minute step data
     weird_trip_fuel_cutoff = 1):
@@ -130,47 +130,46 @@ def print_stats(saved_data, starting_time, t, time_step,
     weird = []
     suspected_round_trip = []
     refueled = []
-    for vin in saved_data:
-        stats['total_vehicles'] += 1
+    trip_counts_by_vin = {}
+    for trip in all_trips:
+        vin = trip['vin']
+        trip_counts_by_vin[vin] = trip_counts_by_vin.get(vin, 0) + 1
 
-        trips = 0
-        if 'trips' in saved_data[vin]:
-            trips = len(saved_data[vin]['trips'])
+        if trip['distance'] <= weird_trip_distance_cutoff:
+            suspected_round_trip.append(trip)
+            test_duration = weird_trip_time_cutoff * 60 # min to sec
+            print trip
+            if trip['duration'] <= test_duration and \
+                trip['fuel_use'] <= weird_trip_fuel_cutoff:
+                # do not count this trip... it's an anomaly
+                print 'weird'
+                weird.append(trip)
+                trip_counts_by_vin[vin] = trip_counts_by_vin[vin] - 1
+                continue
 
-            for trip in saved_data[vin]['trips']:
-                    
-                if trip['distance'] <= weird_trip_distance_cutoff:
-                    suspected_round_trip.append(trip)
-                    test_duration = weird_trip_time_cutoff * 60 # min  to sec
-                    print trip
-                    if trip['duration'] <= test_duration and \
-                        trip['fuel_use'] <= weird_trip_fuel_cutoff:
-                        # do not count this trip... it's an anomaly
-                        print 'weird'
-                        weird.append(trip)
-                        trips -= 1
-                        continue
+        stats['total_duration'] += trip['duration']/60
+        stats['durations'].append(trip['duration']/60)
 
-                stats['total_trips'] += 1
+        # bin to nearest five minutes (if it isn't already)
+        stats['duration_bins'].append(round_to(trip['duration']/60, 5))
 
-                stats['total_duration'] += trip['duration']/60
-                stats['durations'].append(trip['duration']/60)
+        stats['total_distance'] += trip['distance']
+        stats['distances'].append(trip['distance'])
 
-                # bin to nearest five minutes (if it isn't already)
-                stats['duration_bins'].append(round_to(trip['duration']/60, 5))
+        # bin to nearest 0.5 km
+        stats['distance_bins'].append(round_to(trip['distance'], 0.5))
 
-                stats['total_distance'] += trip['distance']
-                stats['distances'].append(trip['distance'])
+        if 'starting_fuel' in trip:
+            if trip['ending_fuel'] > trip['starting_fuel']:
+                refueled.append(trip)
 
-                # bin to nearest 0.5 km
-                stats['distance_bins'].append(round_to(trip['distance'], 0.5))
+    for vin in last_data_frame:
+        if vin not in trip_counts_by_vin:
+            trip_counts_by_vin[vin] = 0
 
-
-                if 'starting_fuel' in trip:
-                    if trip['ending_fuel'] > trip['starting_fuel']:
-                        refueled.append(trip)
-
-        stats['trips'].append(trips)
+    stats['trips'] = trip_counts_by_vin.values()
+    stats['total_vehicles'] = len(trip_counts_by_vin)
+    stats['total_trips'] = len(all_trips) - len(weird)
 
     # subtracting time_step below to get last file actually processed
     time_elapsed = t - timedelta(0, time_step*60) - starting_time

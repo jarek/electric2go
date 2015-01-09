@@ -320,14 +320,17 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     if stats:
         print
-        process_stats.print_stats(saved_data, starting_time, t, time_step)
+        last_t, last_filepath, last_data_frame, last_trips = data_frames[-1]
+        process_stats.print_stats(all_trips, last_data_frame, starting_time, t, time_step)
 
     if dump_trips:
         filename = dump_trips
-        process_dump.dump_trips(saved_data, filename)
+        process_dump.dump_trips(all_trips, filename)
 
     if dump_vehicle:
-        process_dump.dump_vehicle(saved_data, dump_vehicle)
+        # TODO: it would be more efficient to have a dict for trips by VIN
+        # in this function rather than filtering by VIN within dump_vehicle
+        process_dump.dump_vehicle(all_trips, dump_vehicle)
 
     print
 

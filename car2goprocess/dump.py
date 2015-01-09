@@ -15,26 +15,22 @@ def format_for_json(trips):
 
     return trips
 
-def dump_trips(data, filename):
+def dump_trips(all_trips, filename):
     # TODO: allow filtering the data by timeframe, origins
 
     # data is organized by vehicle (with VIN as the key).
     # for now just dump all trips
 
-    trips = []
-    for vin in data:
-        trips.extend(data[vin]['trips'])
-
-    trips = format_for_json(trips)
+    trips = format_for_json(all_trips)
 
     f = open(filename, 'w')
     print >> f, json.dumps(trips)
     f.close()
 
-def dump_vehicle(data, vin, filename = False):
+def dump_vehicle(all_trips, vin, filename = False):
     #  dump of trace results by vehicle's VIN
 
-    trips = data[vin]['trips']
+    trips = [trip for trip in all_trips if trip['vin'] == vin]
 
     trips = format_for_json(trips)
 
