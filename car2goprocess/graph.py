@@ -314,7 +314,7 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
 def make_positions_graph(data_frames, city, image_name, show_speeds = False):
     # read out all recorded positions into one huge list
     all_positions = []
-    for turn, filepath, data_frame in data_frames:
+    for turn, filepath, data_frame, current_trips in data_frames:
         data = process_data_frame(data_frame, city, turn, filepath, show_speeds)
         all_positions.extend(data['positions'])
 
