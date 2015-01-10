@@ -158,6 +158,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     data_frames = []
     all_trips = []
+    trips_by_vin = {}
 
     saved_data = {}
 
@@ -186,7 +187,14 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         # will be duplicated over and over.
         # keep just the most recent trips, which other code expects for graphing
         for vin in data_frame:
+            if data_frame[vin]['just_moved']:
+                if vin in trips_by_vin:
+                    trips_by_vin[vin].append(copy.deepcopy(data_frame[vin]['most_recent_trip']))
+                else:
+                    trips_by_vin[vin] = [ copy.deepcopy(data_frame[vin]['most_recent_trip']) ]
+
             data_frame[vin]['trips'] = data_frame[vin]['trips'][-1:]
+
         data_frames.append( (t, filepath, data_frame, current_trips) )
         all_trips.extend(current_trips)
 
@@ -316,7 +324,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     if trace:
         print
-        print process_stats.trace_vehicle(saved_data, trace)
+        print process_stats.trace_vehicle(trips_by_vin, trace)
 
     if stats:
         print
@@ -328,9 +336,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         process_dump.dump_trips(all_trips, filename)
 
     if dump_vehicle:
-        # TODO: it would be more efficient to have a dict for trips by VIN
-        # in this function rather than filtering by VIN within dump_vehicle
-        process_dump.dump_vehicle(all_trips, dump_vehicle)
+        process_dump.dump_vehicle(trips_by_vin, dump_vehicle)
 
     print
 

@@ -27,12 +27,10 @@ def dump_trips(all_trips, filename):
     print >> f, json.dumps(trips)
     f.close()
 
-def dump_vehicle(all_trips, vin, filename = False):
+def dump_vehicle(all_trips_by_vin, vin, filename = False):
     #  dump of trace results by vehicle's VIN
 
-    trips = [trip for trip in all_trips if trip['vin'] == vin]
-
-    trips = format_for_json(trips)
+    trips = format_for_json(all_trips_by_vin[vin])
 
     if not filename:
         filename = vin + '_trips.json'

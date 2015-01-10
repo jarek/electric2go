@@ -8,7 +8,7 @@ import numpy as np
 #import scipy.stats as sps
 
 
-def trace_vehicle(data, provided_vin):
+def trace_vehicle(all_trips_by_vin, provided_vin):
     def format_trip(trip):
         result  = 'start: %s at %f,%f' % \
             (trip['starting_time'], trip['from'][0], trip['from'][1])
@@ -28,38 +28,29 @@ def trace_vehicle(data, provided_vin):
     lines = []
 
     if vin == 'random':
-        vin = choice(list(data.keys()))
+        vin = choice(list(all_trips_by_vin.keys()))
     elif vin == 'most_trips':
         # pick the vehicle with most trips. in case of tie, pick first one
-        vin = max(data, key = lambda v: len(data[v]['trips']))
+        vin = max(all_trips_by_vin, key = lambda v: len(all_trips_by_vin[v]))
         lines.append('vehicle with most trips is %s with %d trips' % \
-            (vin, len(data[vin]['trips'])))
+            (vin, len(all_trips_by_vin[vin])))
     elif vin == 'most_distance':
-        vin = max(data, 
-            key = lambda v: sum(t['distance'] for t in data[v]['trips']))
+        vin = max(all_trips_by_vin, 
+            key = lambda v: sum(t['distance'] for t in all_trips_by_vin[v]))
         lines.append(
             'vehicle with highest distance travelled is %s with %0.3f km' % \
-            (vin, sum(t['distance'] for t in data[vin]['trips'])))
+            (vin, sum(t['distance'] for t in all_trips_by_vin[vin])))
     elif vin == 'most_duration':
-        vin = max(data, 
-            key = lambda v: sum(t['duration'] for t in data[v]['trips']))
-        duration = sum(t['duration'] for t in data[vin]['trips'])/60
+        vin = max(all_trips_by_vin, 
+            key = lambda v: sum(t['duration'] for t in all_trips_by_vin[v]))
+        duration = sum(t['duration'] for t in all_trips_by_vin[vin])/60
         lines.append('vehicle with highest trip duration is %s ' \
             'with %d minutes (%0.2f hours)' % (vin, duration, duration/60))
-    elif len(vin) != 17:
-        # try to treat as license plate, and find the VIN of the vehicle
-        # with such a plate
-        vin = vin.replace(' ', '')
 
-        for vehicle in data:
-            if data[vehicle]['name'].replace(' ', '') == vin:
-                vin = vehicle
-                break
-
-    if not vin in data:
+    if not vin in all_trips_by_vin:
         return 'vehicle not found in dataset: %s' % provided_vin
 
-    trips = data[vin]['trips']
+    trips = all_trips_by_vin[vin]
     lines.append('trips for vehicle %s: (count %d)' % (vin, len(trips)))
     for trip in trips:
         lines.append(format_trip(trip))
