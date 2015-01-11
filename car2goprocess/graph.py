@@ -134,16 +134,19 @@ def plot_trips(ax, city, trips, colour = '#aaaaaa'):
 
     return plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
-def process_data_frame(data, city, turn, log_name, show_speeds = False):
-    # extracts vehicle positions and most recent trips from one frame's worth of data
+def get_positions_from_data_frame(data, city, turn, log_name, show_speeds = False):
+    # extracts vehicle positions from one frame's worth of data
     # that came from process.py process_data()
 
     global timer
 
     time_load_start = time.time()
 
+    # keep track of positions and trips using a simple expanding list.
+    # TODO: maybe look into converting this to np.array or something, though
+    # I expect performance bottlenecks are elsewhere (particularly actually graphing)
+
     positions = []
-    trips = []
 
     # process data list to extract vehicle positions and trips
     for car in data:
@@ -171,16 +174,12 @@ def process_data_frame(data, city, turn, log_name, show_speeds = False):
 
                 positions.append(position)
 
-            # if car has just moved, extract the most recent trip
-            if data[car]['just_moved'] == True:
-                trips.append(data[car]['trips'][-1])
-
-    timer.append((log_name + ': process_data_frame, ms',
+    timer.append((log_name + ': get_positions_from_data_frame, ms',
         (time.time()-time_load_start)*1000.0))
 
-    return {'positions': positions, 'trips': trips}
+    return positions
 
-def make_graph_object(data, city, turn, show_move_lines = True, \
+def make_graph_object(data, trips, city, turn, show_move_lines = True,
     show_speeds = False, symbol = '.', log_name = '', background = False,
     time_offset = 0,
     **extra_args):
@@ -192,19 +191,11 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
     global timer
     time_init_start = time.time()
 
-    # keep track of positions and trips using a simple expanding list.
-    # performance bottlenecks are elsewhere (particularly actually graphing)
-    # and this makes the code a fair bit simpler
-    positions = []
-    trips = []
-
     timer.append((log_name + ': make_graph init, ms',
         (time.time()-time_init_start)*1000.0))
 
     # load in vehicle positions and trips finished in this time frame
-    data_frame_info = process_data_frame(data, city, turn, log_name, show_speeds)
-    positions = data_frame_info['positions']
-    trips = data_frame_info['trips']
+    positions = get_positions_from_data_frame(data, city, turn, log_name, show_speeds)
 
     f,ax = make_graph_axes(city, background, log_name)
 
@@ -258,9 +249,9 @@ def make_graph_object(data, city, turn, show_move_lines = True, \
 
     return f,ax
 
-def make_graph(data, city, first_filename, turn, second_filename = False, \
-    show_move_lines = True, show_speeds = False, symbol = '.', \
-    background = False, time_offset = 0, \
+def make_graph(data, trips, city, first_filename, turn, second_filename = False,
+    show_move_lines = True, show_speeds = False, symbol = '.',
+    background = False, time_offset = 0,
     **extra_args):
     """ Creates and saves matplotlib figure for provided data. 
     If second_filename is specified, also copies the saved file to 
@@ -312,25 +303,21 @@ def make_graph(data, city, first_filename, turn, second_filename = False, \
         (time.time()-time_total_start)*1000.0))
 
 def make_positions_graph(data_frames, city, image_name, show_speeds = False):
-    # read out all recorded positions into one huge list
-    all_positions = []
-    for turn, filepath, data_frame, current_trips in data_frames:
-        data = process_data_frame(data_frame, city, turn, filepath, show_speeds)
-        all_positions.extend(data['positions'])
-
     # set up axes
     f,ax = make_graph_axes(city, False, image_name)
 
-    # plot points
-    ax = plot_geopoints(ax, city, all_positions, '.')
+    # read out recorded positions and plot them
+    for turn, filepath, data_frame, current_trips in data_frames:
+        positions = get_positions_from_data_frame(data_frame, city, turn, filepath, show_speeds)
+        ax = plot_geopoints(ax, city, positions, '.')
 
     # render graph to file. this will take a while with more points
     f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
 
     plt.close(f)
 
-def make_accessibility_graph(data, city, first_filename, turn, distance, \
-    second_filename = False, show_move_lines = True, show_speeds = False, \
+def make_accessibility_graph(data, trips, city, first_filename, turn, distance,
+    second_filename = False, show_move_lines = True, show_speeds = False,
     symbol = '.', time_offset = 0, **extra_args):
 
     args = locals()
@@ -345,8 +332,8 @@ def make_accessibility_graph(data, city, first_filename, turn, distance, \
     args['log_name'] = first_filename
 
     # load in latitudes and longitudes of vehicle positions
-    data_frame_info = process_data_frame(data, city, turn, log_name)
-    latitudes,longitudes,speeds = zip(*data_frame_info['positions'])
+    positions = get_positions_from_data_frame(data, city, turn, log_name)
+    latitudes,longitudes,speeds = zip(*positions)
     latitudes = np.round(map_latitude(city, np.array(latitudes)))
     longitudes = np.round(map_longitude(city, np.array(longitudes)))
 

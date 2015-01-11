@@ -260,10 +260,11 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
             time_graph_start = time.time()
 
             if distance is False:
-                process_graph.make_graph(data = data_frame, first_filename = filepath, 
-                    turn = turn, second_filename = second_filename, **args)
+                process_graph.make_graph(data = data_frame, trips = current_trips,
+                    first_filename = filepath, turn = turn,
+                    second_filename = second_filename, **args)
             else:
-                process_graph.make_accessibility_graph(data = data_frame,
+                process_graph.make_accessibility_graph(data = data_frame, trips = current_trips,
                     first_filename = filepath, turn = turn,
                     second_filename = second_filename, **args)
 
