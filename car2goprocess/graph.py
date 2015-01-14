@@ -202,7 +202,8 @@ def make_graph_object(data, trips, city, turn, show_move_lines = True,
     time_plot_start = time.time()
 
     # plot points for vehicles
-    ax = plot_geopoints(ax, city, positions, symbol)
+    if len(positions) > 0:
+        ax = plot_geopoints(ax, city, positions, symbol)
 
     # add in lines for moving vehicles
     if show_move_lines:
@@ -309,7 +310,8 @@ def make_positions_graph(data_frames, city, image_name, show_speeds = False):
     # read out recorded positions and plot them
     for turn, filepath, data_frame, current_trips in data_frames:
         positions = get_positions_from_data_frame(data_frame, city, turn, filepath, show_speeds)
-        ax = plot_geopoints(ax, city, positions, '.')
+        if len(positions) > 0:
+            ax = plot_geopoints(ax, city, positions, '.')
 
     # render graph to file. this will take a while with more points
     f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)

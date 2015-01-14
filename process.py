@@ -100,7 +100,6 @@ def process_data(json_data, data_time = None, previous_data = {}, \
                     trip_data['ending_fuel'] = data[vin]['fuel']
                     trip_data['fuel_use'] = fuel_use
 
-                data[vin]['trips'].append(trip_data)
                 data[vin]['most_recent_trip'] = trip_data
 
                 if current_trip_duration > 0:
@@ -115,7 +114,7 @@ def process_data(json_data, data_time = None, previous_data = {}, \
         else:
             # 'new' car showing up, initialize it
             data[vin] = {'name': name, 'coords': [lat, lng], 'seen': time,
-                'just_moved': False, 'trips': []}
+                'just_moved': False}
             if 'fuel' in car:
                 data[vin]['fuel'] = car['fuel']
 
@@ -182,10 +181,9 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         timer.append((filepath + ': process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
+        time_organize_start = time.time()        
+
         data_frame = copy.deepcopy(saved_data)
-        # do not store all trips in the data_frames list, as most of them
-        # will be duplicated over and over.
-        # keep just the most recent trips, which other code expects for graphing
         for vin in data_frame:
             if data_frame[vin]['just_moved']:
                 if vin in trips_by_vin:
@@ -193,10 +191,11 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
                 else:
                     trips_by_vin[vin] = [ copy.deepcopy(data_frame[vin]['most_recent_trip']) ]
 
-            data_frame[vin]['trips'] = data_frame[vin]['trips'][-1:]
-
         data_frames.append( (t, filepath, data_frame, current_trips) )
         all_trips.extend(current_trips)
+
+        timer.append((filepath + ': organize data, ms',
+             (time.time()-time_organize_start)*1000.0))
 
         # find next file according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
