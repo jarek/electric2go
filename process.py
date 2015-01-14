@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import time
 
 import cars
-from city import CITIES, KNOWN_CITIES
+from city import KNOWN_CITIES
 from car2goprocess import stats as process_stats, graph as process_graph, dump as process_dump
 
 
@@ -22,6 +22,7 @@ DEBUG = False
 def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
     data = previous_data
     trips = []
+    positions = []
 
     for vin in data.keys():
         # need to reset out status for cases where cars are picked up 
@@ -36,10 +37,11 @@ def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
             name = car['name']
             lat = car['coordinates'][1]
             lng = car['coordinates'][0]
-            time = data_time
         else:
             # no recognized data in this file
             continue
+
+        position_data = {'coords': [lat, lng], 'metadata': {}}
 
         if vin in previous_data:
             if not (data[vin]['coords'][0] == lat and data[vin]['coords'][1] == lng):
@@ -47,7 +49,7 @@ def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
                 prev_coords = data[vin]['coords']
                 prev_seen = data[vin]['seen']
                 data[vin]['coords'] = [lat, lng]
-                data[vin]['seen'] = time
+                data[vin]['seen'] = data_time
                 data[vin]['just_moved'] = True
 
                 if 'fuel' in data[vin]:
@@ -56,7 +58,7 @@ def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
                     fuel_use = prev_fuel - car['fuel']
 
                 current_trip_distance = cars.dist(data[vin]['coords'], prev_coords)
-                current_trip_duration = (time - prev_seen).total_seconds()
+                current_trip_duration = (data_time - prev_seen).total_seconds()
 
                 trip_data = {
                     'vin': vin,
@@ -77,21 +79,24 @@ def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
 
                 if current_trip_duration > 0:
                     data[vin]['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
+                    position_data['metadata']['speed'] = data[vin]['speed']
 
                 trips.append(trip_data)
                 
             else:
                 # car has not moved from last known position. just update time last seen
-                data[vin]['seen'] = time
+                data[vin]['seen'] = data_time
                 data[vin]['just_moved'] = False
         else:
             # 'new' car showing up, initialize it
-            data[vin] = {'name': name, 'coords': [lat, lng], 'seen': time,
+            data[vin] = {'name': name, 'coords': [lat, lng], 'seen': data_time,
                 'just_moved': False}
             if 'fuel' in car:
                 data[vin]['fuel'] = car['fuel']
 
-    return data,trips
+        positions.append(position_data)
+
+    return data, positions, trips
 
 def batch_process(city, starting_time, dry = False, make_iterations = True, \
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '', \
@@ -130,7 +135,10 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     data_frames = []
     all_trips = []
+    all_positions = []
     trips_by_vin = {}
+
+    # TODO: the loop below should now be pretty easy to extract as a function
 
     saved_data = {}
 
@@ -146,7 +154,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         if 'placemarks' in json_data:
             json_data = json_data['placemarks']
 
-        saved_data,current_trips = process_data(json_data, t, saved_data,
+        saved_data, current_positions, current_trips = process_data(json_data, t, saved_data,
             **args)
         print 'total known: %d' % len(saved_data),
         print 'moved: %02d' % len(current_trips)
@@ -154,18 +162,19 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         timer.append((filepath + ': process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
-        time_organize_start = time.time()        
+        time_organize_start = time.time()
 
-        data_frame = copy.deepcopy(saved_data)
-        for vin in data_frame:
-            if data_frame[vin]['just_moved']:
-                if vin in trips_by_vin:
-                    trips_by_vin[vin].append(copy.deepcopy(data_frame[vin]['most_recent_trip']))
-                else:
-                    trips_by_vin[vin] = [ copy.deepcopy(data_frame[vin]['most_recent_trip']) ]
+        for vin in saved_data:
+            if vin not in trips_by_vin:
+                trips_by_vin[vin] = []
 
-        data_frames.append( (t, filepath, data_frame, current_trips) )
+            if saved_data[vin]['just_moved']:
+                trips_by_vin[vin].append(copy.deepcopy(saved_data[vin]['most_recent_trip']))
+
+        data_frames.append((t, filepath, current_positions, current_trips))
+
         all_trips.extend(current_trips)
+        all_positions.extend(current_positions)
 
         timer.append((filepath + ': organize data, ms',
              (time.time()-time_organize_start)*1000.0))
@@ -201,11 +210,16 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
             print
 
+        timer.append((filepath + ': batch_process total load loop, ms',
+             (time.time()-time_process_start)*1000.0))
+
         if DEBUG:
             print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
 
         # reset timer to only keep information about one file at a time
         timer = []
+
+    ending_time = data_frames[-1][0]  # complements starting_time from function params
 
     # set up params for iteratively-named images
     animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
@@ -217,7 +231,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
     # generate images
     if not dry:
         for index, data in enumerate(data_frames):
-            turn, filepath, data_frame, current_trips = data
+            turn, filepath, current_positions, current_trips = data
             
             # reset timer to only keep information about one file at a time
             timer = []
@@ -231,7 +245,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
             time_graph_start = time.time()
 
-            process_graph.make_graph(data = data_frame, trips = current_trips,
+            process_graph.make_graph(positions = current_positions, trips = current_trips,
                 first_filename = filepath, turn = turn,
                 second_filename = second_filename, **args)
 
@@ -288,7 +302,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         # if i wanted to invoke this, just do os.system('avconv...')
 
     if all_positions_image:
-        process_graph.make_positions_graph(data_frames, city, all_positions_image)
+        process_graph.make_positions_graph(city, all_positions, all_positions_image)
 
     if trace:
         print
@@ -296,8 +310,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     if stats:
         print
-        last_t, last_filepath, last_data_frame, last_trips = data_frames[-1]
-        process_stats.print_stats(all_trips, last_data_frame, starting_time, t, time_step)
+        process_stats.print_stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
 
     if dump_trips:
         filename = dump_trips
@@ -305,6 +318,10 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     if dump_vehicle:
         process_dump.dump_vehicle(trips_by_vin, dump_vehicle)
+
+    if DEBUG:
+        print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
+        print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
 
     print
 

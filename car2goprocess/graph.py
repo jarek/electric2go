@@ -41,7 +41,7 @@ def make_graph_axes(city, background = False, log_name = ''):
     global timer
 
     time_plotsetup_start = time.time()
-    
+
     dpi = 80
     # i actually have no idea why this is necessary, but the 
     # figure sizes are wrong otherwise. ???
@@ -134,45 +134,40 @@ def plot_trips(ax, city, trips, colour = '#aaaaaa'):
 
     return plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
-def get_positions_from_data_frame(data, city, turn, log_name, show_speeds = False, **extra_args):
-    # extracts vehicle positions from one frame's worth of data
-    # that came from process.py process_data()
+def process_positions(city, positions, show_speeds=False, log_name=''):
+    """
+    extracts a list of all positions with colour to plot them with
+    from a list of objects with metadata.
+    :returns a list of lists formatted suitably for passing to plot_geopoints()
+    """
 
     global timer
 
-    time_load_start = time.time()
+    time_process_start = time.time()
 
-    # keep track of positions and trips using a simple expanding list.
-    # TODO: maybe look into converting this to np.array or something, though
-    # I expect performance bottlenecks are elsewhere (particularly actually graphing)
+    processed_positions = []
 
-    positions = []
+    for position in positions:
+        if is_latlng_in_bounds(city, position['coords']):
+            if show_speeds and 'speed' in position['metadata']:
+                # find the right speed basket
+                for i in range(len(SPEED_CUTOFFS)):
+                    if position['metadata']['speed'] < SPEED_CUTOFFS[i]:
+                        position['coords'].append(SPEED_COLOURS[i])
+                        break
 
-    # process data list to extract vehicle positions and trips
-    for car in data:
-        if data[car]['seen'] == turn:
-            if is_latlng_in_bounds(city, data[car]['coords']):
-                position = data[car]['coords']
+            if len(position['coords']) == 2:
+                # we're not classifying speeds, or speed not found in loop above
+                position['coords'].append('b')
 
-                if show_speeds and 'speed' in data[car]:
-                    # find the right speed basket
-                    for i in range(len(SPEED_CUTOFFS)):
-                        if data[car]['speed'] < SPEED_CUTOFFS[i]:
-                            position.append(SPEED_COLOURS[i])
-                            break
-                
-                if len(position) == 2:
-                    # we're not classifying speeds, or speed not found in loop above
-                    position.append('b')
+            processed_positions.append(position['coords'])
 
-                positions.append(position)
+    timer.append((log_name + ': process_positions, ms',
+        (time.time()-time_process_start)*1000.0))
 
-    timer.append((log_name + ': get_positions_from_data_frame, ms',
-        (time.time()-time_load_start)*1000.0))
+    return processed_positions
 
-    return positions
-
-def make_graph_object(data, trips, city, turn, show_move_lines = True,
+def make_graph_object(city, processed_positions, trips, turn, show_move_lines = True,
     show_speeds = False, symbol = '.', log_name = '', background = False,
     time_offset = 0,
     **extra_args):
@@ -183,16 +178,13 @@ def make_graph_object(data, trips, city, turn, show_move_lines = True,
 
     global timer
 
-    # load in vehicle positions finished in this time frame
-    positions = get_positions_from_data_frame(data, city, turn, log_name, show_speeds)
-
     f,ax = make_graph_axes(city, background, log_name)
 
     time_plot_start = time.time()
 
     # plot points for vehicles
-    if len(positions) > 0:
-        ax = plot_geopoints(ax, city, positions, symbol)
+    if len(processed_positions) > 0:
+        ax = plot_geopoints(ax, city, processed_positions, symbol)
 
     # add in lines for moving vehicles
     if show_move_lines:
@@ -217,14 +209,14 @@ def make_graph_object(data, trips, city, turn, show_move_lines = True,
     ax.text(coords[2][0], coords[2][1], 
         printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
     ax.text(coords[3][0], coords[3][1], 
-        'available cars: %d' % len(positions), fontsize = fontsizes[3])
+        'available cars: %d' % len(processed_positions), fontsize = fontsizes[3])
 
     timer.append((log_name + ': make_graph plot, ms',
         (time.time()-time_plot_start)*1000.0))
 
     return f,ax
 
-def make_graph(data, trips, city, first_filename, turn, second_filename = False,
+def make_graph(city, positions, trips, first_filename, turn, second_filename = False,
     show_move_lines = True, show_speeds = False, symbol = '.',
     distance = False, background = False, time_offset = 0,
     **extra_args):
@@ -242,6 +234,9 @@ def make_graph(data, trips, city, first_filename, turn, second_filename = False,
     # for logging rather than actually accessing/creating files
     log_name = first_filename
     args['log_name'] = first_filename
+
+    # load in vehicle positions in this time frame
+    args['processed_positions'] = process_positions(city, positions, show_speeds, log_name)
 
     if args['distance']:
         args['background'] = make_accessibility_background(**args)
@@ -280,20 +275,40 @@ def make_graph(data, trips, city, first_filename, turn, second_filename = False,
     timer.append((log_name + ': make_graph total, ms',
         (time.time()-time_total_start)*1000.0))
 
-def make_positions_graph(data_frames, city, image_name, show_speeds = False):
-    # set up axes
-    f,ax = make_graph_axes(city, False, image_name)
+def make_positions_graph(city, positions, image_name):
+    global timer
 
-    # read out recorded positions and plot them
-    for turn, filepath, data_frame, current_trips in data_frames:
-        positions = get_positions_from_data_frame(data_frame, city, turn, filepath, show_speeds)
-        if len(positions) > 0:
-            ax = plot_geopoints(ax, city, positions, '.')
+    log_name = image_name
+
+    time_axes_start = time.time()
+
+    # set up axes
+    f,ax = make_graph_axes(city, False, log_name)
+
+    timer.append((log_name + ': make_positions_graph make axes, ms',
+        (time.time()-time_axes_start)*1000.0))
+
+    time_plot_start = time.time()
+
+    processed = process_positions(city, positions, show_speeds=False, log_name=log_name)
+    if len(processed) > 0:
+        ax = plot_geopoints(ax, city, processed, '.')
+
+    timer.append((log_name + ': make_positions_graph plot, ms',
+        (time.time()-time_plot_start)*1000.0))
+
+    time_save_start = time.time()
 
     # render graph to file. this will take a while with more points
     f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
 
     plt.close(f)
+
+    timer.append((log_name + ': make_positions_graph save figure, ms',
+        (time.time()-time_save_start)*1000.0))
+
+    timer.append((log_name + ': make_positions_graph total, ms',
+        (time.time()-time_axes_start)*1000.0))
 
 def make_accessibility_background(city, log_name, distance, **extra_args):
     args = locals()
@@ -301,8 +316,7 @@ def make_accessibility_background(city, log_name, distance, **extra_args):
 
     global timer
 
-    positions = get_positions_from_data_frame(**args)
-    latitudes, longitudes, _colours = zip(*positions) # _colours not used
+    latitudes, longitudes, _colours = zip(*args['processed_positions'])  # _colours not used
     latitudes = np.round(map_latitude(city, np.array(latitudes)))
     longitudes = np.round(map_longitude(city, np.array(longitudes)))
 

@@ -57,7 +57,7 @@ def trace_vehicle(all_trips_by_vin, provided_vin):
 
     return '\n'.join(lines)
 
-def print_stats(all_trips, last_data_frame, starting_time, t, time_step,
+def print_stats(all_trips, all_known_vins, starting_time, ending_time,
     weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = 5,
     # time cutoff should be 2 for 1 minute step data
     weird_trip_fuel_cutoff = 1):
@@ -154,7 +154,7 @@ def print_stats(all_trips, last_data_frame, starting_time, t, time_step,
             if trip['ending_fuel'] > trip['starting_fuel']:
                 refueled.append(trip)
 
-    for vin in last_data_frame:
+    for vin in all_known_vins:
         if vin not in trip_counts_by_vin:
             trip_counts_by_vin[vin] = 0
 
@@ -163,7 +163,7 @@ def print_stats(all_trips, last_data_frame, starting_time, t, time_step,
     stats['total_trips'] = len(all_trips) - len(weird)
 
     # subtracting time_step below to get last file actually processed
-    time_elapsed = t - timedelta(0, time_step*60) - starting_time
+    time_elapsed = ending_time - starting_time
     time_days = time_elapsed.total_seconds() / (24*60*60)
     print 'time elapsed: %s (%0.3f days)' % (time_elapsed, time_days)
 
