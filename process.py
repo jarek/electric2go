@@ -231,17 +231,12 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
             time_graph_start = time.time()
 
-            if distance is False:
-                process_graph.make_graph(data = data_frame, trips = current_trips,
-                    first_filename = filepath, turn = turn,
-                    second_filename = second_filename, **args)
-            else:
-                process_graph.make_accessibility_graph(data = data_frame, trips = current_trips,
-                    first_filename = filepath, turn = turn,
-                    second_filename = second_filename, **args)
+            process_graph.make_graph(data = data_frame, trips = current_trips,
+                first_filename = filepath, turn = turn,
+                second_filename = second_filename, **args)
 
             time_graph = (time.time() - time_graph_start) * 1000.0
-            timer.append((filepath + ': make_graph or _accessibility_graph, ms', time_graph))
+            timer.append((filepath + ': make_graph, ms', time_graph))
 
             print turn, 'generated graph in %d ms' % time_graph
 

@@ -134,7 +134,7 @@ def plot_trips(ax, city, trips, colour = '#aaaaaa'):
 
     return plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
-def get_positions_from_data_frame(data, city, turn, log_name, show_speeds = False):
+def get_positions_from_data_frame(data, city, turn, log_name, show_speeds = False, **extra_args):
     # extracts vehicle positions from one frame's worth of data
     # that came from process.py process_data()
 
@@ -182,12 +182,8 @@ def make_graph_object(data, trips, city, turn, show_move_lines = True,
     args = locals()
 
     global timer
-    time_init_start = time.time()
 
-    timer.append((log_name + ': make_graph init, ms',
-        (time.time()-time_init_start)*1000.0))
-
-    # load in vehicle positions and trips finished in this time frame
+    # load in vehicle positions finished in this time frame
     positions = get_positions_from_data_frame(data, city, turn, log_name, show_speeds)
 
     f,ax = make_graph_axes(city, background, log_name)
@@ -245,7 +241,7 @@ def make_graph_object(data, trips, city, turn, show_move_lines = True,
 
 def make_graph(data, trips, city, first_filename, turn, second_filename = False,
     show_move_lines = True, show_speeds = False, symbol = '.',
-    background = False, time_offset = 0,
+    distance = False, background = False, time_offset = 0,
     **extra_args):
     """ Creates and saves matplotlib figure for provided data. 
     If second_filename is specified, also copies the saved file to 
@@ -261,6 +257,9 @@ def make_graph(data, trips, city, first_filename, turn, second_filename = False,
     # for logging rather than actually accessing/creating files
     log_name = first_filename
     args['log_name'] = first_filename
+
+    if args['distance']:
+        args['background'] = make_accessibility_background(**args)
 
     f,ax = make_graph_object(**args)
 
@@ -311,24 +310,14 @@ def make_positions_graph(data_frames, city, image_name, show_speeds = False):
 
     plt.close(f)
 
-def make_accessibility_graph(data, trips, city, first_filename, turn, distance,
-    second_filename = False, show_move_lines = True, show_speeds = False,
-    symbol = '.', time_offset = 0, **extra_args):
-
+def make_accessibility_background(city, log_name, distance, **extra_args):
     args = locals()
+    args.update(extra_args)
 
     global timer
 
-    time_total_start = time.time()
-
-    # use a different variable name for clarity where it'll be used only
-    # for logging rather than actually accessing/creating files
-    log_name = first_filename
-    args['log_name'] = first_filename
-
-    # load in latitudes and longitudes of vehicle positions
-    positions = get_positions_from_data_frame(data, city, turn, log_name)
-    latitudes,longitudes,speeds = zip(*positions)
+    positions = get_positions_from_data_frame(**args)
+    latitudes, longitudes, _colours = zip(*positions) # _colours not used
     latitudes = np.round(map_latitude(city, np.array(latitudes)))
     longitudes = np.round(map_longitude(city, np.array(longitudes)))
 
@@ -358,7 +347,7 @@ def make_accessibility_graph(data, trips, city, first_filename, turn, distance,
 
     # find distance radius, in pixels
     pixel_in_m = get_mean_pixel_size(city)
-    radius = np.round(distance / pixel_in_m)
+    radius = np.round(args['distance'] / pixel_in_m)
 
     # generate master availability mask
     master_mask = np.empty(
@@ -372,7 +361,7 @@ def make_accessibility_graph(data, trips, city, first_filename, turn, distance,
     circle_mask = x**2+y**2 <= radius**2
     c_m_shape = circle_mask.shape
 
-    timer.append((log_name + ': make_accessibility_graph masks preprocess, ms',
+    timer.append((log_name + ': make_accessibility_background preprocess, ms',
         (time.time()-time_preprocess_start)*1000.0))
 
     time_iter_start = time.time()
@@ -422,7 +411,7 @@ def make_accessibility_graph(data, trips, city, first_filename, turn, distance,
 
         #end for
 
-    timer.append((log_name + ': make_accessibility_graph mask iter, ms',
+    timer.append((log_name + ': make_accessibility_background mask iter, ms',
         (time.time()-time_iter_start)*1000.0))
 
     time_mask_apply_start = time.time()
@@ -436,18 +425,15 @@ def make_accessibility_graph(data, trips, city, first_filename, turn, distance,
 
     markers[master_mask] = accessible_colour
 
-    timer.append((log_name + ': make_accessibility_graph mask apply, ms',
+    timer.append((log_name + ': make_accessibility_background mask apply, ms',
         (time.time()-time_mask_apply_start)*1000.0))
 
     time_bg_render_start = time.time()
 
-    args['background'] = Image.fromarray(markers, 'RGBA')
+    created_background = Image.fromarray(markers, 'RGBA')
 
-    timer.append((log_name + ': make_accessibility_graph bg render, ms',
+    timer.append((log_name + ': make_accessibility_background bg render, ms',
         (time.time()-time_bg_render_start)*1000.0))
 
-    make_graph(**args)
-
-    timer.append((log_name + ': make_accessibility_graph total, ms',
-        (time.time()-time_total_start)*1000.0))
+    return created_background
 
