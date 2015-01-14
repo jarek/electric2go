@@ -304,7 +304,7 @@ CITIES = {
             ]
         }
     },
-    'ulm': {'electric': 'some'},
+    'ulm': {},
     'vancouver': {'of_interest': True, 'electric': 'some',
         'number_first_address': True,
         'BOUNDS': {
