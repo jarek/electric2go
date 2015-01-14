@@ -150,14 +150,7 @@ def get_positions_from_data_frame(data, city, turn, log_name, show_speeds = Fals
 
     # process data list to extract vehicle positions and trips
     for car in data:
-        if data[car]['seen'] == turn or data[car]['just_moved']:
-            # The second condition is for buses, where positions
-            # are not logged exactly on the turn. 
-            # Since they're pretty much continuously moving except
-            # in really really bad traffic, this is an acceptable
-            # workaround.
-            # Note that cars that aren't moving have just_moved 
-            # set to false in process_data.
+        if data[car]['seen'] == turn:
             if is_latlng_in_bounds(city, data[car]['coords']):
                 position = data[car]['coords']
 

@@ -19,36 +19,16 @@ timer = []
 DEBUG = False
 
 
-def process_data(json_data, data_time = None, previous_data = {}, \
-    show_speeds = False, hold_for = 0, **extra_args):
-
-    args = locals()
-    
+def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
     data = previous_data
     trips = []
 
     for vin in data.keys():
-        # if requested, save old state first, for up to HOLD_ON copies
-        if hold_for > 0 and vin.find('_') < 0:
-            # first move cache items back. 1 becomes 2, 0 becomes 1
-            for i in reversed(range(1, hold_for)):
-                # for hold_for=3 will do 2,1
-                curr = str(i) + '_' + vin # current key
-                prev = str(i-1) + '_' + vin # previous key
-
-                if prev in data:
-                    data[curr] = copy.deepcopy(data[prev])
-            
-            # then 0 comes straight from the vehicle being cached
-            data['0_' + vin] = copy.deepcopy(data[vin])
-    
         # need to reset out status for cases where cars are picked up 
         # (and therefore disappear from json_data) before two cycles 
         # of process_data. otherwise their just_moved is never updated.
         # if necessary, just_moved will be set to true later
-        if vin.find('_') < 0:
-            # except exclude 'held' points from just_moved clearing
-            data[vin]['just_moved'] = False
+        data[vin]['just_moved'] = False
 
     for car in json_data:
         if 'vin' in car:
@@ -57,13 +37,6 @@ def process_data(json_data, data_time = None, previous_data = {}, \
             lat = car['coordinates'][1]
             lng = car['coordinates'][0]
             time = data_time
-        elif 'VehicleNo' in car:
-            vin = car['VehicleNo']
-            name = car['VehicleNo']
-            lat = car['Latitude']
-            lng = car['Longitude']
-            time = datetime.strptime(car['RecordedTime'], \
-                '%I:%M:%S %p')
         else:
             # no recognized data in this file
             continue
@@ -123,7 +96,7 @@ def process_data(json_data, data_time = None, previous_data = {}, \
 def batch_process(city, starting_time, dry = False, make_iterations = True, \
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '', \
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
-    show_speeds = False, symbol = '.', buses = False, hold_for = 0, \
+    show_speeds = False, symbol = '.', \
     distance = False, time_offset = 0, web = False, stats = False, \
     trace = False, dump_trips = False, dump_vehicle = False, \
     all_positions_image = False, \
@@ -384,15 +357,9 @@ def process_commandline():
             cars.DATA_COLLECTION_INTERVAL_MINUTES)
     parser.add_argument('-speeds', '--show_speeds', action='store_true', 
         help='indicate vehicles\' speeds in addition to locations') 
-    parser.add_argument('-hold', '--hold-for', type=int, default=0,
-        help='keep drawn points on the map for HOLD_FOR rounds after \
-            they would have disappeared')
     parser.add_argument('-symbol', type=str, default='.',
         help='matplotlib symbol to indicate vehicles on the graph \
             (default \'.\', larger \'o\')')
-    parser.add_argument('-buses', action='store_true', 
-        help='presets for graphing Translink bus movements, \
-            equivalent to -speeds -hold=3 -symbol o')
     parser.add_argument('-debug', action='store_true',
         help='print extra debug and timing messages')
 
@@ -428,11 +395,6 @@ def process_commandline():
 
     params['city'] = city
     params['file_dir'] = file_dir
-
-    if args.buses is True:
-        params['symbol'] = 'o'
-        params['hold_for'] = 3
-        params['show_speeds'] = True
 
     if args.web is True:
         params['make_iterations'] = True
