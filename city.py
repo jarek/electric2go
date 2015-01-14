@@ -70,34 +70,36 @@ CITIES = {
     },
     'calgary': {'of_interest': True, 'number_first_address': True,
         'BOUNDS': {
-            'NORTH': 51.088425,
-            'SOUTH': 50.984936,
-            'EAST': -113.997314,
-            'WEST': -114.16401
+            'NORTH': 51.11526,
+            'SOUTH': 50.985497,
+            'EAST': -114.0008,
+            'WEST': -114.226364
         },
         'MAP_LIMITS': {
-            'NORTH': 51.088425,
-            'SOUTH': 50.984936,
-            'EAST': -113.997314,
-            'WEST': -114.16401
+            # E&W values are different than home area bounds - 16:9 aspect ratio
+            # map scale is 75945 for 1920x1080
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-114.297025989,50.985497,-113.930138011,51.11526&scale=75945&format=png
+            'NORTH': 51.11526,
+            'SOUTH': 50.985497,
+            'EAST': -113.930138011,
+            'WEST': -114.297025989
         },
         'DEGREE_LENGTHS': {
-            # for latitude 51.04
-            'LENGTH_OF_LATITUDE': 111249.00,
-            'LENGTH_OF_LONGITUDE': 70137.28
+            # for latitude 51.05
+            'LENGTH_OF_LATITUDE': 111249.20,
+            'LENGTH_OF_LONGITUDE': 70122.18
         },
         'MAP_SIZES': {
-            # 978/991 / (51.088425-50.984936)/(114.16401-113.997314) ~= 111249.00 / 70137.28
-            # 0.986881937 / 0.620824735 = 1.589630505 ~= 1.586160741
-            'MAP_X': 991,
-            'MAP_Y': 978
+            'MAP_X': 1920,
+            'MAP_Y': 1080
         },
         'LABELS': {
-            'fontsize': 15,
+            'fontsizes': [35, 22, 30, 18],
             'lines': [
-                (991 * 0.75, 978 - 120),
-                (991 * 0.75, 978 - 145),
-                (991 * 0.75, 978 - 170)
+                (50, 1080 - 465),
+                (50, 1080 - 503),
+                (50, 1080 - 542),
+                (50, 1080 - 580)
             ]
         }
     },
@@ -279,10 +281,13 @@ CITIES = {
             'WEST': -79.50168
         },
         'MAP_LIMITS': {
+            # values are different than home area bounds - 16:9 aspect ratio
+            # map scale is 1:51614 for 1920x1080
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-79.513884804,43.625893,-79.264595196,43.72736&scale=51614&format=png
             'NORTH': 43.72736,
             'SOUTH': 43.625893,
-            'EAST': -79.2768,
-            'WEST': -79.50168
+            'EAST': -79.264595196,
+            'WEST': -79.513884804
         },
         'DEGREE_LENGTHS': {
             # for latitude 43.7
@@ -290,17 +295,16 @@ CITIES = {
             'LENGTH_OF_LONGITUDE': 80609.20
         },
         'MAP_SIZES': {
-            # 615/991 / (43.72736-43.625893)/(79.50168-79.2768) ~= 111106.36 / 80609.20
-            # 0.620585267 / 0.451205087 = 1.375395103 ~= 1.37833349
-            'MAP_X' : 991,
-            'MAP_Y' : 615
+            'MAP_X' : 1920,
+            'MAP_Y' : 1080
         },
         'LABELS': {
-            'fontsize': 15,
+            'fontsizes': [35, 22, 30, 18],
             'lines': [
-                (991 * 0.75, 160),
-                (991 * 0.75, 130),
-                (991 * 0.75, 100)
+                (200, 1080 - 55),
+                (200, 1080 - 93),
+                (200, 1080 - 132),
+                (200, 1080 - 170)
             ]
         }
     },
@@ -331,6 +335,10 @@ CITIES = {
             # for latitude 49.28
             'LENGTH_OF_LATITUDE': 111215.12,
             'LENGTH_OF_LONGITUDE': 72760.72
+        },
+        'MAP_SIZES': {
+            'MAP_X' : 1920,
+            'MAP_Y' : 1080
         },
         'LABELS': {
             'fontsizes': [35, 22, 30, 18, 18],
@@ -411,19 +419,39 @@ def get_operation_areas(city):
 
     return json.loads(data_text).get('placemarks')
 
+def print_operation_areas(city):
+    areas = get_operation_areas(city)
+
+    for area in areas:
+        print '%s: %s zone' % (area['name'], area['zoneType'])
+        print 'border points: %d, bounds: %s' % (len(area['coordinates']), get_max_latlng(area))
+
+def get_max_latlng(area):
+    latitudes = []
+    longitudes = []
+
+    # collect lats and longs
+    coords = area['coordinates']
+    for i in range(0, len(coords), 3):
+        longitudes.append(coords[i])
+        latitudes.append(coords[i+1])
+        # coords[i+2] is always 0 - elevation placeholder?
+
+    return max(latitudes), min(latitudes), max(longitudes), min(longitudes)
+
 def get_latlng_extent(city):
     areas = get_operation_areas(city)
 
     latitudes = []
     longitudes = []
 
-    # collect lats and longs across all 'operation areas'
+    # collect max lats and longs across all 'operation areas'
     for area in areas:
-        coords = area['coordinates']
-        for i in range(0, len(coords), 3):
-            latitudes.append(coords[i])
-            longitudes.append(coords[i+1])
-            # coords[i+2] is always 0 - elevation placeholder?
+        max_lat, min_lat, max_lng, min_lng = get_max_latlng(area)
+        latitudes.append(max_lat)
+        latitudes.append(min_lat)
+        longitudes.append(max_lng)
+        longitudes.append(min_lng)
 
     # return max/mins for all operation areas
     return max(latitudes), min(latitudes), max(longitudes), min(longitudes)

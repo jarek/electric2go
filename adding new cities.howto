@@ -5,7 +5,7 @@ jarek@x1:~/projects/electric2go$ python
 >>> city.get_latlng_extent('milano')
 (9.27821, 9.066236, 45.535522, 45.398983)
 
-(some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - you might need to manually code to exclude them, adapting code in city.py)
+(some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - city.print_operation_areas() can help you find them)
 
 paste these into city.py BOUNDS dict for the city
 

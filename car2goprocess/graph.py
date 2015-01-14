@@ -201,38 +201,23 @@ def make_graph_object(data, trips, city, turn, show_move_lines = True,
     # add labels
     city_data = CITIES[city]
     printed_time = turn + timedelta(0, time_offset*3600)
-    if 'fontsizes' in city_data['LABELS']:
-        # gradual transition to new labelling format - only for cities 
-        # that have fontsizes array defined
 
-        coords = city_data['LABELS']['lines']
-        fontsizes = city_data['LABELS']['fontsizes']
+    coords = city_data['LABELS']['lines']
+    fontsizes = city_data['LABELS']['fontsizes']
 
-        ax.text(coords[0][0], coords[0][1], 
-            city_data['display'], fontsize = fontsizes[0])
-        ax.text(coords[1][0], coords[1][1],
-            printed_time.strftime('%B %d, %Y').replace(' 0',' '),
-            fontsize = fontsizes[1])
-        # the .replace gets rid of leading zeros in day numbers.
-        # it's a bit of a hack but it works with no false positives
-        # until we get a year beginning with a zero, which shouldn't be 
-        # a problem for a while
-        ax.text(coords[2][0], coords[2][1], 
-            printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
-        ax.text(coords[3][0], coords[3][1], 
-            'available cars: %d' % len(positions), fontsize = fontsizes[3])
-        # TODO: maybe have an option to include this
-        #ax.text(coords[4][0], coords[4][1], 'moved this round: %d' % 
-        #    len(trips), fontsize = fontsizes[4])
-    else:
-        fontsize = city_data['LABELS']['fontsize']
-        ax.text(city_data['LABELS']['lines'][0][0], city_data['LABELS']['lines'][0][1], \
-            city_data['LABELS']['display'] + ' ' + \
-            printed_time.strftime('%Y-%m-%d %H:%M'), fontsize=fontsize)
-        ax.text(city_data['LABELS']['lines'][1][0], city_data['LABELS']['lines'][1][1], \
-            'available cars: %d' % len(positions), fontsize=fontsize)
-        ax.text(city_data['LABELS']['lines'][2][0], city_data['LABELS']['lines'][2][1], \
-            'moved this round: %d' % len(trips), fontsize=fontsize)
+    ax.text(coords[0][0], coords[0][1], 
+        city_data['display'], fontsize = fontsizes[0])
+    ax.text(coords[1][0], coords[1][1],
+        printed_time.strftime('%B %d, %Y').replace(' 0',' '),
+        fontsize = fontsizes[1])
+    # the .replace gets rid of leading zeros in day numbers.
+    # it's a bit of a hack but it works with no false positives
+    # until we get a year beginning with a zero, which shouldn't be 
+    # a problem for a while
+    ax.text(coords[2][0], coords[2][1], 
+        printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
+    ax.text(coords[3][0], coords[3][1], 
+        'available cars: %d' % len(positions), fontsize = fontsizes[3])
 
     timer.append((log_name + ': make_graph plot, ms',
         (time.time()-time_plot_start)*1000.0))
