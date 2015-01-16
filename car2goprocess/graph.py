@@ -167,190 +167,150 @@ def process_positions(city, positions, show_speeds=False, log_name=''):
 
     return processed_positions
 
-def make_graph_object(city, processed_positions, trips, turn, show_move_lines = True,
-    show_speeds = False, symbol = '.', log_name = '', background = False,
-    time_offset = 0,
-    **extra_args):
-    """ Creates and returns the matplotlib figure for the provided data.
-    The param `log_name` is used for logging only. """
-
-    args = locals()
+def graph_wrapper(city, plot_function, image_name, background = False):
+    """
+    Handles creating the figure, saving it as image, and closing the figure.
+    :param plot_function: function accepting f, ax params to actually draw on the figure
+    :param image_name: image will be saved with this name
+    :param background: background for the figure (accessibility snapshot, etc)
+    :return: none
+    """
 
     global timer
 
+    log_name = image_name
+    if log_name.endswith('.png'):
+        log_name = log_name[:-4]
+
+    # set up axes
     f,ax = make_graph_axes(city, background, log_name)
 
-    time_plot_start = time.time()
-
-    # plot points for vehicles
-    if len(processed_positions) > 0:
-        ax = plot_geopoints(ax, city, processed_positions, symbol)
-
-    # add in lines for moving vehicles
-    if show_move_lines:
-        ax = plot_trips(ax, city, trips)
-
-    # add labels
-    city_data = CITIES[city]
-    printed_time = turn + timedelta(0, time_offset*3600)
-
-    coords = city_data['LABELS']['lines']
-    fontsizes = city_data['LABELS']['fontsizes']
-
-    ax.text(coords[0][0], coords[0][1], 
-        city_data['display'], fontsize = fontsizes[0])
-    ax.text(coords[1][0], coords[1][1],
-        printed_time.strftime('%B %d, %Y').replace(' 0',' '),
-        fontsize = fontsizes[1])
-    # the .replace gets rid of leading zeros in day numbers.
-    # it's a bit of a hack but it works with no false positives
-    # until we get a year beginning with a zero, which shouldn't be 
-    # a problem for a while
-    ax.text(coords[2][0], coords[2][1], 
-        printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
-    ax.text(coords[3][0], coords[3][1], 
-        'available cars: %d' % len(processed_positions), fontsize = fontsizes[3])
-
-    timer.append((log_name + ': make_graph plot, ms',
-        (time.time()-time_plot_start)*1000.0))
-
-    return f,ax
-
-def make_graph(city, positions, trips, first_filename, turn, second_filename = False,
-    show_move_lines = True, show_speeds = False, symbol = '.',
-    distance = False, background = False, time_offset = 0,
-    **extra_args):
-    """ Creates and saves matplotlib figure for provided data. 
-    If second_filename is specified, also copies the saved file to 
-    second_filename. """
-
-    args = locals()
-
-    global timer
-
-    time_total_start = time.time()
-
-    # use a different variable name for clarity where it'll be used only
-    # for logging rather than actually accessing/creating files
-    log_name = first_filename
-    args['log_name'] = first_filename
-
-    # load in vehicle positions in this time frame
-    args['processed_positions'] = process_positions(city, positions, show_speeds, log_name)
-
-    if args['distance']:
-        args['background'] = make_accessibility_background(**args)
-
-    f,ax = make_graph_object(**args)
+    # pass axes back to function to actually do the plotting
+    plot_function(f, ax)
 
     time_save_start = time.time()
 
+    # render graph to file
     # saving as .png takes about 130-150 ms
     # saving as .ps or .eps takes about 30-50 ms
     # .svg is about 100 ms - and preserves transparency
     # .pdf is about 80 ms
     # svg and e/ps would have to be rendered before being animated, though
     # possibly making it a moot point
-    image_first_filename = first_filename + '.png'
-    f.savefig(image_first_filename, bbox_inches='tight', pad_inches=0, 
-        dpi=80, transparent=True)
-
-    # if requested, also save with iterative filenames for ease of animation
-    if not second_filename == False:
-        # copying the file rather than saving again is a lot faster
-        shutil.copy2(image_first_filename, second_filename)
+    f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
 
     # close the plot to free the memory. memory is never freed otherwise until
     # script is killed or exits.
     # this line causes a matplotlib backend RuntimeError in a close_event()
     # function ("wrapped C/C++ object of %S has been deleted") in every second
-    # iteration, but this appears to be async from main thread and 
-    # doesn't appear to influence the correctness of output, 
+    # iteration, but this appears to be async from main thread and
+    # doesn't appear to influence the correctness of output,
     # so I'll leave it as is for the time being
     plt.close(f)
 
-    timer.append((log_name + ': make_graph save, ms',
+    timer.append((log_name + ': graph_wrapper save figure, ms',
         (time.time()-time_save_start)*1000.0))
 
-    timer.append((log_name + ': make_graph total, ms',
-        (time.time()-time_total_start)*1000.0))
+def make_graph(city, positions, trips, first_filename, turn, second_filename = False,
+    show_move_lines = True, show_speeds = False, symbol = '.',
+    distance = False, time_offset = 0,
+    **extra_args):
+    """ Creates and saves matplotlib figure for provided positions and trips.
+    If second_filename is specified, also copies the saved file to 
+    second_filename. """
+
+    global timer
+
+    # use a different variable name for clarity where it'll be used only
+    # for logging rather than actually accessing/creating files
+    log_name = first_filename
+
+    # load in vehicle positions in this time frame
+    processed_positions = process_positions(city, positions, show_speeds, log_name)
+
+    if distance:
+        graph_background = make_accessibility_background(city, processed_positions, distance, log_name)
+    else:
+        graph_background = False
+
+    # define what to add to the graph
+    def plotter(f, ax):
+        time_plot_start = time.time()
+
+        # plot points for vehicles
+        if len(processed_positions) > 0:
+            ax = plot_geopoints(ax, city, processed_positions, symbol)
+
+        # add in lines for moving vehicles
+        if show_move_lines and len(trips) > 0:
+            ax = plot_trips(ax, city, trips)
+
+        # add labels
+        city_data = CITIES[city]
+        printed_time = turn + timedelta(0, time_offset*3600)
+
+        coords = city_data['LABELS']['lines']
+        fontsizes = city_data['LABELS']['fontsizes']
+
+        ax.text(coords[0][0], coords[0][1],
+            city_data['display'], fontsize = fontsizes[0])
+        ax.text(coords[1][0], coords[1][1],
+            printed_time.strftime('%B %d, %Y').replace(' 0',' '),
+            fontsize = fontsizes[1])
+        # the .replace gets rid of leading zeros in day numbers.
+        # it's a bit of a hack but it works with no false positives
+        # until we get a year beginning with a zero, which shouldn't be
+        # a problem for a while
+        ax.text(coords[2][0], coords[2][1],
+            printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
+        ax.text(coords[3][0], coords[3][1],
+            'available cars: %d' % len(processed_positions), fontsize = fontsizes[3])
+
+        timer.append((log_name + ': make_graph plot and label, ms',
+            (time.time()-time_plot_start)*1000.0))
+
+    # create and save plot
+    image_first_filename = first_filename + '.png'
+    graph_wrapper(city, plotter, image_first_filename, graph_background)
+
+    # if requested, also copy with an iterative filename for ease of animation
+    # copying the file rather than saving again is a lot faster
+    if second_filename:
+        shutil.copy2(image_first_filename, second_filename)
 
 def make_positions_graph(city, positions, image_name):
     global timer
 
-    log_name = image_name
+    time_positions_graph_start = time.time()
 
-    time_axes_start = time.time()
+    def plotter(f, ax):
+        processed = process_positions(city, positions, show_speeds=False, log_name=image_name)
+        if len(processed) > 0:
+            plot_geopoints(ax, city, processed, '.')
 
-    # set up axes
-    f,ax = make_graph_axes(city, False, log_name)
+    graph_wrapper(city, plotter, image_name, background=False)
 
-    timer.append((log_name + ': make_positions_graph make axes, ms',
-        (time.time()-time_axes_start)*1000.0))
-
-    time_plot_start = time.time()
-
-    processed = process_positions(city, positions, show_speeds=False, log_name=log_name)
-    if len(processed) > 0:
-        ax = plot_geopoints(ax, city, processed, '.')
-
-    timer.append((log_name + ': make_positions_graph plot, ms',
-        (time.time()-time_plot_start)*1000.0))
-
-    time_save_start = time.time()
-
-    # render graph to file. this will take a while with more points
-    f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
-
-    plt.close(f)
-
-    timer.append((log_name + ': make_positions_graph save figure, ms',
-        (time.time()-time_save_start)*1000.0))
-
-    timer.append((log_name + ': make_positions_graph total, ms',
-        (time.time()-time_axes_start)*1000.0))
+    timer.append((image_name + ': make_positions_graph total, ms',
+        (time.time()-time_positions_graph_start)*1000.0))
 
 def make_trips_graph(city, trips, image_name):
     global timer
 
-    log_name = image_name
+    time_trips_graph_start = time.time()
 
-    time_axes_start = time.time()
+    def plotter(f, ax):
+        if len(trips) > 0:
+            plot_trips(ax, city, trips)
 
-    # set up axes
-    f,ax = make_graph_axes(city, False, log_name)
+    graph_wrapper(city, plotter, image_name, background=False)
 
-    timer.append((log_name + ': make_trips_graph make axes, ms',
-        (time.time()-time_axes_start)*1000.0))
+    timer.append((image_name + ': make_trips_graph total, ms',
+        (time.time()-time_trips_graph_start)*1000.0))
 
-    time_plot_start = time.time()
-
-    if len(trips) > 0:
-        ax = plot_trips(ax, city, trips)
-
-    timer.append((log_name + ': make_trips_graph plot, ms',
-        (time.time()-time_plot_start)*1000.0))
-
-    time_save_start = time.time()
-
-    # render graph to file. this will take a while with more points
-    f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
-
-    plt.close(f)
-
-    timer.append((log_name + ': make_trips_graph save figure, ms',
-        (time.time()-time_save_start)*1000.0))
-
-    timer.append((log_name + ': make_trips_graph total, ms',
-        (time.time()-time_axes_start)*1000.0))
-
-def make_accessibility_background(city, log_name, distance, **extra_args):
-    args = locals()
-    args.update(extra_args)
-
+def make_accessibility_background(city, processed_positions, distance, log_name):
     global timer
 
-    latitudes, longitudes, _colours = zip(*args['processed_positions'])  # _colours not used
+    latitudes, longitudes, _colours = zip(*processed_positions)  # _colours not used
     latitudes = np.round(map_latitude(city, np.array(latitudes)))
     longitudes = np.round(map_longitude(city, np.array(longitudes)))
 
@@ -380,7 +340,7 @@ def make_accessibility_background(city, log_name, distance, **extra_args):
 
     # find distance radius, in pixels
     pixel_in_m = get_mean_pixel_size(city)
-    radius = np.round(args['distance'] / pixel_in_m)
+    radius = np.round(distance / pixel_in_m)
 
     # generate master availability mask
     master_mask = np.empty(
@@ -469,4 +429,3 @@ def make_accessibility_background(city, log_name, distance, **extra_args):
         (time.time()-time_bg_render_start)*1000.0))
 
     return created_background
-
