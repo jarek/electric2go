@@ -19,7 +19,7 @@ timer = []
 DEBUG = False
 
 
-def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
+def process_data(json_data, data_time, previous_data):
     data = previous_data
     trips = []
     positions = []
@@ -98,23 +98,13 @@ def process_data(json_data, data_time = None, previous_data = {}, **extra_args):
 
     return data, positions, trips
 
-def batch_process(city, starting_time, dry = False, make_iterations = True, \
-    show_move_lines = True, max_files = False, max_skip = 0, file_dir = '', \
-    time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES, \
-    show_speeds = False, symbol = '.', \
-    distance = False, time_offset = 0, web = False, stats = False, \
-    trace = False, dump_trips = False, dump_vehicle = False, \
-    all_positions_image = False, \
-    **extra_args):
+def get_filepath(city, t, file_dir):
+    filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
 
-    args = locals()
+    return os.path.join(file_dir, filename)
 
+def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_skip):
     global timer, DEBUG
-
-    def get_filepath(city, t, file_dir):
-        filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
-
-        return os.path.join(file_dir, filename)
 
     def load_file(filepath):
         if not os.path.exists(filepath):
@@ -138,12 +128,9 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
     all_positions = []
     trips_by_vin = {}
 
-    # TODO: the loop below should now be pretty easy to extract as a function
-
     saved_data = {}
 
     json_data = load_file(filepath)
-
     # loop as long as new files exist
     # if we have a limit specified, loop only until limit is reached
     while json_data != False and (max_files is False or i <= max_files):
@@ -154,8 +141,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         if 'placemarks' in json_data:
             json_data = json_data['placemarks']
 
-        saved_data, current_positions, current_trips = process_data(json_data, t, saved_data,
-            **args)
+        saved_data, current_positions, current_trips = process_data(json_data, t, saved_data)
         print 'total known: %d' % len(saved_data),
         print 'moved: %02d' % len(current_trips)
 
@@ -176,7 +162,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         all_trips.extend(current_trips)
         all_positions.extend(current_positions)
 
-        timer.append((filepath + ': organize data, ms',
+        timer.append((filepath + ': batch_load_data organize data, ms',
              (time.time()-time_organize_start)*1000.0))
 
         # find next file according to provided time_step (or default,
@@ -210,7 +196,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
             print
 
-        timer.append((filepath + ': batch_process total load loop, ms',
+        timer.append((filepath + ': batch_load_data total load loop, ms',
              (time.time()-time_process_start)*1000.0))
 
         if DEBUG:
@@ -221,10 +207,32 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
     ending_time = data_frames[-1][0]  # complements starting_time from function params
 
+    return data_frames, all_positions, all_trips, trips_by_vin, ending_time, i
+
+def batch_process(city, starting_time, dry = False, make_iterations = True,
+    show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
+    time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES,
+    show_speeds = False, symbol = '.',
+    distance = False, time_offset = 0, web = False, stats = False,
+    trace = False, dump_trips = False, dump_vehicle = False,
+    all_positions_image = False,
+    **extra_args):
+
+    args = locals()
+
+    global timer, DEBUG
+
+    # read in all data
+    (data_frames, all_positions, all_trips,
+     trips_by_vin, ending_time, total_frames) = batch_load_data(city, file_dir,
+                                                                starting_time, time_step,
+                                                                max_files, max_skip)
+
     # set up params for iteratively-named images
+    starting_file_name = get_filepath(city, starting_time, file_dir)
     animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
-        '-' + os.path.basename(filepath)
-    animation_files_prefix = os.path.join(os.path.dirname(filepath), 
+        '-' + os.path.basename(starting_file_name)
+    animation_files_prefix = os.path.join(os.path.dirname(starting_file_name),
         animation_files_filename)
     iter_filenames = []
 
@@ -245,6 +253,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
 
             time_graph_start = time.time()
 
+            # TODO: setting symbol doesn't seem to work
             process_graph.make_graph(positions = current_positions, trips = current_trips,
                 first_filename = filepath, turn = turn,
                 second_filename = second_filename, **args)
@@ -291,7 +300,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True, \
         mp4_path = animation_files_prefix + '.mp4'
 
         framerate = 8
-        frames = i - 1
+        frames = total_frames - 1
         if time_step < 5:
             framerate = 30
             # for framerates over 25, avconv assumes conversion from 25 fps
