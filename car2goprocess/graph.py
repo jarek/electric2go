@@ -310,6 +310,40 @@ def make_positions_graph(city, positions, image_name):
     timer.append((log_name + ': make_positions_graph total, ms',
         (time.time()-time_axes_start)*1000.0))
 
+def make_trips_graph(city, trips, image_name):
+    global timer
+
+    log_name = image_name
+
+    time_axes_start = time.time()
+
+    # set up axes
+    f,ax = make_graph_axes(city, False, log_name)
+
+    timer.append((log_name + ': make_trips_graph make axes, ms',
+        (time.time()-time_axes_start)*1000.0))
+
+    time_plot_start = time.time()
+
+    if len(trips) > 0:
+        ax = plot_trips(ax, city, trips)
+
+    timer.append((log_name + ': make_trips_graph plot, ms',
+        (time.time()-time_plot_start)*1000.0))
+
+    time_save_start = time.time()
+
+    # render graph to file. this will take a while with more points
+    f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
+
+    plt.close(f)
+
+    timer.append((log_name + ': make_trips_graph save figure, ms',
+        (time.time()-time_save_start)*1000.0))
+
+    timer.append((log_name + ': make_trips_graph total, ms',
+        (time.time()-time_axes_start)*1000.0))
+
 def make_accessibility_background(city, log_name, distance, **extra_args):
     args = locals()
     args.update(extra_args)
