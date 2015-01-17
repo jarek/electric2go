@@ -254,15 +254,12 @@ def make_graph(city, positions, trips, first_filename, turn, second_filename = F
 
         ax.text(coords[0][0], coords[0][1],
             city_data['display'], fontsize = fontsizes[0])
+        # prints something like "December 10, 2014"
         ax.text(coords[1][0], coords[1][1],
-            printed_time.strftime('%B %d, %Y').replace(' 0',' '),
-            fontsize = fontsizes[1])
-        # the .replace gets rid of leading zeros in day numbers.
-        # it's a bit of a hack but it works with no false positives
-        # until we get a year beginning with a zero, which shouldn't be
-        # a problem for a while
+            '{d:%B} {d.day}, {d.year}'.format(d=printed_time), fontsize = fontsizes[1])
+        # prints something like "Wednesday, 04:02"
         ax.text(coords[2][0], coords[2][1],
-            printed_time.strftime('%A, %H:%M'), fontsize = fontsizes[2])
+            '{d:%A}, {d:%H}:{d:%M}'.format(d=printed_time), fontsize = fontsizes[2])
         ax.text(coords[3][0], coords[3][1],
             'available cars: %d' % len(processed_positions), fontsize = fontsizes[3])
 
