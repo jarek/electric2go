@@ -254,6 +254,8 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
             time_graph_start = time.time()
 
             # TODO: setting symbol doesn't seem to work
+            # NOTE: args used to give make_graph city, show_move_lines, show_speeds, symbol, distance, time_offset
+            # TODO: at least show_move_lines can be avoided by just giving trips = []
             process_graph.make_graph(positions = current_positions, trips = current_trips,
                 first_filename = filepath, turn = turn,
                 second_filename = second_filename, **args)
@@ -326,10 +328,10 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
 
     if dump_trips:
         filename = dump_trips
-        process_dump.dump_trips(all_trips, filename)
+        process_dump.dump_trips(all_trips, filename, time_offset)
 
     if dump_vehicle:
-        process_dump.dump_vehicle(trips_by_vin, dump_vehicle)
+        process_dump.dump_vehicle(trips_by_vin, dump_vehicle, time_offset)
 
     if DEBUG:
         print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
