@@ -211,10 +211,8 @@ def graph_wrapper(city, plot_function, image_name, background = False):
     timer.append((log_name + ': graph_wrapper save figure, ms',
         (time.time()-time_save_start)*1000.0))
 
-def make_graph(city, positions, trips, first_filename, turn, second_filename = False,
-    show_move_lines = True, show_speeds = False, symbol = '.',
-    distance = False, time_offset = 0,
-    **extra_args):
+def make_graph(city, positions, trips, image_filename, copy_filename, turn,
+               show_speeds, highlight_distance, symbol, tz_offset):
     """ Creates and saves matplotlib figure for provided positions and trips.
     If second_filename is specified, also copies the saved file to 
     second_filename. """
@@ -223,13 +221,13 @@ def make_graph(city, positions, trips, first_filename, turn, second_filename = F
 
     # use a different variable name for clarity where it'll be used only
     # for logging rather than actually accessing/creating files
-    log_name = first_filename
+    log_name = image_filename
 
     # load in vehicle positions in this time frame
     processed_positions = process_positions(city, positions, show_speeds, log_name)
 
-    if distance:
-        graph_background = make_accessibility_background(city, processed_positions, distance, log_name)
+    if highlight_distance:
+        graph_background = make_accessibility_background(city, processed_positions, highlight_distance, log_name)
     else:
         graph_background = False
 
@@ -242,12 +240,12 @@ def make_graph(city, positions, trips, first_filename, turn, second_filename = F
             ax = plot_geopoints(ax, city, processed_positions, symbol)
 
         # add in lines for moving vehicles
-        if show_move_lines and len(trips) > 0:
+        if len(trips) > 0:
             ax = plot_trips(ax, city, trips)
 
         # add labels
         city_data = CITIES[city]
-        printed_time = turn + timedelta(0, time_offset*3600)
+        printed_time = turn + timedelta(0, tz_offset*3600)
 
         coords = city_data['LABELS']['lines']
         fontsizes = city_data['LABELS']['fontsizes']
@@ -267,13 +265,12 @@ def make_graph(city, positions, trips, first_filename, turn, second_filename = F
             (time.time()-time_plot_start)*1000.0))
 
     # create and save plot
-    image_first_filename = first_filename + '.png'
-    graph_wrapper(city, plotter, image_first_filename, graph_background)
+    graph_wrapper(city, plotter, image_filename, graph_background)
 
     # if requested, also copy with an iterative filename for ease of animation
     # copying the file rather than saving again is a lot faster
-    if second_filename:
-        shutil.copy2(image_first_filename, second_filename)
+    if copy_filename:
+        shutil.copy2(image_filename, copy_filename)
 
 def make_positions_graph(city, positions, image_name):
     global timer

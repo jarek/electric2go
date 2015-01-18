@@ -213,12 +213,10 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES,
     show_speeds = False, symbol = '.',
-    distance = False, time_offset = 0, web = False, stats = False,
+    distance = False, tz_offset = 0, web = False, stats = False,
     trace = False, dump_trips = False, dump_vehicle = False,
     all_positions_image = False, all_trips_image = False,
     **extra_args):
-
-    args = locals()
 
     global timer, DEBUG
 
@@ -239,26 +237,28 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
     # generate images
     if not dry:
         for index, data in enumerate(data_frames):
-            turn, filepath, current_positions, current_trips = data
-            
             # reset timer to only keep information about one file at a time
             timer = []
             process_graph.timer = []
 
-            second_filename = False
+            turn, filepath, current_positions, current_trips = data
+
+            if not show_move_lines:
+                current_trips = []
+
+            image_filename = filepath + '.png'
+            copy_filename = False
             if make_iterations:
-                second_filename = animation_files_prefix + '_' + \
+                copy_filename = animation_files_prefix + '_' + \
                     str(index).rjust(3, '0') + '.png'
-                iter_filenames.append(second_filename)
+                iter_filenames.append(copy_filename)
 
             time_graph_start = time.time()
 
             # TODO: setting symbol doesn't seem to work
-            # NOTE: args used to give make_graph city, show_move_lines, show_speeds, symbol, distance, time_offset
-            # TODO: at least show_move_lines can be avoided by just giving trips = []
-            process_graph.make_graph(positions = current_positions, trips = current_trips,
-                first_filename = filepath, turn = turn,
-                second_filename = second_filename, **args)
+            process_graph.make_graph(city, current_positions, current_trips,
+                                     image_filename, copy_filename, turn,
+                                     show_speeds, distance, symbol, tz_offset)
 
             time_graph = (time.time() - time_graph_start) * 1000.0
             timer.append((filepath + ': make_graph, ms', time_graph))
@@ -328,10 +328,10 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
 
     if dump_trips:
         filename = dump_trips
-        process_dump.dump_trips(all_trips, filename, time_offset)
+        process_dump.dump_trips(all_trips, filename, tz_offset)
 
     if dump_vehicle:
-        process_dump.dump_vehicle(trips_by_vin, dump_vehicle, time_offset)
+        process_dump.dump_vehicle(trips_by_vin, dump_vehicle, tz_offset)
 
     if DEBUG:
         print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
@@ -358,8 +358,8 @@ def process_commandline():
     parser.add_argument('-dv', '--dump-vehicle', type=str, default=False,
         help='specify vehicle''s VIN to get a JSON of its trips written \
             to file named {vin}_trips.json')
-    parser.add_argument('-tz', '--time-offset', type=int, default=0,
-        help='offset times shown on graphs by TIME_OFFSET hours')
+    parser.add_argument('-tz', '--tz-offset', type=int, default=0,
+        help='offset times shown on graphs by TZ_OFFSET hours')
     parser.add_argument('-d', '--distance', type=float, default=False,
         help='mark distance of DISTANCE meters from nearest car on map')
     parser.add_argument('-noiter', '--no-iter', action='store_true', 
