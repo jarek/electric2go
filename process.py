@@ -215,7 +215,8 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
     show_speeds = False, symbol = '.',
     distance = False, tz_offset = 0, web = False, stats = False,
     trace = False, dump_trips = False, dump_vehicle = False,
-    all_positions_image = False, all_trips_image = False,
+    all_positions_image = False, all_trips_lines_image = False,
+    all_trips_points_image = False,
     **extra_args):
 
     global timer, DEBUG
@@ -315,8 +316,11 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
     if all_positions_image:
         process_graph.make_positions_graph(city, all_positions, all_positions_image)
 
-    if all_trips_image:
-        process_graph.make_trips_graph(city, all_trips, all_trips_image)
+    if all_trips_lines_image:
+        process_graph.make_trips_graph(city, all_trips, all_trips_lines_image)
+
+    if all_trips_points_image:
+        process_graph.make_trip_origin_destination_graph(city, all_trips, all_trips_points_image)
 
     if trace:
         print
@@ -367,8 +371,10 @@ def process_commandline():
     parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
         help='create image of all vehicle positions in the dataset \
             and save to ALL_POSITIONS_IMAGE')
-    parser.add_argument('-at', '--all-trips-image', type=str, default=False,
-        help='create image of all trips in the dataset and save to ALL_TRIPS_IMAGE')
+    parser.add_argument('-atl', '--all-trips-lines-image', type=str, default=False,
+        help='create image of all trips in the dataset and save to ALL_TRIPS_LINES_IMAGE')
+    parser.add_argument('-atp', '--all-trips-points-image', type=str, default=False,
+        help='create image of all trips in the dataset and save to ALL_TRIPS_POINTS_IMAGE')
     parser.add_argument('-web', action='store_true',
         help='create pngcrush script and JS filelist for HTML animation \
             page use; forces NO_ITER to false')

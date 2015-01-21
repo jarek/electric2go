@@ -2,6 +2,7 @@
 # coding=utf-8
 
 from datetime import timedelta
+from collections import OrderedDict
 import time
 import shutil
 import matplotlib.pyplot as plt
@@ -164,6 +165,27 @@ def create_points_speed_colour(positions):
 
     return collected
 
+
+def create_points_trip_start_end(trips, from_colour='b', to_colour='r'):
+    """
+    Extracts a list of all start and end positions for provided trips.
+    :returns a dict of lists formatted suitably for passing to plot_geopoints()
+    """
+
+    # Using OrderedDict to always return the end of the trip last
+    # to ensure "to" points appear on top in the graph.
+    # In plot_geopoints, points are plotted in the order of the
+    # colour-key dictionary, and depending on the colours being used,
+    # either "from" or "to" points could end up on top.
+    # (E.g. on my implementation, "g" points would be drawn after "b",
+    # which would be drawn after "r" -
+    # this would vary depending on hash function in use.)
+    # With OrderedDict, I specify the order.
+    return OrderedDict([
+        (from_colour, [trip['from'] for trip in trips]),
+        (to_colour, [trip['to'] for trip in trips])
+    ])
+
 def graph_wrapper(city, plot_function, image_name, background = False):
     """
     Handles creating the figure, saving it as image, and closing the figure.
@@ -302,6 +324,29 @@ def make_trips_graph(city, trips, image_name):
     graph_wrapper(city, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_trips_graph total, ms',
+        (time.time()-time_trips_graph_start)*1000.0))
+
+def make_trip_origin_destination_graph(city, trips, image_name):
+    global timer
+
+    time_trips_graph_start = time.time()
+
+    # TODO: use a heatmap or something similar,
+    # instead of just drawing points, to avoid problem/unexpected results
+    # caused when a trip ends in a given point then the vehicle is picked up again
+    # and a second trip starts in the same point (described in a comment in
+    # create_points_trip_start_end()).
+    # Maybe try to assign value of +1 to trips starting at a point,
+    # -1 to trips ending, then sum up and do hexbin or heatmap of some sort
+    # to find spots where vehicles mostly arrive, mostly depart, or are balanced
+
+    def plotter(f, ax):
+        trip_points = create_points_trip_start_end(trips)
+        plot_geopoints(ax, city, trip_points, '.')
+
+    graph_wrapper(city, plotter, image_name, background=False)
+
+    timer.append((image_name + ': make_trip_origin_destination_graph total, ms',
         (time.time()-time_trips_graph_start)*1000.0))
 
 def make_accessibility_background(city, positions, distance, log_name):
