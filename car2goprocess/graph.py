@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Image
 
-from city import CITIES, KNOWN_CITIES, is_latlng_in_bounds, get_mean_pixel_size
+from city import CITIES, is_latlng_in_bounds, get_mean_pixel_size
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -79,35 +79,24 @@ def make_graph_axes(city, background = False, log_name = ''):
 
     return f,ax
 
-def plot_points(ax, points, symbol):
-    ys, xs, colours = zip(*points)
-    colours = [colour + symbol for colour in colours]
+def plot_points(ax, points, colour, symbol):
+    ys, xs = zip(*points)
 
-    # see if there are different colours in the set, or if they're all the same
-    same_colour = True
-    first_colour = colours[0]
-    for colour in colours:
-        if colour != first_colour:
-            same_colour = False
-            break
-
-    if same_colour:
-        # if same colour, we can plot them all at once
-        ax.plot(xs, ys, colours[0])
-    else:
-        # for now just plot each one separately. this isn't optimal but oh well
-        for x,y,colour in zip(xs, ys, colours):
-            ax.plot(x, y, colour)
+    ax.plot(xs, ys, colour + symbol)
 
     return ax
 
-def plot_geopoints(ax, city, geopoints, symbol):
-    lats, lngs, colours = zip(*geopoints)
+def plot_geopoints(ax, city, geopoints_dict, symbol):
+    for colour in geopoints_dict:
+        if len(geopoints_dict[colour]):
+            lats, lngs = zip(*geopoints_dict[colour])
 
-    latitudes = map_latitude(city, np.array(lats))
-    longitudes = map_longitude(city, np.array(lngs))
+            latitudes = map_latitude(city, np.array(lats))
+            longitudes = map_longitude(city, np.array(lngs))
 
-    return plot_points(ax, zip(latitudes, longitudes, colours), symbol)
+            ax = plot_points(ax, zip(latitudes, longitudes), colour, symbol)
+
+    return ax
 
 def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour = '#aaaaaa'):
     for i in range(len(lines_start_y)):
@@ -134,38 +123,46 @@ def plot_trips(ax, city, trips, colour = '#aaaaaa'):
 
     return plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
-def process_positions(city, positions, show_speeds=False, log_name=''):
+def filter_positions_to_bounds(city, positions):
     """
-    extracts a list of all positions with colour to plot them with
+    Filters the list of positions to only include those that in graphing bounds for the given city
+    """
+
+    return [p for p in positions if is_latlng_in_bounds(city, p['coords'])]
+
+def create_points_default_colour(positions):
+    """
+    Assigns a default colour to all positions in the list
+    :returns a dict of lists formatted suitably for passing to plot_geopoints()
+    """
+
+    return {
+        SPEED_COLOURS[-1]: [p['coords'] for p in positions]
+    }
+
+def create_points_speed_colour(positions):
+    """
+    Extracts a list of all positions ordered by colour according to vehicle speed
     from a list of objects with metadata.
-    :returns a list of lists formatted suitably for passing to plot_geopoints()
+    :returns a dict of lists formatted suitably for passing to plot_geopoints()
     """
 
-    global timer
-
-    time_process_start = time.time()
-
-    processed_positions = []
+    collected = dict((colour, []) for colour in SPEED_COLOURS)
 
     for position in positions:
-        if is_latlng_in_bounds(city, position['coords']):
-            if show_speeds and 'speed' in position['metadata']:
-                # find the right speed basket
-                for i in range(len(SPEED_CUTOFFS)):
-                    if position['metadata']['speed'] < SPEED_CUTOFFS[i]:
-                        position['coords'].append(SPEED_COLOURS[i])
-                        break
+        # default to the last colour
+        classification = SPEED_COLOURS[-1]
 
-            if len(position['coords']) == 2:
-                # we're not classifying speeds, or speed not found in loop above
-                position['coords'].append('b')
+        if 'speed' in position['metadata']:
+            # find the right speed basket
+            for i in range(len(SPEED_CUTOFFS)):
+                if position['metadata']['speed'] < SPEED_CUTOFFS[i]:
+                    classification = SPEED_COLOURS[i]
+                    break
 
-            processed_positions.append(position['coords'])
+        collected[classification].append(position['coords'])
 
-    timer.append((log_name + ': process_positions, ms',
-        (time.time()-time_process_start)*1000.0))
-
-    return processed_positions
+    return collected
 
 def graph_wrapper(city, plot_function, image_name, background = False):
     """
@@ -223,21 +220,27 @@ def make_graph(city, positions, trips, image_filename, copy_filename, turn,
     # for logging rather than actually accessing/creating files
     log_name = image_filename
 
-    # load in vehicle positions in this time frame
-    processed_positions = process_positions(city, positions, show_speeds, log_name)
+    # filter to only vehicles that are in city's graphing bounds
+    filtered_positions = filter_positions_to_bounds(city, positions)
 
     if highlight_distance:
-        graph_background = make_accessibility_background(city, processed_positions, highlight_distance, log_name)
+        positions_without_metadata = [p['coords'] for p in filtered_positions]
+        graph_background = make_accessibility_background(city, positions_without_metadata, highlight_distance, log_name)
     else:
         graph_background = False
+
+    # mark with either speed, or default colour
+    if show_speeds:
+        positions_by_colour = create_points_speed_colour(filtered_positions)
+    else:
+        positions_by_colour = create_points_default_colour(filtered_positions)
 
     # define what to add to the graph
     def plotter(f, ax):
         time_plot_start = time.time()
 
         # plot points for vehicles
-        if len(processed_positions) > 0:
-            ax = plot_geopoints(ax, city, processed_positions, symbol)
+        ax = plot_geopoints(ax, city, positions_by_colour, symbol)
 
         # add in lines for moving vehicles
         if len(trips) > 0:
@@ -259,7 +262,7 @@ def make_graph(city, positions, trips, image_filename, copy_filename, turn,
         ax.text(coords[2][0], coords[2][1],
             '{d:%A}, {d:%H}:{d:%M}'.format(d=printed_time), fontsize = fontsizes[2])
         ax.text(coords[3][0], coords[3][1],
-            'available cars: %d' % len(processed_positions), fontsize = fontsizes[3])
+            'available cars: %d' % len(filtered_positions), fontsize = fontsizes[3])
 
         timer.append((log_name + ': make_graph plot and label, ms',
             (time.time()-time_plot_start)*1000.0))
@@ -278,9 +281,9 @@ def make_positions_graph(city, positions, image_name):
     time_positions_graph_start = time.time()
 
     def plotter(f, ax):
-        processed = process_positions(city, positions, show_speeds=False, log_name=image_name)
-        if len(processed) > 0:
-            plot_geopoints(ax, city, processed, '.')
+        filtered = filter_positions_to_bounds(city, positions)
+        coloured = create_points_default_colour(filtered)
+        plot_geopoints(ax, city, coloured, '.')
 
     graph_wrapper(city, plotter, image_name, background=False)
 
@@ -301,10 +304,10 @@ def make_trips_graph(city, trips, image_name):
     timer.append((image_name + ': make_trips_graph total, ms',
         (time.time()-time_trips_graph_start)*1000.0))
 
-def make_accessibility_background(city, processed_positions, distance, log_name):
+def make_accessibility_background(city, positions, distance, log_name):
     global timer
 
-    latitudes, longitudes, _colours = zip(*processed_positions)  # _colours not used
+    latitudes, longitudes = zip(*positions)
     latitudes = np.round(map_latitude(city, np.array(latitudes)))
     longitudes = np.round(map_longitude(city, np.array(longitudes)))
 
