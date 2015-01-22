@@ -256,7 +256,6 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
 
             time_graph_start = time.time()
 
-            # TODO: setting symbol doesn't seem to work
             process_graph.make_graph(city, current_positions, current_trips,
                                      image_filename, copy_filename, turn,
                                      show_speeds, distance, symbol, tz_offset)
@@ -314,13 +313,13 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
         # if i wanted to invoke this, just do os.system('avconv...')
 
     if all_positions_image:
-        process_graph.make_positions_graph(city, all_positions, all_positions_image)
+        process_graph.make_positions_graph(city, all_positions, all_positions_image, symbol)
 
     if all_trips_lines_image:
         process_graph.make_trips_graph(city, all_trips, all_trips_lines_image)
 
     if all_trips_points_image:
-        process_graph.make_trip_origin_destination_graph(city, all_trips, all_trips_points_image)
+        process_graph.make_trip_origin_destination_graph(city, all_trips, all_trips_points_image, symbol)
 
     if trace:
         print

@@ -297,7 +297,7 @@ def make_graph(city, positions, trips, image_filename, copy_filename, turn,
     if copy_filename:
         shutil.copy2(image_filename, copy_filename)
 
-def make_positions_graph(city, positions, image_name):
+def make_positions_graph(city, positions, image_name, symbol):
     global timer
 
     time_positions_graph_start = time.time()
@@ -305,7 +305,7 @@ def make_positions_graph(city, positions, image_name):
     def plotter(f, ax):
         filtered = filter_positions_to_bounds(city, positions)
         coloured = create_points_default_colour(filtered)
-        plot_geopoints(ax, city, coloured, '.')
+        plot_geopoints(ax, city, coloured, symbol)
 
     graph_wrapper(city, plotter, image_name, background=False)
 
@@ -326,7 +326,7 @@ def make_trips_graph(city, trips, image_name):
     timer.append((image_name + ': make_trips_graph total, ms',
         (time.time()-time_trips_graph_start)*1000.0))
 
-def make_trip_origin_destination_graph(city, trips, image_name):
+def make_trip_origin_destination_graph(city, trips, image_name, symbol):
     global timer
 
     time_trips_graph_start = time.time()
@@ -342,7 +342,7 @@ def make_trip_origin_destination_graph(city, trips, image_name):
 
     def plotter(f, ax):
         trip_points = create_points_trip_start_end(trips)
-        plot_geopoints(ax, city, trip_points, '.')
+        plot_geopoints(ax, city, trip_points, symbol)
 
     graph_wrapper(city, plotter, image_name, background=False)
 
