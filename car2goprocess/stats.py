@@ -1,14 +1,13 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
-from datetime import timedelta
 from collections import Counter
-from random import choice
 import numpy as np
-#import scipy.stats as sps
 
 
-def trace_vehicle(all_trips_by_vin, provided_vin):
+# TODO: these functions should create CSV rather than print results
+
+def trace_vehicle(trips, criterion):
     def format_trip(trip):
         result  = 'start: %s at %f,%f' % \
             (trip['starting_time'], trip['from'][0], trip['from'][1])
@@ -24,33 +23,21 @@ def trace_vehicle(all_trips_by_vin, provided_vin):
 
         return result
 
-    vin = provided_vin
     lines = []
 
-    if vin == 'random':
-        vin = choice(list(all_trips_by_vin.keys()))
-    elif vin == 'most_trips':
-        # pick the vehicle with most trips. in case of tie, pick first one
-        vin = max(all_trips_by_vin, key = lambda v: len(all_trips_by_vin[v]))
-        lines.append('vehicle with most trips is %s with %d trips' % \
-            (vin, len(all_trips_by_vin[vin])))
-    elif vin == 'most_distance':
-        vin = max(all_trips_by_vin, 
-            key = lambda v: sum(t['distance'] for t in all_trips_by_vin[v]))
-        lines.append(
-            'vehicle with highest distance travelled is %s with %0.3f km' % \
-            (vin, sum(t['distance'] for t in all_trips_by_vin[vin])))
-    elif vin == 'most_duration':
-        vin = max(all_trips_by_vin, 
-            key = lambda v: sum(t['duration'] for t in all_trips_by_vin[v]))
-        duration = sum(t['duration'] for t in all_trips_by_vin[vin])/60
-        lines.append('vehicle with highest trip duration is %s ' \
-            'with %d minutes (%0.2f hours)' % (vin, duration, duration/60))
+    vin = trips[0]['vin'] if len(trips) else 'none'
 
-    if not vin in all_trips_by_vin:
-        return 'vehicle not found in dataset: %s' % provided_vin
+    if criterion == 'most_trips':
+        lines.append('vehicle with most trips is %s with %d trips' %
+                     (vin, len(trips)))
+    elif criterion == 'most_distance':
+        lines.append('vehicle with highest distance travelled is %s with %0.3f km' %
+                     (vin, sum(t['distance'] for t in trips)))
+    elif criterion == 'most_duration':
+        duration = sum(t['duration'] for t in trips)/60
+        lines.append('vehicle with highest trip duration is %s with %d minutes (%0.2f hours)' %
+                     (vin, duration, duration/60))
 
-    trips = all_trips_by_vin[vin]
     lines.append('trips for vehicle %s: (count %d)' % (vin, len(trips)))
     for trip in trips:
         lines.append(format_trip(trip))

@@ -8,6 +8,7 @@ import copy
 import shutil
 import simplejson as json
 from datetime import datetime, timedelta
+from random import choice
 import time
 
 import cars
@@ -209,12 +210,39 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
 
     return data_frames, all_positions, all_trips, trips_by_vin, ending_time, i
 
+def filter_trips_list(all_trips_by_vin, find_by):
+    """
+    Used for filtering that can only be done once the complete list is found,
+    e.g. picking a car with most trips or most duration.
+    :return: a trips list for the requested car
+    """
+
+    vin = find_by  # allow finding by passing in VIN verbatim
+
+    if find_by == 'random':
+        vin = choice(list(all_trips_by_vin.keys()))
+    elif find_by == 'most_trips':
+        # pick the vehicle with most trips. in case of tie, pick first one
+        vin = max(all_trips_by_vin,
+                  key=lambda v: len(all_trips_by_vin[v]))
+    elif find_by == 'most_distance':
+        vin = max(all_trips_by_vin,
+                  key=lambda v: sum(t['distance'] for t in all_trips_by_vin[v]))
+    elif find_by == 'most_duration':
+        vin = max(all_trips_by_vin,
+                  key=lambda v: sum(t['duration'] for t in all_trips_by_vin[v]))
+
+    if vin not in all_trips_by_vin:
+        raise KeyError("VIN %s not found in all_trips_by_vin" % vin)
+
+    return all_trips_by_vin[vin]
+
 def batch_process(city, starting_time, dry = False, make_iterations = True,
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES,
     show_speeds = False, symbol = '.',
     distance = False, tz_offset = 0, web = False, stats = False,
-    trace = False, dump_trips = False, dump_vehicle = False,
+    filter_trips = False, trace = False, dump_trips = False,
     all_positions_image = False, all_trips_lines_image = False,
     all_trips_points_image = False,
     **extra_args):
@@ -312,6 +340,21 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
         print '''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path)
         # if i wanted to invoke this, just do os.system('avconv...')
 
+    # TODO: allow filtering the data (both trips and positions) by timeframe, latlng, etc
+
+    if filter_trips:
+        all_trips = filter_trips_list(trips_by_vin, filter_trips)
+
+    if dump_trips:
+        filename = dump_trips
+        process_dump.dump_trips(all_trips, filename, tz_offset)
+
+    if trace and filter_trips:
+        print process_stats.trace_vehicle(all_trips, filter_trips)
+
+    if stats:
+        process_stats.print_stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
+
     if all_positions_image:
         process_graph.make_positions_graph(city, all_positions, all_positions_image, symbol)
 
@@ -320,21 +363,6 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
 
     if all_trips_points_image:
         process_graph.make_trip_origin_destination_graph(city, all_trips, all_trips_points_image, symbol)
-
-    if trace:
-        print
-        print process_stats.trace_vehicle(trips_by_vin, trace)
-
-    if stats:
-        print
-        process_stats.print_stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
-
-    if dump_trips:
-        filename = dump_trips
-        process_dump.dump_trips(all_trips, filename, tz_offset)
-
-    if dump_vehicle:
-        process_dump.dump_vehicle(trips_by_vin, dump_vehicle, tz_offset)
 
     if DEBUG:
         print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
@@ -346,39 +374,10 @@ def process_commandline():
     global DEBUG
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-debug', action='store_true',
+        help='print extra debug and timing messages')
     parser.add_argument('starting_filename', type=str,
         help='name of first file to process')
-    parser.add_argument('-dry', action='store_true',
-        help='dry run: do not generate any images')
-    parser.add_argument('-s', '--stats', action='store_true',
-        help='generate and print some basic statistics about car2go use')
-    parser.add_argument('-t', '--trace', type=str, default=False,
-        help='print out all trips of a vehicle found in the dataset; \
-            accepts license plates, VINs, \
-            "random", "most_trips", "most_distance", and "most_duration"')
-    parser.add_argument('-dt', '--dump-trips', type=str, default=False,
-        help='dump JSON of all trips to filename passed as param')
-    parser.add_argument('-dv', '--dump-vehicle', type=str, default=False,
-        help='specify vehicle''s VIN to get a JSON of its trips written \
-            to file named {vin}_trips.json')
-    parser.add_argument('-tz', '--tz-offset', type=int, default=0,
-        help='offset times shown on graphs by TZ_OFFSET hours')
-    parser.add_argument('-d', '--distance', type=float, default=False,
-        help='mark distance of DISTANCE meters from nearest car on map')
-    parser.add_argument('-noiter', '--no-iter', action='store_true', 
-        help='do not create consecutively-named files for animating')
-    parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
-        help='create image of all vehicle positions in the dataset \
-            and save to ALL_POSITIONS_IMAGE')
-    parser.add_argument('-atl', '--all-trips-lines-image', type=str, default=False,
-        help='create image of all trips in the dataset and save to ALL_TRIPS_LINES_IMAGE')
-    parser.add_argument('-atp', '--all-trips-points-image', type=str, default=False,
-        help='create image of all trips in the dataset and save to ALL_TRIPS_POINTS_IMAGE')
-    parser.add_argument('-web', action='store_true',
-        help='create pngcrush script and JS filelist for HTML animation \
-            page use; forces NO_ITER to false')
-    parser.add_argument('-nolines', '--no-lines', action='store_true',
-        help='do not show lines indicating vehicles\' moves')
     parser.add_argument('-max', '--max-files', type=int, default=False,
         help='limit maximum amount of files to process')
     parser.add_argument('-skip', '--max-skip', type=int, default=3,
@@ -388,13 +387,42 @@ def process_commandline():
         default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
         help='analyze data for every TIME_STEP minutes (default %i)' %
             cars.DATA_COLLECTION_INTERVAL_MINUTES)
-    parser.add_argument('-speeds', '--show_speeds', action='store_true', 
-        help='indicate vehicles\' speeds in addition to locations') 
+    parser.add_argument('-tz', '--tz-offset', type=int, default=0,
+        help='offset times by TZ_OFFSET hours')
+    parser.add_argument('-dry', action='store_true',
+        help='dry run: do not generate any images')
+    parser.add_argument('-noiter', '--no-iter', action='store_true',
+        help='do not create consecutively-named files for animating')
+    parser.add_argument('-web', action='store_true',
+        help='create pngcrush script and JS filelist for HTML animation \
+            page use; forces NO_ITER to false')
+    parser.add_argument('-nolines', '--no-lines', action='store_true',
+        help='do not show lines indicating vehicles\' moves')
+    parser.add_argument('-d', '--distance', type=float, default=False,
+        help='mark distance of DISTANCE meters from nearest car on map')
+    parser.add_argument('-speeds', '--show_speeds', action='store_true',
+        help='indicate vehicles\' speeds in addition to locations')
     parser.add_argument('-symbol', type=str, default='.',
         help='matplotlib symbol to indicate vehicles on the graph \
             (default \'.\', larger \'o\')')
-    parser.add_argument('-debug', action='store_true',
-        help='print extra debug and timing messages')
+    parser.add_argument('-f', '--filter_trips', type=str, default=False,
+        help='filter list of all trips by vehicle; \
+            accepts license plates, VINs, "random", "most_trips", "most_distance", and "most_duration". \
+            affects output of STATS, TRACE, DUMP_TRIPS, and ALL_*_IMAGE params')
+    parser.add_argument('-s', '--stats', action='store_true',
+        help='generate and print some basic statistics about car2go use')
+    parser.add_argument('-t', '--trace', action='store_true',
+        help='print out all trips of a vehicle found in the dataset; \
+            requires that FILTER_TRIPS is set')
+    parser.add_argument('-dt', '--dump-trips', type=str, default=False,
+        help='dump JSON of all trips to filename passed as param')
+    parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
+        help='create image of all vehicle positions in the dataset \
+            and save to ALL_POSITIONS_IMAGE')
+    parser.add_argument('-atl', '--all-trips-lines-image', type=str, default=False,
+        help='create image of all trips in the dataset and save to ALL_TRIPS_LINES_IMAGE')
+    parser.add_argument('-atp', '--all-trips-points-image', type=str, default=False,
+        help='create image of all trips in the dataset and save to ALL_TRIPS_POINTS_IMAGE')
 
     args = parser.parse_args()
     params = vars(args)

@@ -22,23 +22,7 @@ def format_for_json(trips, tz_offset=0):
     return trips
 
 def dump_trips(all_trips, filename, tz_offset):
-    # TODO: allow filtering the data by timeframe, origins
-
-    # data is organized by vehicle (with VIN as the key).
-    # for now just dump all trips
-
     trips = format_for_json(all_trips, tz_offset)
 
     with open(filename, 'w') as f:
         f.write(json.dumps(trips))
-
-def dump_vehicle(all_trips_by_vin, vin, tz_offset):
-    #  dump of trace results by vehicle's VIN
-
-    trips = format_for_json(all_trips_by_vin[vin], tz_offset)
-
-    filename = vin + '_trips.json'
-
-    with open(filename, 'w') as f:
-        f.write(json.dumps(trips))
-
