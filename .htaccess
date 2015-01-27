@@ -4,3 +4,8 @@ DirectoryIndex index.py
 	Order allow,deny
 	Deny from all
 </Files>
+
+<Files car2go/oauth_key>
+	Order allow,deny
+	Deny from all
+</Files>

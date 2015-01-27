@@ -1,5 +1,12 @@
 # semi-private key file
 oauth_key
+car2go/oauth_key
+
+# downloaded data directory
+data/
+
+# pycharm/intellij metadata directory
+.idea/
 
 *.py[cod]
 
