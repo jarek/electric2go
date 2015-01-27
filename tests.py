@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 
-from car2goprocess import graph as process_graph
+from analysis import graph as process_graph
 from car2go.city import CITIES
 import city_helper
 

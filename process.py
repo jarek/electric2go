@@ -14,7 +14,7 @@ import time
 import cars
 from car2go.city import KNOWN_CITIES
 import car2go.parse as parser
-from car2goprocess import stats as process_stats, graph as process_graph, dump as process_dump
+from analysis import stats as process_stats, graph as process_graph, dump as process_dump
 
 
 timer = []
