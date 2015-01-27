@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from . import OAUTH_KEY
+
 
 # DEGREE_LENGTHs come http://www.csgnetwork.com/degreelenllavcalc.html
 # could calculate ourselves but meh. would need city's latitude
@@ -416,7 +418,7 @@ def get_operation_areas(city):
 
     API_AREAS_URL = 'https://www.car2go.com/api/v2.1/operationareas?loc={loc}&oauth_consumer_key={key}&format=json'
 
-    data_text = cars.get_URL(API_AREAS_URL.format(loc = city, key = cars.OAUTH_KEY))
+    data_text = cars.get_URL(API_AREAS_URL.format(loc=city, key=OAUTH_KEY))
 
     return json.loads(data_text).get('placemarks')
 

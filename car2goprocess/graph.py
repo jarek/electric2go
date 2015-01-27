@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Image
 
-from city import CITIES
+from car2go.city import CITIES
 from city_helper import is_latlng_in_bounds, get_mean_pixel_size
 
 

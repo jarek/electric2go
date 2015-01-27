@@ -8,9 +8,8 @@ import math
 import urllib2
 import simplejson as json
 import time
-import city
+from car2go import API_URL, city
 
-API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key={key}&format=json'
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
 DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py
@@ -20,12 +19,6 @@ data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data/')
 filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
 timer = []
-
-OAUTH_KEY = 'car2gowebsite' # default key used by car2go.com
-if os.path.exists('oauth_key'):
-    f = open('oauth_key', 'r')
-    OAUTH_KEY = f.read().strip()
-    f.close()
 
 
 def get_URL(url):
@@ -67,8 +60,8 @@ def get_all_cars_text(city, force_download = False):
             json_text = f.read()
             f.close()
 
-    if json_text == None:   
-        json_text = get_URL(API_URL.format(loc = city, key = OAUTH_KEY))
+    if not json_text:
+        json_text = get_URL(API_URL.format(loc=city))
 
     return json_text,cache
 

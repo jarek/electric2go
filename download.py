@@ -5,7 +5,7 @@ import datetime
 import os
 import sys
 import cars
-import city
+from car2go import city
 import index
 
 if len(sys.argv) > 1 and sys.argv[1].lower() == 'all':

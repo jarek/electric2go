@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 
 from car2goprocess import graph as process_graph
-from city import CITIES
+from car2go.city import CITIES
 import city_helper
 
 class process_helper_functions(unittest.TestCase):

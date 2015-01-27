@@ -5,7 +5,7 @@ import os
 import math
 import time
 import cars
-import city
+from car2go import city
 
 
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
