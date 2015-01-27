@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Image
 
-from city import CITIES, is_latlng_in_bounds, get_mean_pixel_size
+from city import CITIES
+from city_helper import is_latlng_in_bounds, get_mean_pixel_size
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -129,7 +130,7 @@ def filter_positions_to_bounds(city, positions):
     Filters the list of positions to only include those that in graphing bounds for the given city
     """
 
-    return [p for p in positions if is_latlng_in_bounds(city, p['coords'])]
+    return [p for p in positions if is_latlng_in_bounds(CITIES[city], p['coords'])]
 
 def create_points_default_colour(positions):
     """
@@ -381,7 +382,7 @@ def make_accessibility_background(city, positions, distance, log_name):
     markers[:] = inaccessible_colour # can't use fill since it isn't a scalar
 
     # find distance radius, in pixels
-    pixel_in_m = get_mean_pixel_size(city)
+    pixel_in_m = get_mean_pixel_size(city_data)
     radius = np.round(distance / pixel_in_m)
 
     # generate master availability mask

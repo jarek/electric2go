@@ -2,8 +2,6 @@
 # coding=utf-8
 
 
-API_AREAS_URL = 'https://www.car2go.com/api/v2.1/operationareas?loc={loc}&oauth_consumer_key={key}&format=json'
-
 # DEGREE_LENGTHs come http://www.csgnetwork.com/degreelenllavcalc.html
 # could calculate ourselves but meh. would need city's latitude
 
@@ -310,6 +308,7 @@ CITIES = {
     },
     'ulm': {},
     'vancouver': {'of_interest': True, 'electric': 'some',
+        # TODO: vancouver should be updated for new home area bounds. think about vancouver-metro to include ferries and langley and so on?
         'number_first_address': True,
         'BOUNDS': {
             'NORTH': 49.336, # exact value 49.335735
@@ -415,6 +414,8 @@ def get_operation_areas(city):
     import cars
     import json
 
+    API_AREAS_URL = 'https://www.car2go.com/api/v2.1/operationareas?loc={loc}&oauth_consumer_key={key}&format=json'
+
     data_text = cars.get_URL(API_AREAS_URL.format(loc = city, key = cars.OAUTH_KEY))
 
     return json.loads(data_text).get('placemarks')
@@ -455,39 +456,4 @@ def get_latlng_extent(city):
 
     # return max/mins for all operation areas
     return max(latitudes), min(latitudes), max(longitudes), min(longitudes)
-
-def is_latlng_in_bounds(city, lat, lng = False):
-    if lng == False:
-        lng = lat[1]
-        lat = lat[0]
-
-    is_lat = CITIES[city]['BOUNDS']['SOUTH'] <= lat <= CITIES[city]['BOUNDS']['NORTH']
-    is_lng = CITIES[city]['BOUNDS']['WEST'] <= lng <= CITIES[city]['BOUNDS']['EAST']
-
-    return is_lat and is_lng
-
-def get_pixel_size(city):
-    # find the length in metres represented by one pixel on graph in both lat and lng direction
-
-    city_data = CITIES[city]
-
-    lat_range = city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH']
-    lat_in_m = lat_range * city_data['DEGREE_LENGTHS']['LENGTH_OF_LATITUDE']
-    pixel_in_lat_m = lat_in_m / city_data['MAP_SIZES']['MAP_Y']
-
-    lng_range = city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST']
-    lng_in_m = lng_range * city_data['DEGREE_LENGTHS']['LENGTH_OF_LONGITUDE']
-    pixel_in_lng_m = lng_in_m / city_data['MAP_SIZES']['MAP_X']
-
-    return pixel_in_lat_m, pixel_in_lng_m
-
-def get_mean_pixel_size(city):
-    # find the length in metres represented by one pixel on graph
-
-    # take mean of latitude- and longitude-based numbers, 
-    # which is not quite correct but more than close enough for most uses
-
-    pixel_in_m = get_pixel_size(city)
-
-    return (pixel_in_m[0] + pixel_in_m[1]) / 2 
 
