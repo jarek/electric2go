@@ -12,3 +12,4 @@ if path.exists(_oauth_file):
         OAUTH_KEY = f.read().strip()
 
 API_URL = 'https://www.car2go.com/api/v2.1/vehicles?loc={loc}&oauth_consumer_key=%s&format=json' % OAUTH_KEY
+API_URL_AVAILABLE_VEHICLES = API_URL
