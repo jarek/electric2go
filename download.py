@@ -2,18 +2,16 @@
 # coding=utf-8
 
 import datetime
-import os
 import sys
 import cars
-from car2go import city
 import index
 
+all_cities = cars.get_all_cities()
 if len(sys.argv) > 1 and sys.argv[1].lower() == 'all':
-    cities = [city_key for city_key in city.CITIES \
-        if city.CITIES[city_key]['electric'] == 'some' 
-        or city.CITIES[city_key]['of_interest'] == True]
+    cities = [city_key for city_key, city_data in all_cities
+              if city_data['electric'] == 'some' or city_data['of_interest']]
 else:
-    cities = [ cars.get_city() ]
+    cities = [cars.get_city()['name']]
 
 t = datetime.datetime.now()
 for city in cities:

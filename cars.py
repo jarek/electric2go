@@ -8,7 +8,6 @@ import math
 import urllib2
 import simplejson as json
 import time
-from car2go import API_URL, city
 
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
@@ -46,10 +45,18 @@ def get_URL(url):
     return html
 
 def get_all_cars_text(city, force_download = False):
+    try:
+        api_url = city['data']['API_URL_AVAILABLE_VEHICLES']
+    except:
+        # assume we got a string instead of an object; fetch the object
+        city = get_all_cities()[city]
+
+        api_url = city['data']['API_URL_AVAILABLE_VEHICLES']
+
     json_text = None
     cache = False
 
-    cached_data_filename = data_dir + 'current_%s' % city
+    cached_data_filename = data_dir + 'current_%s' % city['name']
     if os.path.exists(cached_data_filename) and not force_download:
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
         cached_data_age = time.time() - cached_data_timestamp
@@ -61,7 +68,7 @@ def get_all_cars_text(city, force_download = False):
             f.close()
 
     if not json_text:
-        json_text = get_URL(API_URL.format(loc=city))
+        json_text = get_URL(api_url)
 
     return json_text,cache
 
@@ -104,10 +111,17 @@ def get_city():
     elif len(sys.argv) > 1:
         param = sys.argv[1].lower()
 
-    if param in city.CITIES:
+    all_cities = get_all_cities()
+    if param in all_cities:
         city_name = param
 
-    return city_name
+    return {'name': city_name,
+            'data': all_cities[city_name]}
+
+def get_all_cities(system=False):
+    # TODO: generalize away from car2go-only
+    from car2go import city
+    return city.CITIES
 
 def dist(ll1, ll2):
     # adapted from http://www.movable-type.co.uk/scripts/latlong.html

@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Image
 
-from car2go.city import CITIES
+from cars import get_all_cities
 from city_helper import is_latlng_in_bounds, get_mean_pixel_size
 
+
+CITIES = get_all_cities()
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
 SPEED_CUTOFFS = [5, 15, 30, float('inf')]

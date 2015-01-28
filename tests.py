@@ -5,9 +5,11 @@ from __future__ import unicode_literals
 import unittest
 import numpy as np
 
+import cars
 from analysis import graph as process_graph
-from car2go.city import CITIES
 import city_helper
+
+CITIES = cars.get_all_cities()
 
 class process_helper_functions(unittest.TestCase):
     def test_is_latlng_in_bounds(self):
