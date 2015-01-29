@@ -14,7 +14,6 @@ CACHE_PERIOD = 60 # cache data for this many seconds at most
 DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
-data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data/')
 filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
 timer = []
@@ -44,33 +43,31 @@ def get_URL(url):
 
     return html
 
-def get_all_cars_text(city, force_download = False):
-    try:
-        api_url = city['data']['API_URL_AVAILABLE_VEHICLES']
-    except:
-        # assume we got a string instead of an object; fetch the object
-        city = get_all_cities()[city]
+def get_data_dir(system):
+    return os.path.join(root_dir, 'data', system)
 
-        api_url = city['data']['API_URL_AVAILABLE_VEHICLES']
+def get_current_filename(city_data):
+    data_dir = get_data_dir(city_data['system'])
+    return os.path.join(data_dir, 'current_%s' % city_data['name'])
 
+def get_all_cars_text(city_obj, force_download=False):
     json_text = None
     cache = False
 
-    cached_data_filename = data_dir + 'current_%s' % city['name']
+    cached_data_filename = get_current_filename(city_obj['data'])
     if os.path.exists(cached_data_filename) and not force_download:
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
         cached_data_age = time.time() - cached_data_timestamp
         if cached_data_age < CACHE_PERIOD:
             cache = cached_data_timestamp
             timer.append(['using cached data, age in seconds', cached_data_age])
-            f = open(cached_data_filename, 'r')
-            json_text = f.read()
-            f.close()
+            with open(cached_data_filename, 'r') as f:
+                json_text = f.read()
 
     if not json_text:
-        json_text = get_URL(api_url)
+        json_text = get_URL(city_obj['data']['API_URL_AVAILABLE_VEHICLES'])
 
-    return json_text,cache
+    return json_text, cache
 
 def get_electric_cars(city):
     json_text,cache = get_all_cars_text(city)
@@ -84,7 +81,6 @@ def get_electric_cars(city):
     timer.append(['json load, ms', (time2-time1)*1000.0])
 
     electric_cars = []
-
 
     time1 = time.time()
 
@@ -118,10 +114,21 @@ def get_city():
     return {'name': city_name,
             'data': all_cities[city_name]}
 
-def get_all_cities(system=False):
-    # TODO: generalize away from car2go-only
-    from car2go import city
-    return city.CITIES
+def get_all_cities(system="car2go"):
+    # TODO: migrate invocations of this function from depening on the default param,
+    # specify explicitly instead
+
+    if system == "car2go":
+        from car2go import city
+        all_cities = city.CITIES
+    else:
+        raise KeyError("Unknown system:" % system)
+
+    for city_key in all_cities:
+        all_cities[city_key]['system'] = system
+        all_cities[city_key]['name'] = city_key
+
+    return all_cities
 
 def dist(ll1, ll2):
     # adapted from http://www.movable-type.co.uk/scripts/latlong.html
