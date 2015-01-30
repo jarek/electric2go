@@ -1,12 +1,10 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
-import cgi
 import os
-import sys
 import math
 import urllib2
-import simplejson as json
+import json
 import time
 
 
@@ -92,27 +90,6 @@ def get_electric_cars(city):
     timer.append(['list search, ms', (time2-time1)*1000.0])
 
     return electric_cars,cache
-
-def get_city():
-    city_name = 'vancouver' # default to Vancouver
-
-    # look for http param first
-    # if http param not present, look for command line param
-    
-    param = None
-    arguments = cgi.FieldStorage()
-
-    if 'city' in arguments:
-        param = str(arguments['city'].value).lower()
-    elif len(sys.argv) > 1:
-        param = sys.argv[1].lower()
-
-    all_cities = get_all_cities()
-    if param in all_cities:
-        city_name = param
-
-    return {'name': city_name,
-            'data': all_cities[city_name]}
 
 def get_all_cities(system="car2go"):
     # TODO: migrate invocations of this function from depening on the default param,

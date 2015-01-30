@@ -5,6 +5,7 @@ import os
 import math
 import time
 import cars
+import web_helper
 
 
 MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
@@ -167,7 +168,8 @@ def get_formatted_electric_cars(city):
 def get_formatted_all_cities(requested_city):
     formatted_cities = []
 
-    for city_key, data in sorted(cars.get_all_cities().items()):
+    all_cities = cars.get_all_cities(web_helper.WEB_SYSTEM)
+    for city_key, data in sorted(all_cities.items()):
         # show only cities that have some electric cars,
         # but not a full fleet of electric.
         # there's nothing to show for cities that don't have any,
@@ -196,7 +198,7 @@ def print_all_html():
 
     ttime1 = time.time()
 
-    requested_city = cars.get_city()
+    requested_city = web_helper.get_city()
 
     print '<!doctype html>'
     print '<meta charset="utf-8" />'
@@ -205,7 +207,7 @@ def print_all_html():
     print '''<!-- Hello! If you're interested, the source code for this page is
         available at https://github.com/jarek/electric2go -->'''
     print '<style type="text/css" media="screen,projection">'
-    print import_file('style.css')
+    print import_file('frontend/style.css')
     print '</style>'
 
     print '<nav>%s</nav>' % get_formatted_all_cities(requested_city)
@@ -234,7 +236,7 @@ def print_all_html():
         but is not endorsed or certified by car2go.</footer>'''
     
     print '<script type="text/javascript">'
-    print import_file('sort.js')
+    print import_file('frontend/sort.js')
     print '</script>'
 
     print_timer_info(cars.timer)

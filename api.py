@@ -1,21 +1,13 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
-import cgi
 import math
-import simplejson as json
+import json
 import time
 import cars
+import web_helper
 
 timer = []
-
-def get_param(param_name):
-    arguments = cgi.FieldStorage()
-
-    if param_name in arguments:
-        return arguments[param_name].value
-    else:
-        return False
 
 def fill_in_info(car, query_ll = False):
     # estimate range
@@ -39,16 +31,16 @@ def json_respond():
 
     ttime1 = time.time()
 
-    requested_city = cars.get_city()
+    requested_city = web_helper.get_city()
     electric_cars,cache = cars.get_electric_cars(requested_city)
 
-    limit = get_param('limit')
+    limit = web_helper.get_param('limit')
     if limit:
         limit = int(limit)
     else:
         limit = 5
 
-    query_ll = get_param('ll')
+    query_ll = web_helper.get_param('ll')
     if query_ll:
         query_ll = query_ll.split(',')
         query_ll[0] = float(query_ll[0])
@@ -73,7 +65,7 @@ def json_respond():
 
     timer.append(['total, ms', (time.time()-ttime1)*1000.0])
 
-    if get_param('debug'):
+    if web_helper.get_param('debug'):
         cars.timer.extend(timer)
         result['timer'] = cars.timer
 
