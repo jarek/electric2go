@@ -6,6 +6,7 @@ import math
 import urllib2
 import json
 import time
+import city_helper
 
 
 CACHE_PERIOD = 60 # cache data for this many seconds at most
@@ -17,7 +18,7 @@ filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 timer = []
 
 
-def get_URL(url):
+def get_URL(url, extra_headers=False):
     # TODO: consider handling if-none-match, or modified-since, or etag, 
     # or something similar
     # http://www.diveintopython.net/http_web_services/etags.html
@@ -34,7 +35,14 @@ def get_URL(url):
 
     htime1 = time.time()
 
-    html = urllib2.urlopen(url).read()
+    req = urllib2.Request(url)
+
+    if extra_headers:
+        for header, value in extra_headers.items():
+            req.add_header(header, value)
+
+    resp = urllib2.urlopen(req)
+    html = resp.read()
 
     htime2 = time.time()
     timer.append(['http get, ms', (htime2-htime1)*1000.0])
@@ -63,7 +71,8 @@ def get_all_cars_text(city_obj, force_download=False):
                 json_text = f.read()
 
     if not json_text:
-        json_text = get_URL(city_obj['data']['API_URL_AVAILABLE_VEHICLES'])
+        json_text = get_URL(city_obj['data']['API_AVAILABLE_VEHICLES_URL'],
+                            city_obj['data']['API_AVAILABLE_VEHICLES_HEADERS'])
 
     return json_text, cache
 
@@ -96,14 +105,12 @@ def get_all_cities(system="car2go"):
     # specify explicitly instead
 
     if system == "car2go":
-        from car2go import city
-        all_cities = city.CITIES
+        from car2go import city as car2go_city
+        all_cities = car2go_city.CITIES
     else:
-        raise KeyError("Unknown system:" % system)
+        raise KeyError("Unknown system: {system}".format(system=system))
 
-    for city_key in all_cities:
-        all_cities[city_key]['system'] = system
-        all_cities[city_key]['name'] = city_key
+    all_cities = city_helper.fill_in_information(system, all_cities)
 
     return all_cities
 

@@ -2,6 +2,31 @@
 # coding=utf-8
 
 
+def fill_in_information(system, all_cities):
+    for city_key, city_data in all_cities.items():
+        city_data['system'] = system
+        city_data['name'] = city_key
+
+        if 'display' not in city_data:
+            city_data['display'] = city_key.title()
+
+        if 'electric' not in city_data:
+            city_data['electric'] = False
+
+        if 'of_interest' not in city_data:
+            city_data['of_interest'] = False
+
+        if 'number_first_address' not in city_data:
+            city_data['number_first_address'] = False
+
+        if 'MAP_SIZES' not in city_data and 'MAP_LIMITS' in city_data:
+            city_data['MAP_SIZES'] = {'MAP_X': 1920, 'MAP_Y': 1080}
+
+        if 'API_AVAILABLE_VEHICLES_HEADERS' not in city_data:
+            city_data['API_AVAILABLE_VEHICLES_HEADERS'] = False
+
+    return all_cities
+
 def is_latlng_in_bounds(city_data, lat, lng=False):
     if not lng:
         lng = lat[1]
