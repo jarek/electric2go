@@ -107,6 +107,12 @@ def get_all_cities(system="car2go"):
     if system == "car2go":
         from car2go import city as car2go_city
         all_cities = car2go_city.CITIES
+    elif system == "drivenow":
+        from drivenow import city as drivenow_city
+        all_cities = drivenow_city.CITIES
+    elif system == "translink":
+        from translink import city as translink_city
+        all_cities = translink_city.CITIES
     else:
         raise KeyError("Unknown system: {system}".format(system=system))
 
