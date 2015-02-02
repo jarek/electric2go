@@ -1,13 +1,16 @@
+Currently this is best developed for car2go. Other systems are more manual until I write helper functions.
+
+
 get bounds of operational areas:
 
 jarek@x1:~/projects/electric2go$ python
->>> import city
+>>> from car2go import city
 >>> city.get_latlng_extent('milano')
 (9.27821, 9.066236, 45.535522, 45.398983)
 
 (some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - city.print_operation_areas() can help you find them)
 
-paste these into city.py BOUNDS dict for the city
+paste these into city.py BOUNDS dict for the city, optionally adding some padding to allow for GPS inaccuracies
 
 
 unfortunately OSM seems to have changed their PNG export interface so finding correct dimensions for the map will take a bit of trial and error
@@ -16,9 +19,6 @@ start with this URL:
 
 http://render.openstreetmap.org/cgi-bin/export?bbox=WEST,SOUTH,EAST,NORTH&scale=69333&format=png
 
-aka
-
-http://render.openstreetmap.org/cgi-bin/export?bbox=WEST,SOUTH,EAST,NORTH&scale=69333&format=png
 
 
 check the size of the exported image, then adjust scale to get desired size in the limiting dimension. (if you want to do 16:9 ratio, the north-south dimension will almost always be the limiting one)

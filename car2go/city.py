@@ -310,47 +310,58 @@ CITIES = {
     },
     'ulm': {},
     'vancouver': {'of_interest': True, 'electric': 'some',
-        # TODO: vancouver should be updated for new home area bounds. think about vancouver-metro to include ferries and langley and so on?
         'number_first_address': True,
         'BOUNDS': {
-            'NORTH': 49.336, # exact value 49.335735
-            'SOUTH': 49.224, # exact value 49.224716
-            'EAST':  -123.031, # exact value -123.03196
-            'WEST':  -123.252
-            # limit of home area is -123.21545; westernmost parking spot 
-            # at UBC is listed as centered on -123.2515
-            
-            # there's also parkspots in Richmond and Langley,
-            # I am ignoring them to make map more compact.
+            # Based on operation areas and parking spots as of January 2015,
+            # bounds are defined as:
+            # north: North Van northern boundary, exact value 49.335808
+            # south: Richmond southern boundary, exact value 49.16097
+            # east: BCIT Burnaby parking lot, exact value -123.0081
+            # west: UBC westernmost parking lot, exact value -123.25777
+            # + 0.003 padding on all sides to account for GPS wobble.
+            # This excludes parking areas at: Grouse Mtn, Horseshoe Bay, and Kwantlen Surrey and Langley campuses,
+            # as these are marginal areas that would stretch the map too much in north-south dimension.
+            'NORTH': 49.338808,
+            'SOUTH': 49.15797,
+            'EAST': -123.0051,
+            'WEST': -123.26077
         },
         'MAP_LIMITS': {
-            # E & W values are different than home area bounds - 16:9 aspect ratio
-            # map scale is 1 : 63200 for 1920x1080
-            # http://parent.tile.openstreetmap.org/cgi-bin/export?bbox=-123.29415,49.224,-122.98885,49.336&scale=63200&format=png
-            'NORTH': 49.336,
-            'SOUTH': 49.224,
-            'EAST':  -122.98885,
-            'WEST':  -123.29415
+            # E & W values are different than home area bounds - expanded symmetrically for 16:9 aspect ratio
+            # map scale is 1 : 101947 for 1920x1080
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-123.379119,49.15797,-122.886751,49.338808&scale=101947&format=png
+            'NORTH': 49.338808,
+            'SOUTH': 49.15797,
+            'EAST': -122.886751,
+            'WEST': -123.379119
         },
         'DEGREE_LENGTHS': {
-            # for latitude 49.28
-            'LENGTH_OF_LATITUDE': 111215.12,
-            'LENGTH_OF_LONGITUDE': 72760.72
+            # for latitude 49.25
+            'LENGTH_OF_LATITUDE': 111214.54,
+            'LENGTH_OF_LONGITUDE': 72804.85
         },
         'MAP_SIZES': {
             'MAP_X' : 1920,
             'MAP_Y' : 1080
         },
         'LABELS': {
-            'fontsizes': [35, 22, 30, 18, 18],
+            'fontsizes': [35, 22, 30, 18],
             'lines': [
-                (20, 1080 - 55),
-                (20, 1080 - 93),
-                (20, 1080 - 132),
-                (20, 1080 - 170),
-                (20, 1080 - 195)
+                (100, 1080 - 135),
+                (100, 1080 - 173),
+                (100, 1080 - 212),
+                (100, 1080 - 250)
             ]
         }
+    },
+    'vancouver-metro': {
+        # Could do a wider area Vancouver analysis including all the outlying areas.
+
+        # The limits would be (as of January 2015):
+        # north = Grouse parking / home area at 49.37522
+        # south = Kwantlen Langley western campus parking spot at 49.100723
+        # east = Kwantlen Langley eastern campus parking spot at -122.64428
+        # west = Horseshoe Bay parking / home area at -123.2745
     },
     'washingtondc': {'display': 'Washington, D.C.',
         'number_first_address': True},
@@ -414,12 +425,47 @@ def get_operation_areas(city):
 
     return json.loads(data_text).get('placemarks')
 
+def get_parking_spots(city):
+    import cars
+    import json
+
+    API_PARKING_URL = 'https://www.car2go.com/api/v2.1/parkingspots?loc={loc}&oauth_consumer_key={key}&format=json'
+
+    data_text = cars.get_URL(API_PARKING_URL.format(loc=city, key=OAUTH_KEY))
+
+    return json.loads(data_text).get('placemarks')
+
 def print_operation_areas(city):
     areas = get_operation_areas(city)
 
     for area in areas:
         print '%s: %s zone' % (area['name'], area['zoneType'])
         print 'border points: %d, bounds: %s' % (len(area['coordinates']), get_max_latlng(area))
+
+def print_parking_spots(city, lat_gt=False, lat_lt=False, lng_gt=False, lng_lt=False):
+    spots = get_parking_spots(city)
+
+    # mimic data format for operation area bounds
+    all_coords = {'coordinates': []}
+
+    for spot in spots:
+        lat = spot['coordinates'][1]
+        lng = spot['coordinates'][0]
+
+        # filter points if requested
+        if lat_gt and lat < lat_gt:
+            continue
+        if lat_lt and lat > lat_lt:
+            continue
+        if lng_gt and lng < lng_gt:
+            continue
+        if lng_lt and lng > lng_lt:
+            continue
+
+        # if we're here, point shouldn't be filtered, add to list
+        all_coords['coordinates'].extend(spot['coordinates'])
+
+    print 'parking spots: %d, bounds: %s' % (len(all_coords['coordinates']), get_max_latlng(all_coords))
 
 def get_max_latlng(area):
     latitudes = []
