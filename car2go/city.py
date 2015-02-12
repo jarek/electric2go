@@ -141,6 +141,7 @@ CITIES = {
         }
     },
     'montreal': {'of_interest': True, 'number_first_address': True,
+        'display': 'Montréal',
         'BOUNDS': {
             'NORTH': 45.584, # exact value is 45.58317
             'SOUTH': 45.452, # exact value is 45.452515
@@ -410,7 +411,6 @@ KNOWN_CITIES = [
     if ('BOUNDS' in CITIES[city]
         and 'MAP_LIMITS' in CITIES[city]
         and 'DEGREE_LENGTHS' in CITIES[city]
-        and 'MAP_SIZES' in CITIES[city]
         and 'LABELS' in CITIES[city])
     ]
 
