@@ -1,8 +1,9 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import numpy as np
+import scipy.stats as sps
 
 
 # TODO: these functions should create CSV rather than print results
@@ -48,6 +49,19 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time,
     weird_trip_distance_cutoff = 0.05, weird_trip_time_cutoff = 5,
     # time cutoff should be 2 for 1 minute step data
     weird_trip_fuel_cutoff = 1):
+
+    def dataset_count_over(trips, thresholds, sorting_lambda=False):
+        results = []
+        for threshold in thresholds:
+            if not sorting_lambda:
+                trip_count = sum(1 for x in trips if x > threshold)
+            else:
+                trip_count = sum(1 for x in trips if sorting_lambda(x, threshold))
+
+            results.append((threshold, trip_count))
+
+        return results
+
     def trip_breakdown(trips, sorting_bins = [120, 300, 600],
         sorting_lambda = False, label = False):
         # uses stats['total_trips'] defined before calling this subfunction
@@ -82,29 +96,66 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time,
                 (trip_count, trip_count/time_days, 
                 trip_count * 1.0 / stats['total_trips'])
 
-    def quartiles(data):
+    def quartiles(collection, days=1.0):
         result = {}
-        for i in range(5):
-            pass
-            #result[(i*25)] = sps.scoreatpercentile(data, i*25)
+        for i in range(0, 101, 25):
+            result[i] = sps.scoreatpercentile(collection, i) / days
         return result
 
-    def format_quartiles(data, format = '%0.3f'):
-        result = ''
-        data = quartiles(data)
-        for percent in data:
-            result += '\t%d\t' % percent
-            result += format % data[percent]
-            result += '\n'
+    def get_stats(collection, collection_binned, days=1, over=False, most_common_count=10):
+        result = OrderedDict()
+        result['count all'] = len(collection)
+        result['mean'] = np.mean(collection)
+        result['std'] = np.std(collection)
+        quartiles_overall = quartiles(collection, 1.0)
+        result['median'] = quartiles_overall[50]
+        result['quartiles'] = quartiles_overall
+        result['most common binned values'] = Counter(collection_binned).most_common(most_common_count)
+
+        if days != 1.0:
+            days = days * 1.0  # make sure it's a decimal
+            result['mean per day'] = result['mean'] / days
+            quartiles_per_day = quartiles(collection, days)
+            result['median per day'] = quartiles_per_day[50]
+            result['quartiles per day'] = quartiles_per_day
+
+        if over:
+            result['thresholds'] = dataset_count_over(collection, over)
+
+        return result
+
+    def format_stats(name, input_data):
+        result = OrderedDict()
+
+        # format quartiles
+        if 'quartiles' in input_data:
+            for threshold, amount in input_data['quartiles'].items():
+                input_data['quartile %d' % threshold] = amount
+            del input_data['quartiles']
+
+        if 'quartiles per day' in input_data:
+            for threshold, amount in input_data['quartiles per day'].items():
+                input_data['per day quartile %d' % threshold] = amount
+            del input_data['quartiles per day']
+
+        # format thresholds
+        if 'thresholds' in input_data:
+            for threshold, count_over in input_data['thresholds']:
+                input_data['over %d ratio' % threshold] = count_over * 1.0 / input_data['count all']
+            del input_data['thresholds']
+
+        # prefix with name
+        for key, value in input_data.items():
+            result['%s %s' % (name, key)] = value
+
         return result
 
     def round_to(value, round_to):
         return round_to*int(value*(1.0/round_to))
 
-    stats = {'total_vehicles': 0,
-        'total_trips': 0, 'trips': [],
-        'total_distance': 0, 'distances': [], 'distance_bins': [],
-        'total_duration': 0, 'durations': [], 'duration_bins': []}
+    data = {'total_trips': 0, 'trips': [],
+            'total_distance': 0, 'distances': [], 'distance_bins': [],
+            'total_duration': 0, 'durations': [], 'duration_bins': []}
     weird = []
     suspected_round_trip = []
     refueled = []
@@ -116,26 +167,26 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time,
         if trip['distance'] <= weird_trip_distance_cutoff:
             suspected_round_trip.append(trip)
             test_duration = weird_trip_time_cutoff * 60 # min to sec
-            print trip
+            #print trip
             if trip['duration'] <= test_duration and \
                 trip['fuel_use'] <= weird_trip_fuel_cutoff:
                 # do not count this trip... it's an anomaly
-                print 'weird'
+                #print 'weird'
                 weird.append(trip)
                 trip_counts_by_vin[vin] = trip_counts_by_vin[vin] - 1
                 continue
 
-        stats['total_duration'] += trip['duration']/60
-        stats['durations'].append(trip['duration']/60)
+        data['total_duration'] += trip['duration']/60
+        data['durations'].append(trip['duration']/60)
 
         # bin to nearest five minutes (if it isn't already)
-        stats['duration_bins'].append(round_to(trip['duration']/60, 5))
+        data['duration_bins'].append(round_to(trip['duration']/60, 5))
 
-        stats['total_distance'] += trip['distance']
-        stats['distances'].append(trip['distance'])
+        data['total_distance'] += trip['distance']
+        data['distances'].append(trip['distance'])
 
         # bin to nearest 0.5 km
-        stats['distance_bins'].append(round_to(trip['distance'], 0.5))
+        data['distance_bins'].append(round_to(trip['distance'], 0.5))
 
         if 'starting_fuel' in trip:
             if trip['ending_fuel'] > trip['starting_fuel']:
@@ -145,49 +196,37 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time,
         if vin not in trip_counts_by_vin:
             trip_counts_by_vin[vin] = 0
 
-    stats['trips'] = trip_counts_by_vin.values()
-    stats['total_vehicles'] = len(trip_counts_by_vin)
-    stats['total_trips'] = len(all_trips) - len(weird)
-
     # subtracting time_step below to get last file actually processed
     time_elapsed = ending_time - starting_time
-    time_days = time_elapsed.total_seconds() / (24*60*60)
-    print 'time elapsed: %s (%0.3f days)' % (time_elapsed, time_days)
+    time_elapsed_seconds = time_elapsed.total_seconds()
+    time_days = time_elapsed_seconds * 1.0 / (24*60*60)
 
-    print '\ntotal trips: %d (%0.2f per day), total vehicles: %d' % \
-        (stats['total_trips'], stats['total_trips'] * 1.0 / time_days,
-        stats['total_vehicles'])
-    print 'mean total vehicle utilization (%% of day spent moving): %0.3f' % \
-        (stats['total_duration'] / stats['total_vehicles'] / (24*60*time_days))
+    data['trips'] = trip_counts_by_vin.values()
 
-    trip_counter = Counter(stats['trips'])
-    print '\nmean trips per car: %0.2f' % (np.mean(stats['trips'])),
-    if abs(time_days-1.0) > 0.01:
-        print ' (%0.2f per day),' % (np.mean(stats['trips']) / time_days),
-    else:
-        print ',',
-    print 'stdev: %0.3f' % np.std(stats['trips'])
-    print 'most common trip counts: %s' % trip_counter.most_common(10)
-    print 'cars with zero trips: %d' % trip_counter[0]
-    print 'trip count per day quartiles:'
-    print format_quartiles(np.array(stats['trips'])/time_days, format='%0.2f')
+    stats = OrderedDict()
+    stats['total_vehicles'] = len(trip_counts_by_vin)
+    stats['total_trips'] = len(all_trips) - len(weird)
+    stats['total_trips per day'] = stats['total_trips'] / time_days
 
-    print 'mean distance per trip (km): %0.2f, stdev: %0.3f' % \
-        (np.mean(stats['distances']), np.std(stats['distances']))
-    print 'most common distances, rounded to nearest 0.5 km: %s' % \
-        Counter(stats['distance_bins']).most_common(10)
-    print trip_breakdown(stats['distances'], sorting_bins = [5, 10],
-        label = lambda dist, count: 'trips over %d km: %s' % (dist, count))
-    print 'distance quartiles: '
-    print format_quartiles(stats['distances'])
+    stats['time_elapsed_seconds'] = time_elapsed_seconds
+    stats['time_elapsed_days'] = time_days
 
-    print 'mean duration per trip (minutes): %0.2f, stdev: %0.3f' % \
-        (np.mean(stats['durations']), np.std(stats['durations']))
-    print 'most common durations, rounded to nearest 5 minutes: %s' % \
-        Counter(stats['duration_bins']).most_common(10)
-    print trip_breakdown(stats['durations'])
-    print 'duration quartiles: '
-    print format_quartiles(stats['durations'], format = '%d')
+    stats['utilization_ratio'] = data['total_duration'] / stats['total_vehicles'] / (time_elapsed_seconds/60)
+
+    stats.update(format_stats('trips per car',
+                              get_stats(data['trips'], data['trips'], time_days)))
+
+    stats.update(format_stats('distance per trip',
+                              get_stats(data['distances'], data['distance_bins'], over=[5, 10])))
+
+    stats.update(format_stats('duration per trip',
+                              get_stats(data['durations'], data['duration_bins'], over=[120, 300, 600])))
+
+    for key, value in stats.items():
+        print '%s : %s' % (key, value)
+
+    # TODO: clean up code detecting weird trips and generating statistics from those as well.
+    # TODO: return a dict suited for saving to CSV file rather than printing
 
     # this is a weirdness with the datasets: 
     # some have lots of short (<50 m, even <10m) trips.
