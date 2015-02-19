@@ -9,4 +9,4 @@
 # adapt for other systems as necessary
 # this command is pretty hacky, can probably be done better, but it seems to work at least on Debian Wheezy
 
-0 1 * * * cd .../electric2go/data/car2go/ && find . -type f -name "`date -d 'yesterday 13:00' '+*\%Y-\%m-\%d*'`" -printf "\%P\n" | awk -F '_' '{print $1}' | sort -u | xargs -i sh -c "tar cfz ../car2go-archives/{}_`date -d 'yesterday 13:00' '+\%Y-\%m-\%d'`.tgz {}*" >> .../electric2go/data/cronlog-archives
+0 1 * * * cd .../electric2go/data/car2go/ && find . -type f -name "`date -d 'yesterday 13:00' '+*\%Y-\%m-\%d*'`" | awk -F '--' '{print $1}' | sort -u | xargs -i sh -c "tar cfz ../car2go-archives/{}.tgz {}*" >> .../electric2go/data/cronlog-car2go-archives
