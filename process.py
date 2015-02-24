@@ -272,7 +272,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
         process_dump.dump_trips(all_trips, filename, tz_offset)
 
     if trace and filter_trips:
-        print process_stats.trace_vehicle(all_trips, filter_trips)
+        process_stats.trace_vehicle(all_trips, filter_trips)
 
     if stats:
         process_stats.print_stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)

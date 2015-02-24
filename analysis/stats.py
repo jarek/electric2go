@@ -2,48 +2,65 @@
 # coding=utf-8
 
 from collections import Counter, OrderedDict
+import unicodecsv
+from datetime import datetime
 import numpy as np
 import scipy.stats as sps
 
 
-# TODO: these functions should create CSV rather than print results
+def csv_file_name(category):
+    return '{date}_{category}.csv'.format(
+        date=datetime.now().strftime('%Y%m%d-%H%M%S'),
+        category=category)
+
+
+def write_csv(f, items):
+    """
+    :type items: OrderedDict
+    """
+
+    if len(items) == 0:
+        # nothing to write
+        return f
+
+    fieldnames = items[0].keys()  # this works as expected because we use OrderedDicts
+    writer = unicodecsv.DictWriter(f, fieldnames)
+
+    writer.writeheader()
+    for item in items:
+        writer.writerow(item)
+
+    return f
+
 
 def trace_vehicle(trips, criterion):
-    def format_trip(trip):
-        result  = 'start: %s at %f,%f' % \
-            (trip['starting_time'], trip['from'][0], trip['from'][1])
-        result += ', end: %s at %f,%f' % \
-            (trip['ending_time'], trip['to'][0], trip['to'][1])
-        result += '\n\tduration: %d minutes' % (trip['duration'] / 60)
-        result += '\tdistance: %0.2f km' % (trip['distance'])
-        result += '\tfuel: starting %d%%, ending %d%%' % \
-            (trip['starting_fuel'], trip['ending_fuel'])
+    def trip_dict(trip):
+        result = OrderedDict()
 
-        if trip['ending_fuel'] > trip['starting_fuel']:
-            result += ' - refueled'
+        result['vin'] = trip['vin']
+        result['position start lat'] = trip['from'][0]
+        result['position start lng'] = trip['from'][1]
+        result['position end lat'] = trip['to'][0]
+        result['position end lng'] = trip['to'][1]
+        result['time start'] = trip['starting_time']
+        result['time end'] = trip['ending_time']
+        result['fuel start'] = trip['starting_fuel']
+        result['fuel end'] = trip['ending_fuel']
+        result['distance'] = trip['distance']
+        result['duration'] = trip['duration'] / 60
+        result['fuel use'] = trip['fuel_use']
+
+        # TODO: starting condition, ending condition. will require changes in process.py
 
         return result
 
-    lines = []
+    formatted_trips = map(trip_dict, trips)
+    file_name = csv_file_name('trace-{}'.format(criterion))
+    with open(file_name, 'w') as f:
+        write_csv(f, formatted_trips)
 
-    vin = trips[0]['vin'] if len(trips) else 'none'
+    return
 
-    if criterion == 'most_trips':
-        lines.append('vehicle with most trips is %s with %d trips' %
-                     (vin, len(trips)))
-    elif criterion == 'most_distance':
-        lines.append('vehicle with highest distance travelled is %s with %0.3f km' %
-                     (vin, sum(t['distance'] for t in trips)))
-    elif criterion == 'most_duration':
-        duration = sum(t['duration'] for t in trips)/60
-        lines.append('vehicle with highest trip duration is %s with %d minutes (%0.2f hours)' %
-                     (vin, duration, duration/60))
-
-    lines.append('trips for vehicle %s: (count %d)' % (vin, len(trips)))
-    for trip in trips:
-        lines.append(format_trip(trip))
-
-    return '\n'.join(lines)
 
 def print_stats(all_trips, all_known_vins, starting_time, ending_time):
 
