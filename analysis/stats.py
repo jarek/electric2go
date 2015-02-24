@@ -16,7 +16,7 @@ def csv_file_name(category):
 
 def write_csv(f, items):
     """
-    :type items: OrderedDict
+    :type items: list[OrderedDict]
     """
 
     if len(items) == 0:
@@ -31,6 +31,12 @@ def write_csv(f, items):
         writer.writerow(item)
 
     return f
+
+
+def write_csv_to_file(category, items):
+    file_name = csv_file_name(category)
+    with open(file_name, 'w') as f:
+        write_csv(f, items)
 
 
 def trace_vehicle(trips, criterion):
@@ -55,41 +61,38 @@ def trace_vehicle(trips, criterion):
         return result
 
     formatted_trips = map(trip_dict, trips)
-    file_name = csv_file_name('trace-{}'.format(criterion))
-    with open(file_name, 'w') as f:
-        write_csv(f, formatted_trips)
-
-    return
+    write_csv_to_file(category='trace-{}'.format(criterion),
+                      items=formatted_trips)
 
 
-def print_stats(all_trips, all_known_vins, starting_time, ending_time):
-
-    def dataset_count_over(trips, thresholds, sorting_lambda=False):
-        """
-        :type sorting_lambda: function
-        """
-        results = []
-        for threshold in thresholds:
-            if not sorting_lambda:
-                trip_count = sum(1 for x in trips if x > threshold)
-            else:
-                trip_count = sum(1 for x in trips if sorting_lambda(x, threshold))
-
-            results.append((threshold, trip_count))
-
-        return results
-
-    def quartiles(collection, days):
-        result = {}
-        for i in range(0, 101, 25):
-            result[i] = sps.scoreatpercentile(collection, i) / days
-        return result
-
-    def get_stats(collection, collection_binned, days=1.0, over=False, under=False, most_common_count=10):
+def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
+    def stats_for_collection(collection, collection_binned, days=1.0, over=False, under=False, most_common_count=10):
         """
         :type over: list
         :type under: list
         """
+
+        def dataset_count_over(trips, thresholds, sorting_lambda=False):
+            """
+            :type sorting_lambda: function
+            """
+            results = []
+            for threshold in thresholds:
+                if not sorting_lambda:
+                    trip_count = sum(1 for x in trips if x > threshold)
+                else:
+                    trip_count = sum(1 for x in trips if sorting_lambda(x, threshold))
+
+                results.append((threshold, trip_count))
+
+            return results
+
+        def quartiles(quartiles_collection, quartiles_days):
+            quartiles_dict = {}
+            for i in range(0, 101, 25):
+                quartiles_dict[i] = sps.scoreatpercentile(quartiles_collection, i) / quartiles_days
+            return quartiles_dict
+
         result = OrderedDict()
         result['count all'] = len(collection)
         result['mean'] = np.mean(collection)
@@ -152,15 +155,15 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time):
         return result
 
     def duration(collection):
-        return [trip['duration']/60 for trip in collection]
+        return [coll_trip['duration']/60 for coll_trip in collection]
 
     def distance(collection):
-        return [trip['distance'] for trip in collection]
+        return [coll_trip['distance'] for coll_trip in collection]
 
     def fuel(collection):
-        return [trip['fuel_use'] for trip in collection]
+        return [coll_trip['fuel_use'] for coll_trip in collection]
 
-    def list_round(collection, round_to):
+    def collection_round(collection, round_to):
         return [round_to * int(coll_value * (1.0 / round_to)) for coll_value in collection]
 
     trips_weird = []
@@ -215,25 +218,25 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time):
     stats['utilization ratio'] = sum(duration(trips_good)) / len(trip_counts_by_vin) / (time_elapsed_seconds/60)
 
     stats.update(format_stats('trips per car',
-                              get_stats(trips_per_car,
-                                        trips_per_car,
-                                        time_elapsed_days)))
+                              stats_for_collection(trips_per_car,
+                                                   trips_per_car,
+                                                   time_elapsed_days)))
 
     stats.update(format_stats('distance per trip',
-                              get_stats(distance(trips_good),
-                                        list_round(distance(trips_good), 0.5),
-                                        over=[5, 10])))
+                              stats_for_collection(distance(trips_good),
+                                                   collection_round(distance(trips_good), 0.5),
+                                                   over=[5, 10])))
 
     stats.update(format_stats('duration per trip',
-                              get_stats(duration(trips_good),
-                                        list_round(duration(trips_good), 5),
-                                        over=[2, 5, 10])))
+                              stats_for_collection(duration(trips_good),
+                                                   collection_round(duration(trips_good), 5),
+                                                   over=[2, 5, 10])))
 
     stats.update(format_stats('fuel use stats',
-                              get_stats(fuel(trips_good),
-                                        fuel(trips_good),
-                                        under=[1, 5],
-                                        over=[1, 5, 10])))
+                              stats_for_collection(fuel(trips_good),
+                                                   fuel(trips_good),
+                                                   under=[1, 5],
+                                                   over=[1, 5, 10])))
 
     # get some stats on weird trips as outlined above
     stats['weird trip count'] = len(trips_weird)
@@ -241,14 +244,17 @@ def print_stats(all_trips, all_known_vins, starting_time, ending_time):
     stats['weird trip ratio'] = len(trips_weird) * 1.0 / len(all_trips)
 
     stats.update(format_stats('weird trips duration',
-                              get_stats(duration(trips_weird),
-                                        duration(trips_weird))))
+                              stats_for_collection(duration(trips_weird),
+                                                   duration(trips_weird))))
     stats.update(format_stats('weird trips distance',
-                              get_stats(distance(trips_weird),
-                                        list_round(distance(trips_weird), 0.002),
-                                        under=[0.01, 0.02])))
+                              stats_for_collection(distance(trips_weird),
+                                                   collection_round(distance(trips_weird), 0.002),
+                                                   under=[0.01, 0.02])))
 
-    for key, value in stats.items():
-        print '%s : %s' % (key, value)
+    return stats
 
-    # TODO: return a dict suited for saving to CSV file rather than printing
+
+def stats(all_trips, all_known_vins, starting_time, ending_time):
+    result = stats_dict(all_trips, all_known_vins, starting_time, ending_time)
+
+    write_csv_to_file(category='stats', items=[result])

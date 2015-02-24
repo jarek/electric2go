@@ -275,7 +275,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
         process_stats.trace_vehicle(all_trips, filter_trips)
 
     if stats:
-        process_stats.print_stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
+        process_stats.stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
 
     if all_positions_image:
         process_graph.make_positions_graph(city, all_positions, all_positions_image, symbol)
