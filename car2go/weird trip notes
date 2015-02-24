@@ -1,0 +1,85 @@
+Initial ideas
+=============
+
+Some categories of "weird" trips that might be of concern in analysis/stats.py:
+- Trips with really short distance but long duration and significant fuel use
+  - These are likely to be round trips, treat them as normal except maybe collect separately for analysis
+- Trips with really short distance and zero fuel use
+  - These are likely to be lapsed reservations, especially if duration is exactly 30 minutes
+    (though note that you can cancel a booking so not necessarily 30 minutes)
+    (added complication of fuel level wobble possibility)
+- Trips with really short distance and really short duration
+  - These are GPS wobble
+
+The procedure was then to take a ~big dataset (ended up being a week of Vancouver data),
+take short-distance trips from that dataset, get stats on on duration and fuel use,
+see if any of the above categories are in fact present, if so isolate and report on them.
+
+
+Distances
+=========
+
+In a 7-day vancouver sample, going by distance only, as ratio of all trips:
+
+- under 0.01 km : 0.00630854060822
+- under 0.02 km : 0.00821073415039
+- under 0.05 km : 0.0106667308757
+- under 0.1 km : 0.0151453131396
+
+100 m is definitely a valid trip (though a suspected round trip).
+Under 50 m, I examined further.
+Shortest "trip" in the dataset is 0.00111194926601 km, that is 1.1 m.
+
+
+Fuel use
+========
+
+For all trips (n=41809), fuel use most common values are : [(0, 26105), (3, 11356), (6, 1621), (4, 762)]
+1 and 2 aren't in top ten, suggesting that the measurement isn't accurate enough to give 1% resolution?
+- fuel use over 1 ratio : 0.3497811476
+- fuel use over 5 ratio : 0.0599392475304
+- fuel use over 10 ratio : 0.00674495921931
+- fuel use under 1 ratio : 0.6502188524
+- fuel use under 5 ratio : 0.94006075247
+
+So low fuel use is not a reliable indicator generally. Must be combined with other factors.
+
+
+Durations
+=========
+
+In the dataset of 41809:
+- Trips of 1 minute are 275 (0.67%). Median distance 6.2 m. 64% are under 10 m. 24% are over 20 m, 20% over 50 m. Fuel use is 90% 0.
+- Trips of 2 minutes are 58 (0.14%). Median distance 1.21 km (!). 27.5% are under 20 m, and 25th percentile is 15.6 m,
+    but it goes really high after that: 75th percentile is 3.19 km, and max is 7.77 km. Fuel use is 84% 0, there are 7 3%s, one 4%, and -79%.
+    Obviously 1.2 km in 2 minutes is pretty big (36 km/h just driving and without allowing time to start/finish trip),
+    so it's likely that are mostly errors and weird things. But the prevalence (0.14%) is very low so perhaps it can just be ignored.
+    We'll just do a best-effort exclusion of that bottom 25% of trips that can be definitely said to not be "real" trips.
+- Trips over 2 minutes but under 6 minutes are 616 (1.5%). Mean distance is 806 m.
+    90% of trips are over 50 m, only 7.5% under 20 m. 80% of fuel use is 0, next most common is 3 at 15%.
+
+Lapsed reservations (duration ~30 min) weren't a significant ratio of the short-distance trips as far as I can tell, so not tracking those further for now.
+
+Thoughts for the future: maybe subtract 2-3 minutes from duration of trip to account for trip start and end procedures
+and calculate speed outside those times? If it's something obviously high (>80 km/h perhaps?) there is a problem.
+
+
+Decision
+========
+
+Decided to exclude:
+
+- Distance under 10 m and duration under 4 minutes and fuel use > -2:
+    - Too short to be a real trip, too quick to be a round trip,
+      fuel use criterion allows accidental wobbles while excluding possible refuels
+- Distance under 50 m and duration of 1 minute and fuel use > -2:
+    - Too quick to be a real trip, so this is GPS wobble.
+
+These criteria find 245 trips in the set of 41809, or 0.585998%.
+
+For comparison, if the criterion was duration <= 5 minutes and distance < 50 m,
+it would match 294 trips, or 0.7031979%.
+But at the outer limit, 5 minutes and 50 m is a possible quick round trip, so I decided to be a bit more stringent.
+
+Because of the low prevalence this is really best-effort to try to find some of the obvious errors,
+and it's not a huge problem if we don't find everything.
