@@ -239,17 +239,18 @@ def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
                                                    over=[1, 5, 10])))
 
     # get some stats on weird trips as outlined above
-    stats['weird trip count'] = len(trips_weird)
-    stats['weird trips per day'] = len(trips_weird) * 1.0 / time_elapsed_days
-    stats['weird trip ratio'] = len(trips_weird) * 1.0 / len(all_trips)
+    if len(trips_weird) > 0:
+        stats['weird trip count'] = len(trips_weird)
+        stats['weird trips per day'] = len(trips_weird) * 1.0 / time_elapsed_days
+        stats['weird trip ratio'] = len(trips_weird) * 1.0 / len(all_trips)
 
-    stats.update(format_stats('weird trips duration',
-                              stats_for_collection(duration(trips_weird),
-                                                   duration(trips_weird))))
-    stats.update(format_stats('weird trips distance',
-                              stats_for_collection(distance(trips_weird),
-                                                   collection_round(distance(trips_weird), 0.002),
-                                                   under=[0.01, 0.02])))
+        stats.update(format_stats('weird trips duration',
+                                  stats_for_collection(duration(trips_weird),
+                                                       duration(trips_weird))))
+        stats.update(format_stats('weird trips distance',
+                                  stats_for_collection(distance(trips_weird),
+                                                       collection_round(distance(trips_weird), 0.002),
+                                                       under=[0.01, 0.02])))
 
     return stats
 
