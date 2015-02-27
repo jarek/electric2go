@@ -12,13 +12,23 @@ from random import choice
 import time
 
 import cars
-from car2go.city import KNOWN_CITIES
-import car2go.parse as parser
 from analysis import stats as process_stats, graph as process_graph, dump as process_dump
 
 
 timer = []
 DEBUG = False
+
+system = "car2go"  # TODO: read this in from command line
+
+if system == "car2go":
+    from car2go.city import KNOWN_CITIES
+    from car2go.parse import process_data
+elif system == "drivenow":
+    from drivenow.city import KNOWN_CITIES
+    from drivenow.parse import process_data
+else:
+    KNOWN_CITIES = []
+    # will result in all cities being reported as unsupported
 
 
 def get_filepath(city, t, file_dir):
@@ -61,10 +71,7 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
 
         print t,
 
-        if 'placemarks' in json_data:
-            json_data = json_data['placemarks']
-
-        saved_data, current_positions, current_trips = parser.process_data(json_data, t, saved_data)
+        saved_data, current_positions, current_trips = process_data(json_data, t, saved_data)
         print 'total known: %d' % len(saved_data),
         print 'moved: %02d' % len(current_trips)
 
