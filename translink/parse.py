@@ -2,5 +2,20 @@
 # coding=utf-8
 
 
-def process_data(json_data, data_time, previous_data):
-    raise NotImplementedError()
+def get_cars_from_json(json_data):
+    return json_data
+
+
+def extract_car_data(car):
+    result = {}
+
+    result['timestamp'] = car['RecordedTime']  # TODO: needs to be parsed, is in format like "03:58:21 pm"
+
+    result['vin'] = car['VehicleNo']
+
+    result['lat'] = car['Latitude']
+    result['lng'] = car['Longitude']
+
+    result['fuel'] = 0  # not reported in Translink API
+
+    return result

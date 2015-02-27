@@ -26,6 +26,9 @@ if system == "car2go":
 elif system == "drivenow":
     from drivenow.city import KNOWN_CITIES
     from drivenow.parse import get_cars_from_json, extract_car_data
+elif system == "translink":
+    from translink.city import KNOWN_CITIES
+    from translink.parse import get_cars_from_json, extract_car_data
 else:
     KNOWN_CITIES = []
     # will result in all cities being reported as unsupported

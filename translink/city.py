@@ -25,5 +25,5 @@ for route_number, route_data in CITIES.items():
     if 'API_AVAILABLE_VEHICLES_HEADERS' not in route_data:
         route_data['API_AVAILABLE_VEHICLES_HEADERS'] = API_ROUTE_ALL_BUSES_HEADERS
 
-# nothing that can be processed/visualized for now
-KNOWN_CITIES = []
+# allow processing routes to test, though trying to map them will cause an exception
+KNOWN_CITIES = [city for city in CITIES]
