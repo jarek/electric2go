@@ -22,13 +22,13 @@ system = "car2go"  # TODO: read this in from command line
 
 if system == "car2go":
     from car2go.city import KNOWN_CITIES
-    from car2go.parse import get_cars_from_json, extract_car_data
+    from car2go.parse import get_cars_from_json, extract_car_data, extract_car_basics
 elif system == "drivenow":
     from drivenow.city import KNOWN_CITIES
-    from drivenow.parse import get_cars_from_json, extract_car_data
+    from drivenow.parse import get_cars_from_json, extract_car_data, extract_car_basics
 elif system == "translink":
     from translink.city import KNOWN_CITIES
-    from translink.parse import get_cars_from_json, extract_car_data
+    from translink.parse import get_cars_from_json, extract_car_data, extract_car_basics
 else:
     KNOWN_CITIES = []
     # will result in all cities being reported as unsupported
@@ -43,13 +43,21 @@ def get_filepath(city, t, file_dir):
 def process_data(json_data, data_time, previous_data):
     data = previous_data
     trips = []
-    positions = []
+    positions_tuples = []
+
+    # handle outer JSON structure and get a list we can loop through
+    available_cars = get_cars_from_json(json_data)
 
     # keys that are handled explicitly within the loop
     RECOGNIZED_KEYS = ['vin', 'lat', 'lng', 'fuel']
 
     # ignored keys that should not be tracked for trips - stuff that won't change during a trip
     IGNORED_KEYS = ['name', 'license_plate', 'address', 'model', 'color', 'fuel_type', 'transmission']
+
+    if len(available_cars):
+        # assume all cars will have same key structure (otherwise we'd have merged systems), and look at first one
+        OTHER_KEYS = [key for key in extract_car_data(available_cars[0]).keys()
+                      if key not in RECOGNIZED_KEYS and key not in IGNORED_KEYS]
 
     for vin in data.keys():
         # need to reset out status for cases where cars are picked up
@@ -58,22 +66,38 @@ def process_data(json_data, data_time, previous_data):
         # if necessary, just_moved will be set to true later
         data[vin]['just_moved'] = False
 
-    for car in get_cars_from_json(json_data):
-        new_car_data = extract_car_data(car)
+    for car in available_cars:
 
-        OTHER_KEYS = [key for key in new_car_data.keys()
-                      if key not in RECOGNIZED_KEYS and key not in IGNORED_KEYS]
+        vin, lat, lng = extract_car_basics(car)
+        speed = False
 
-        vin = new_car_data['vin']
-        curr_seen = data_time
-        curr_coords = [new_car_data['lat'], new_car_data['lng']]
-        position_data = {'coords': curr_coords, 'metadata': {}}
+        if vin in data and data[vin]['coords'][0] == lat and data[vin]['coords'][1] == lng:
+            # car hasn't moved, just mark it as seen and add its position below - this should be most of the cases
 
-        if vin in data:
-            car_data = data[vin]
+            data[vin]['seen'] = data_time
+            data[vin]['just_moved'] = False
 
-            if not (car_data['coords'][0] == curr_coords[0] and car_data['coords'][1] == curr_coords[1]):
-                # car has moved since last known position
+        else:
+            if vin not in data:
+                # 'new' car showing up, initialize it
+
+                new_car_data = extract_car_data(car)  # get full car info
+                data[vin] = {'coords': (new_car_data['lat'], new_car_data['lng']),
+                             'seen': data_time,
+                             'fuel': new_car_data['fuel'],
+                             'just_moved': False}
+
+                for key in OTHER_KEYS:
+                    data[vin][key] = new_car_data[key]
+
+            else:
+                # car has moved since last known position, process trip
+
+                new_car_data = extract_car_data(car)  # get full car info
+                curr_coords = (new_car_data['lat'], new_car_data['lng'])
+                curr_seen = data_time
+
+                car_data = data[vin]
                 prev_coords = car_data['coords']
                 prev_seen = car_data['seen']
                 car_data['coords'] = curr_coords
@@ -106,27 +130,16 @@ def process_data(json_data, data_time, previous_data):
 
                 data[vin]['most_recent_trip'] = trip_data
 
-                data[vin]['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
-                position_data['metadata']['speed'] = data[vin]['speed']
+                speed = current_trip_distance / (current_trip_duration / 3600.0)
+                data[vin]['speed'] = speed
 
                 trips.append(trip_data)
 
-            else:
-                # car has not moved from last known position. just update time last seen
-                car_data['seen'] = curr_seen
-                car_data['just_moved'] = False
+        # collect all positions for seen cars
+        positions_tuples.append((lat, lng, speed))
 
-        else:
-            # 'new' car showing up, initialize it
-            data[vin] = {'coords': curr_coords,
-                         'seen': curr_seen,
-                         'fuel': new_car_data['fuel'],
-                         'just_moved': False}
-
-            for key in OTHER_KEYS:
-                data[vin][key] = new_car_data[key]
-
-        positions.append(position_data)
+    positions = [{'coords': (lat, lng), 'metadata': {'speed': speed} if speed else {}}
+                 for lat, lng, speed in positions_tuples]
 
     return data, positions, trips
 
@@ -134,17 +147,13 @@ def process_data(json_data, data_time, previous_data):
 def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_skip):
     global timer, DEBUG
 
-    def load_file(filepath):
-        if not os.path.exists(filepath):
-            return False
-
-        f = open(filepath, 'r')
-        json_text = f.read()
-        f.close()
-
+    def load_file(filepath_to_load):
         try:
-            return json.loads(json_text)
+            with open(filepath_to_load, 'r') as f:
+                result = json.load(f)
+            return result
         except:
+            # return False if file does not exist or is malformed
             return False
 
     i = 1
@@ -170,7 +179,7 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
         print 'total known: %d' % len(saved_data),
         print 'moved: %02d' % len(current_trips)
 
-        timer.append((filepath + ': process_data, ms',
+        timer.append((filepath + ': batch_load_data process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
         time_organize_start = time.time()
@@ -196,7 +205,12 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
         t = t + timedelta(0, time_step*60)
         filepath = get_filepath(city, t, file_dir)
 
+        time_load_start = time.time()
+
         json_data = load_file(filepath)
+
+        timer.append((filepath + ': batch_load_data load_file, ms',
+             (time.time()-time_load_start)*1000.0))
 
         if json_data == False:
             print 'would stop at %s' % filepath
@@ -274,10 +288,16 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
     global timer, DEBUG
 
     # read in all data
+    time_load_start = time.time()
     (data_frames, all_positions, all_trips,
      trips_by_vin, ending_time, total_frames) = batch_load_data(city, file_dir,
                                                                 starting_time, time_step,
                                                                 max_files, max_skip)
+    if DEBUG:
+        time_load_total = (time.time() - time_load_start)
+        time_load_frame = time_load_total / total_frames
+        print '\ntotal data load loop: {:d} frames, {:f} s, {:f} ms per frame, {:f} s per 60 frames, {:f} s per 1440 frames'.format(
+            total_frames, time_load_total, time_load_frame * 1000, time_load_frame * 60, time_load_frame * 1440)
 
     # set up params for iteratively-named images
     starting_file_name = get_filepath(city, starting_time, file_dir)

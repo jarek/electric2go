@@ -9,6 +9,10 @@ def get_cars_from_json(json_data):
         return []
 
 
+def extract_car_basics(car):
+    return car['id'], car['latitude'], car['longitude']
+
+
 def extract_car_data(car):
     result = {}
 
