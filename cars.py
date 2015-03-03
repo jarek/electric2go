@@ -74,6 +74,18 @@ def get_all_cars_text(city_obj, force_download=False):
         json_text = get_URL(city_obj['data']['API_AVAILABLE_VEHICLES_URL'],
                             city_obj['data']['API_AVAILABLE_VEHICLES_HEADERS'])
 
+    # handle JSONP if necessary
+    if 'JSONP_CALLBACK_NAME' in city_obj['data']:
+        prefix = '{callback}('.format(callback=city_obj['data']['JSONP_CALLBACK_NAME'])
+        suffix1 = ');'
+        suffix2 = ')'
+
+        if json_text.startswith(prefix):
+            if json_text.endswith(suffix1):
+                json_text = json_text[len(prefix):-len(suffix1)]
+            elif json_text.endswith(suffix2):
+                json_text = json_text[len(prefix):-len(suffix2)]
+
     return json_text, cache
 
 def get_electric_cars(city):
@@ -113,6 +125,9 @@ def get_all_cities(system="car2go"):
     elif system == "translink":
         from translink import city as translink_city
         all_cities = translink_city.CITIES
+    elif system == "communauto":
+        from communauto import city as communauto_city
+        all_cities = communauto_city.CITIES
     else:
         raise KeyError("Unknown system: {system}".format(system=system))
 
