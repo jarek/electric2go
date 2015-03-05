@@ -13,12 +13,14 @@ def extract_car_basics(car):
 def extract_car_data(car):
     result = {}
 
+    vin, lat, lng = extract_car_basics(car)
+
+    result['vin'] = vin
+
+    result['lat'] = lat
+    result['lng'] = lng
+
     result['timestamp'] = car['RecordedTime']  # TODO: needs to be parsed, is in format like "03:58:21 pm"
-
-    result['vin'] = car['VehicleNo']
-
-    result['lat'] = car['Latitude']
-    result['lng'] = car['Longitude']
 
     result['fuel'] = 0  # not reported in Translink API
 

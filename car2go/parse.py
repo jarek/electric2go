@@ -16,13 +16,15 @@ def extract_car_basics(car):
 def extract_car_data(car):
     result = {}
 
-    result['vin'] = car['vin']
+    vin, lat, lng = extract_car_basics(car)
+
+    result['vin'] = vin
     result['license_plate'] = car['name']
 
     result['model'] = 'smart fortwo'
 
-    result['lat'] = car['coordinates'][1]
-    result['lng'] = car['coordinates'][0]
+    result['lat'] = lat
+    result['lng'] = lng
 
     result['address'] = car['address']
 

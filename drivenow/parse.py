@@ -16,15 +16,17 @@ def extract_car_basics(car):
 def extract_car_data(car):
     result = {}
 
-    result['vin'] = car['id']
+    vin, lat, lng = extract_car_basics(car)
+
+    result['vin'] = vin
     result['name'] = car['name']
     result['license_plate'] = car['licensePlate']
 
     result['model'] = car['modelName']
     result['color'] = car['color']
 
-    result['lat'] = car['latitude']
-    result['lng'] = car['longitude']
+    result['lat'] = lat
+    result['lng'] = lng
 
     result['address'] = ','.join(car['address'])
 
