@@ -21,7 +21,7 @@ if requested_city == 'all':
 else:
     cities_to_download = {requested_city: all_cities[requested_city]}
 
-t = datetime.datetime.now()
+t = datetime.datetime.utcnow()
 for city_name, city_data in cities_to_download.items():
     try:
         city_obj = {'name': city_name, 'data': city_data}
