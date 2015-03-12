@@ -29,6 +29,9 @@ elif system == "drivenow":
 elif system == "translink":
     from translink.city import KNOWN_CITIES
     from translink.parse import get_cars_from_json, extract_car_data, extract_car_basics
+elif system == "communauto":
+    from communauto.city import KNOWN_CITIES
+    from communauto.parse import get_cars_from_json, extract_car_data, extract_car_basics
 else:
     KNOWN_CITIES = []
     # will result in all cities being reported as unsupported
@@ -40,13 +43,9 @@ def get_filepath(city, t, file_dir):
     return os.path.join(file_dir, filename)
 
 
-def process_data(json_data, data_time, previous_data):
-    data = previous_data
-    trips = []
-    positions_tuples = []
-
+def process_data(data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
     # handle outer JSON structure and get a list we can loop through
-    available_cars = get_cars_from_json(json_data)
+    available_cars = get_cars_from_json(new_availability_json)
 
     # keys that are handled explicitly within the loop
     RECOGNIZED_KEYS = ['vin', 'lat', 'lng', 'fuel']
@@ -59,89 +58,163 @@ def process_data(json_data, data_time, previous_data):
         OTHER_KEYS = [key for key in extract_car_data(available_cars[0]).keys()
                       if key not in RECOGNIZED_KEYS and key not in IGNORED_KEYS]
 
-    for vin in data.keys():
-        # need to reset out status for cases where cars are picked up
-        # (and therefore disappear from json_data) before two cycles
-        # of process_data. otherwise their just_moved is never updated.
-        # if necessary, just_moved will be set to true later
-        data[vin]['just_moved'] = False
+    # unfinished_trips and unfinished_parkings come from params, are updated, then returned
+    unstarted_potential_trips = {}  # to be returned
+    finished_trips = {}  # to be returned
+    finished_parkings = {}  # to be returned
 
+    def process_car(car):
+        new_car_data = extract_car_data(car)  # get full car info
+        result = {'vin': new_car_data['vin'],
+                  'coords': (new_car_data['lat'], new_car_data['lng']),
+                  'fuel': new_car_data['fuel']}
+
+        for key in OTHER_KEYS:
+            result[key] = new_car_data[key]
+
+        return result
+
+    def start_parking(curr_time, new_car_data):
+        # car properties will not change during a parking period, so we don't need to save any
+        # starting/ending pairs except for starting_time and ending_time
+        result = new_car_data
+
+        # save starting time
+        result['starting_time'] = curr_time
+
+        return result
+
+    def end_parking(prev_time, unfinished_parking):
+        result = unfinished_parking
+
+        # save duration
+        result['ending_time'] = prev_time
+        result['duration'] = (result['ending_time'] - result['starting_time']).total_seconds()
+
+        return result
+
+    def start_trip(curr_time, starting_car_info):
+        result = starting_car_info
+
+        result['from'] = starting_car_info['coords']
+        result['starting_time'] = curr_time
+        result['starting_fuel'] = result['fuel']
+
+        return result
+
+    def end_trip(prev_time, new_car_data, unfinished_trip):
+        current_trip_distance = cars.dist(new_car_data['coords'], unfinished_trip['from'])
+        current_trip_duration = (prev_time - unfinished_trip['starting_time']).total_seconds()
+
+        trip_data = unfinished_trip
+        trip_data['to'] = new_car_data['coords']
+        trip_data['ending_time'] = prev_time
+        trip_data['distance'] = current_trip_distance
+        trip_data['duration'] = current_trip_duration
+        if current_trip_duration > 0:
+            trip_data['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
+        trip_data['ending_fuel'] = new_car_data['fuel']
+        trip_data['fuel_use'] = unfinished_trip['starting_fuel'] - new_car_data['fuel']
+
+        for key in OTHER_KEYS:
+            trip_data['starting_' + key] = unfinished_trip[key]
+            trip_data['ending_' + key] = new_car_data[key]
+
+        return trip_data
+
+    def end_unstarted_trip(prev_time, new_car_data):
+        result = new_car_data
+
+        result['vin'] = new_car_data['vin']
+        result['to'] = new_car_data['coords']
+        result['ending_time'] = prev_time
+        result['ending_fuel'] = new_car_data['fuel']
+
+        for key in OTHER_KEYS:
+            result['ending_' + key] = new_car_data[key]
+
+        return result
+
+    """
+    Set this up as a defacto state machine with two states.
+    A car is either in parking or in motion. These are stored in unfinished_parkings and unfinished_trips respectively.
+
+    Based on a cycle's data:
+    - a car might finish a trip: it then is removed from unfinished_trips, is added to unfinished_parkings, and
+      added to finished_trips.
+    - a car might start a trip: it is then removed from unfinished_parkings, is added to unfinished_trips, and
+      added to finished_parkings
+
+    There are some special cases: a 1-cycle-long trip which causes a car to flip out of and back into
+    unfinished_parkings, and initialization of a "new" car (treated as finishing an "unstarted" trip, since if it
+    wasn't on a trip it would have been in unfinished_parkings before).
+
+    data_time is when we know about a car's position; prev_data_time is the previous cycle.
+    A parking period starts on data_time and ends on prev_data_time.
+    A trip starts on prev_data_time and ends on data_time.
+    """
+
+    available_vins = set()
     for car in available_cars:
 
         vin, lat, lng = extract_car_basics(car)
-        speed = False
+        available_vins.add(vin)
 
-        if vin in data and data[vin]['coords'][0] == lat and data[vin]['coords'][1] == lng:
-            # car hasn't moved, just mark it as seen and add its position below - this should be most of the cases
+        # most of the time, none of these conditionals will be processed - most cars park for much more than one cycle
 
-            data[vin]['seen'] = data_time
-            data[vin]['just_moved'] = False
+        if vin not in unfinished_parkings and vin not in unfinished_trips:
+            # returning from an unknown trip, the first time we're seeing the car
 
-        else:
-            if vin not in data:
-                # 'new' car showing up, initialize it
+            car_data = process_car(car)
 
-                new_car_data = extract_car_data(car)  # get full car info
-                data[vin] = {'coords': (new_car_data['lat'], new_car_data['lng']),
-                             'seen': data_time,
-                             'fuel': new_car_data['fuel'],
-                             'just_moved': False}
+            unstarted_potential_trips[vin] = end_unstarted_trip(data_time, car_data)
 
-                for key in OTHER_KEYS:
-                    data[vin][key] = new_car_data[key]
+            unfinished_parkings[vin] = start_parking(data_time, car_data)
 
+        if vin in unfinished_trips:
+            # trip has just finished
+
+            car_data = process_car(car)
+
+            trip_data = end_trip(data_time, car_data, unfinished_trips[vin])
+
+            # TODO: BUG: the line below is needed to replicate results from old code. However, it is a bug. Cars
+            # do have legitimate trips where the start and end positions are EXACTLY the same. In particular,
+            # taking a car from a registered parking spot and then returning it to the same location will do this,
+            # because cars in a parking spot have a defined lat,lng that won't change.
+            # Once i've confirmed that my code is otherwise equivalent, this needs to change (in a separate commit?)
+            if trip_data['from'][0] != trip_data['to'][0] or trip_data['from'][1] != trip_data['to'][1]:
+                finished_trips[vin] = trip_data
             else:
-                # car has moved since last known position, process trip
+                print "ignoring trip with distance %f, duration %d, fuel use %d" % (trip_data['distance'], trip_data['duration'], trip_data['fuel_use'])
 
-                new_car_data = extract_car_data(car)  # get full car info
-                curr_coords = (new_car_data['lat'], new_car_data['lng'])
-                curr_seen = data_time
+            del unfinished_trips[vin]
+            unfinished_parkings[vin] = start_parking(data_time, car_data)
 
-                car_data = data[vin]
-                prev_coords = car_data['coords']
-                prev_seen = car_data['seen']
-                car_data['coords'] = curr_coords
-                car_data['seen'] = curr_seen
-                car_data['just_moved'] = True
+        # NOTE: the below condition is valid and is not related to the bug above
+        elif vin in unfinished_parkings and (lat != unfinished_parkings[vin]['coords'][0] or lng != unfinished_parkings[vin]['coords'][1]):
+            # car has moved but the "trip" took exactly 1 cycle. consequently unfinished_trips and finished_parkings
+            # were never created in vins_that_just_became_unavailable loop. need to handle this manually
 
-                prev_fuel = car_data['fuel']
-                car_data['fuel'] = new_car_data['fuel']
+            # end previous parking and start trip
+            finished_parkings[vin] = end_parking(prev_data_time, unfinished_parkings[vin])
+            trip_data = start_trip(prev_data_time, finished_parkings[vin])
 
-                current_trip_distance = cars.dist(curr_coords, prev_coords)
-                current_trip_duration = (curr_seen - prev_seen).total_seconds()
+            # end trip right away and start 'new' parking period in new position
+            car_data = process_car(car)
+            finished_trips[vin] = end_trip(data_time, car_data, trip_data)
+            unfinished_parkings[vin] = start_parking(data_time, car_data)
 
-                trip_data = {
-                    'vin': vin,
-                    'from': prev_coords,
-                    'to': curr_coords,
-                    'starting_time': prev_seen,
-                    'ending_time': curr_seen,
-                    'distance': current_trip_distance,
-                    'duration': current_trip_duration,
-                    'starting_fuel': prev_fuel,
-                    'ending_fuel': data[vin]['fuel'],
-                    'fuel_use': prev_fuel - new_car_data['fuel']
-                }
+    vins_that_just_became_unavailable = set(unfinished_parkings.keys()) - available_vins
+    for vin in vins_that_just_became_unavailable:
+        # trip has just started
 
-                for key in OTHER_KEYS:
-                    trip_data['starting_' + key] = data[vin][key]
-                    trip_data['ending_' + key] = new_car_data[key]
-                    data[vin][key] = new_car_data[key]
+        finished_parkings[vin] = end_parking(prev_data_time, unfinished_parkings[vin])
+        del unfinished_parkings[vin]
 
-                data[vin]['most_recent_trip'] = trip_data
+        unfinished_trips[vin] = start_trip(prev_data_time, finished_parkings[vin])
 
-                speed = current_trip_distance / (current_trip_duration / 3600.0)
-                data[vin]['speed'] = speed
-
-                trips.append(trip_data)
-
-        # collect all positions for seen cars
-        positions_tuples.append((lat, lng, speed))
-
-    positions = [{'coords': (lat, lng), 'metadata': {'speed': speed} if speed else {}}
-                 for lat, lng, speed in positions_tuples]
-
-    return data, positions, trips
+    return finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips
 
 
 def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_skip):
@@ -158,6 +231,7 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
 
     i = 1
     t = starting_time
+    prev_t = t
     filepath = get_filepath(city, starting_time, file_dir)
 
     data_frames = []
@@ -165,7 +239,8 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
     all_positions = []
     trips_by_vin = {}
 
-    saved_data = {}
+    unfinished_trips = {}
+    unfinished_parkings = {}
 
     json_data = load_file(filepath)
     # loop as long as new files exist
@@ -175,26 +250,29 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
 
         print t,
 
-        saved_data, current_positions, current_trips = process_data(json_data, t, saved_data)
-        print 'total known: %d' % len(saved_data),
-        print 'moved: %02d' % len(current_trips)
+        finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips =\
+            process_data(t, prev_t, json_data, unfinished_trips, unfinished_parkings)
 
         timer.append((filepath + ': batch_load_data process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
         time_organize_start = time.time()
 
-        for vin in saved_data:
+        current_positions = [unfinished_parkings[vin]['coords'] for vin in unfinished_parkings]
+        all_positions.extend(current_positions)
+        current_trips = []
+        for vin in finished_trips:
             if vin not in trips_by_vin:
                 trips_by_vin[vin] = []
 
-            if saved_data[vin]['just_moved']:
-                trips_by_vin[vin].append(copy.deepcopy(saved_data[vin]['most_recent_trip']))
+            trips_by_vin[vin].append(finished_trips[vin])
+            all_trips.append(finished_trips[vin])
+            current_trips.append(finished_trips[vin])
 
         data_frames.append((t, filepath, current_positions, current_trips))
 
-        all_trips.extend(current_trips)
-        all_positions.extend(current_positions)
+        print 'total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)),
+        print 'moved: %02d' % len(finished_trips)
 
         timer.append((filepath + ': batch_load_data organize data, ms',
              (time.time()-time_organize_start)*1000.0))
@@ -202,6 +280,7 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
         # find next file according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
         i = i + 1
+        prev_t = t
         t = t + timedelta(0, time_step*60)
         filepath = get_filepath(city, t, file_dir)
 
@@ -246,6 +325,7 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
 
     ending_time = data_frames[-1][0]  # complements starting_time from function params
 
+    # TODO: also return unstarted_potential_trips
     return data_frames, all_positions, all_trips, trips_by_vin, ending_time, i
 
 def filter_trips_list(all_trips_by_vin, find_by):
