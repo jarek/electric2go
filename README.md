@@ -17,7 +17,7 @@ Multisystem operation
 
 Systems are added by editing cars.py function get_all_cities(). It will probably
 be easiest to add support by cloning contents of the existing car2go directory
-(__init__.py, city.py, and process.py) and editing names, URLs, etc as needed.
+(\_\_init\_\_.py, city.py, and process.py) and editing names, URLs, etc as needed.
 
 Most code has been written with car2go in mind and might use abstractions
 that aren't valid in other systems. download.py has been updated. process.py is

@@ -230,7 +230,7 @@ def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
     stats.update(format_stats('duration per trip',
                               stats_for_collection(duration(trips_good),
                                                    collection_round(duration(trips_good), 5),
-                                                   over=[2, 5, 10])))
+                                                   over=[2*60, 5*60, 10*60])))
 
     stats.update(format_stats('fuel use stats',
                               stats_for_collection(fuel(trips_good),

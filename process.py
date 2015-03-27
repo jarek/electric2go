@@ -176,19 +176,13 @@ def process_data(data_time, prev_data_time, new_availability_json, unfinished_tr
 
             car_data = process_car(car)
 
-            trip_data = end_trip(data_time, car_data, unfinished_trips[vin])
-
-            # TODO: BUG: the line below is needed to replicate results from old code. However, it is a bug. Cars
-            # do have legitimate trips where the start and end positions are EXACTLY the same. In particular,
-            # taking a car from a registered parking spot and then returning it to the same location will do this,
-            # because cars in a parking spot have a defined lat,lng that won't change.
-            # Once i've confirmed that my code is otherwise equivalent, this needs to change (in a separate commit?)
-            if trip_data['from'][0] != trip_data['to'][0] or trip_data['from'][1] != trip_data['to'][1]:
-                finished_trips[vin] = trip_data
-            else:
-                print "ignoring trip with distance %f, duration %d, fuel use %d" % (trip_data['distance'], trip_data['duration'], trip_data['fuel_use'])
-
+            finished_trips[vin] = end_trip(data_time, car_data, unfinished_trips[vin])
             del unfinished_trips[vin]
+
+            # TODO: try to filter lapsed reservations - 30 minutes exactly is now the most common trip duration when binned to closest 5 minutes
+            # - check directly - and try to guess if it's a lapsed reservation (fuel use? but check 29, 31 minute trips to
+            # see if their fuel use isn't usually 0 either)
+
             unfinished_parkings[vin] = start_parking(data_time, car_data)
 
         # NOTE: the below condition is valid and is not related to the bug above
