@@ -1,122 +1,170 @@
-process.make_graph refactor:
-    still a bit remaining as there's some code duplication and inelegant
-    code paths in places.
+Filtering
+=========
 
-    create axes once and reuse them in the script. take care to make sure 
-    changing graph backgrounds still work.
+With refactoring to store information about trips explicitly, we can
+extend filter functions to allow filtering by:
+- origin/destination latlng
+- starting time, ending time (e.g. get trips from 4 a.m. to noon
+  over several days)
+- starting/ending cleanliness
+- starting/ending fuel level
+- possibly others that prove interesting
 
-    should also split up data generation and data graphing a bit more. 
-    in particular, I'm thinking of projects that would put a couple of hours'
-    or days' worth of position or trip data on one image (see below).
 
-process.bus:
-    current code is hacky and the result doesn't look good.
+Graphing
+========
 
-    realistically, probably have to parse route info KMLs and match
-    bus positions to nearest stretch of route. naive way might be to loop
-    through each pixel along route (generated from KML) and find closest bus.
-    then colour the pixel with appropriate colour from the bus data.
+Finish up refactor
+------------------
 
-    halfway solutions that might work, but probably won't work well:
-    - for each bus, find closest bus in one consistent direction (E+S?)
-      and draw a line between the two with appropriate colour
-    - fancier: draw lines halfway to two closest buses, but that might sort of
-      require route comprehension... or ugly hardcodes
+The graphing functions have largely been cleaned up as result of changing
+how locations/trips are provided. There is a bit remaining, noted with TODOs,
+particularly involving matplotlib figure and axes setup. The whole matplotlib
+setup is hacky and might be worth replacing with straight-up bitmap use.
 
-process.make_accessibility_graph:
-    extend the function to support gradual transparency and/or colour heatmap 
-    based on distance from nearest vehicle. consider giving higher scores if 
-    there's more than one car in immediate vicinity - gives people more 
-    flexibility for when someone takes the first one.
 
-    maybe add street grid angle to city information, if specified, change 
-    accessibility mask shape to take this into account. for example, instead of
-    using one circle, we could overlay two ellipses aligned with 
-    the street grid to get a closer approximation of walking distance. 
-    this will of course be useless for cities without a strong grid, but 
-    most of vancouver, toronto, seattle could benefit.
+Map subsets
+-----------
 
-    perhaps higlight vehicles that have just moved into an area fairly lacking
-    in cars. this would support an algorithm to calculate possible discount 
-    for moving vehicles in off-peak direction (until sign-off, it'll be 
-    estimated discount only, since we dont know if 10 other people are driving 
-    there), disguised as a map for time being. dynamically price all the things
+Limit the generated map area to a given set of boundaries to essentially
+zoom in or focus on an area. I've done this manually for a blog post but
+it would be good to have it done automatically. Requires being able to
+generate maps from OSM source (described in "Mapping section").
 
-process.subset_graph:
-    limit the generated map area to a given set of boundaries to essentially
-    zoom in or focus on an area. obvious use case is to illustrate the claim
-    "there's never any car2gos in the West End"
 
-process.destination_graph:
-    where do cars leaving Vancouver's West End head to? where do cars arriving
-    in Seattle's South Lake Union come from? might be best done by limiting 
-    time period (e.g., only morning, only evening) and overlaying all trips 
-    on a static image rather than an animation.
+Visualization of accessibility/density
+--------------------------------------
 
-process.make_cleanness_graph:
-    extend make_graph, using different colour indicators for 
-    the different reported cleanness levels to answer the important
-    question: do kits people mark cars as dirty more frequently
-    than east van people?!
+There is much that can be done in analysis.graph.make_accessibility_background.
 
-process.fuel_level:
-    somehow figure out and/or visualize whether people are more likely to use 
-    a car with more fuel/charge. might be particularly interesting for electric
-    vehicles and cities with all-electric fleets (e.g.,do cars with 
-    25-30% charge get orphaned until service brings them in to charge?)
+Extend the function to support gradual transparency and/or colour heatmap
+based on distance from nearest vehicle. Gradual transparency was not done
+due to performance problems but perhaps it can be improved. Could try to
+use matplotlib's hexbin or something.
 
-process.commutes:
-    ratio/percentage of cars that enter/exit an area with given boundaries
-    during given timeframe. e.g.: between 9 am and 3 pm, how many cars are 
-    there in downtown Seattle or Calgary, how many arrive, how many leave?
 
-process.weather:
-    get historical weather info and crunch basic stats to see if car2go 
-    is more frequently used during bad weather. for bonus points, get weather
-    info automatically from city name and date/time of files being processed.
+Further ideas
+-------------
 
-    wunderground can be used as basic source of data - historical info is free
-    on developer plan (500 calls per day, 10 per minute).
+Maybe add street grid angle to city information, if specified, change
+accessibility mask shape to take this into account. For example, instead of
+using one circle, we could overlay two ellipses aligned with
+the street grid to get a closer approximation of walking distance.
+This will of course be useless for cities without a strong grid, but
+most of Vancouver, Toronto, Seattle could benefit.
 
-trace.cleanness:
-    somehow visualize cars that went from indicated 'unacceptable'
-    cleanness rating back to 'good'. see how often and where that happens!
+Perhaps highlight vehicles that have just moved into an area fairly lacking
+in cars. This would support an algorithm to calculate possible discount
+for moving vehicles in off-peak direction (until sign-off, it'll be
+estimated discount only, since we don't know if 10 other people are driving
+there), disguised as a map for time being. Dynamically price all the things.
 
-more visualization ideas:
-    all of a day's / period's move lines rendered into one image, with
-    no location points or underlying map. see if you can identify cities
-    or gain any particularly deep insight
 
-    similarly, all location points during a day/week with no underlying
-    map, with or without move lines. see how much data is needed until 
-    you can visually identify the city, if at all
+Mapping
+=======
 
-    could be almost art~~~
+Automatically generate maps of a given area given OSM export. This would
+free me up from depending on hacky OSM website exports and allow me to
+customize what is included (no lesser roads, no city borders, etc).
+Need to research on existing OSM renderers I could reuse.
 
-another video (2013-06-02):
-    have a video/animation that emphasizes cars being picked up,
-    to stress usage?
-    would also be good for round-trip longer carshares like modo
 
-more stats (2013-05-02):
-    In stats, collect idle times between trips.
-    I suspect heavily binomial distribution - most are grabbed right away
-    or wait a long time - or might show up as a fat, long tail
+Analysis angles
+===============
 
-    Calculate and show idle times by times of day.
-    11 pm - 7 am, 7 am - 6 pm, 6 pm - 11 pm, or something.
-    Can do every hour to find the transition points
+Based on start/end positions
+----------------------------
 
-further possible data classifications:
-    When a destination is popular (day/week) or which destinations
-    are strongly popular to enter / leave at given time
+Transit competitiveness: get start&end lat long, trip time, run the start&end
+through transit journey planner and compare durations.
 
-interactive/web display:
-    Starting and ending positions, with line between them
-    Do it interactive?
-    Have a file with all trips - in a day? Load with js
-    On mouseover/touch, search for trips starting and show them
-    Have a switch to trips ending. Or show both - blue and red or something
-    If feeling fancy can autogenerate list files on the hour or something
-    HTML 5? Canvas? Just need to draw lines, shouldn't be demanding performance
+Origin/destinations: where do cars leaving Vancouver's West End head to?
+Where do cars arriving in Seattle's South Lake Union come from? Particularly
+useful if combined with time analysis to show inbound/outbound commutes and
+the like.
+
+
+Based on time
+-------------
+
+Isolate by time: show trips, start/end points. split at 4 am / noon / 8 pm,
+show commutes. Maybe do a sub-graph for only 2 am to 6 am to show night
+activity that might be replacing inadequate nighttime transit?
+
+Get ratio/percentage of cars that enter/exit an area with given boundaries
+during given timeframe, e.g.: between 9 am and 3 pm, how many cars are
+there in downtown Seattle or Calgary, how many arrive, how many leave?
+
+Show when a destination is popular (day/week), or which destinations
+are strongly popular to enter / leave at given time.
+
+Collect idle times between trips.
+I suspect heavily binomial distribution - most are grabbed right away or
+wait a long time - or might show up as a fat, long tail.
+Calculate and show idle times by times of day. 11 pm - 7 am, 7 am - 6 pm,
+6 pm - 11 pm, or something. Check every hour to find the transition points.
+
+
+Based on reported fuel level
+----------------------------
+
+Figure out whether people are more likely to use a car with more fuel/charge.
+This might be particularly interesting for electric vehicles and cities with
+all-electric fleets (e.g.,do cars with 25-30% charge get orphaned until service
+brings them in to charge?)
+
+Also analyze when and where cars are refueled.
+
+
+Based on cleanliness
+--------------------
+
+Show cars colour-coded by their reported cleanliness status to answer
+the important question: do Kits people mark cars as dirty more frequently
+than east van people?
+
+Also, find and visualize cars that went from indicated 'unacceptable'
+cleanliness rating back to 'good'. See how often and where that happens!
+
+
+Other
+-----
+
+Get historical weather info and crunch basic stats to see if car2go
+is more frequently used during bad weather. For bonus points, get weather
+info automatically from city name and date/time of files being processed.
+Wunderground can be used as basic source of data - historical info is free
+on developer plan (500 calls per day, 10 per minute).
+
+
+Traditional carshare visualizations
+===================================
+
+Current formats won't be very interesting with traditional model data.
+Think of what would be good for this - perhaps a video/animation
+that emphasizes cars being picked up, to stress usage?
+
+
+Bus/transit visualizations
+==========================
+
+Not sure if this should be part of this codebase in general. I used to have
+some support but it's been unused and untested for a while and some has been
+removed. Improving it or removing it wholesale might be better.
+
+If I get into this again, I will probably have to parse route info KMLs and
+match bus positions to nearest stretch of route. A naive way might be to loop
+through each pixel along route (generated from KML) and find closest bus.
+Then colour the pixel with appropriate colour from the bus data.
+
+
+HTML display
+============
+
+I can do some neat things given an interactive HTML page - switch time period
+being displayed, switch display positions of trip start or end, etc.
+
+If feeling fancy, can autogenerate list files on the hour or something.
+
+HTML 5? Canvas? Just need to draw lines, shouldn't be demanding performance.
 
