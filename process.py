@@ -116,9 +116,11 @@ def process_data(data_time, prev_data_time, new_availability_json, unfinished_tr
         trip_data['ending_fuel'] = new_car_data['fuel']
         trip_data['fuel_use'] = unfinished_trip['starting_fuel'] - new_car_data['fuel']
 
+        trip_data['start'] = {}
+        trip_data['end'] = {}
         for key in OTHER_KEYS:
-            trip_data['starting_' + key] = unfinished_trip[key]
-            trip_data['ending_' + key] = new_car_data[key]
+            trip_data['start'][key] = unfinished_trip[key]
+            trip_data['end'][key] = new_car_data[key]
 
         return trip_data
 
