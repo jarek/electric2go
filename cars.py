@@ -128,6 +128,9 @@ def get_all_cities(system="car2go"):
     elif system == "communauto":
         from communauto import city as communauto_city
         all_cities = communauto_city.CITIES
+    elif system == "evo":
+        from evo import city as evo_city
+        all_cities = evo_city.CITIES
     else:
         raise KeyError("Unknown system: {system}".format(system=system))
 
