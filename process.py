@@ -4,7 +4,6 @@
 import os
 import stat
 import argparse
-import copy
 import shutil
 import simplejson as json
 from datetime import datetime, timedelta
@@ -18,30 +17,6 @@ from analysis import stats as process_stats, graph as process_graph, dump as pro
 timer = []
 DEBUG = False
 
-system = "car2go"  # TODO: read this in from command line
-
-# TODO: how to import libs/functions dynamically?
-"""parse functions are used in process_data and subfunctions only
-KNOWN_CITIES used in process_commandline only"""
-if system == "car2go":
-    from car2go.city import KNOWN_CITIES
-    from car2go.parse import get_cars_from_json, extract_car_data, extract_car_basics
-elif system == "drivenow":
-    from drivenow.city import KNOWN_CITIES
-    from drivenow.parse import get_cars_from_json, extract_car_data, extract_car_basics
-elif system == "translink":
-    from translink.city import KNOWN_CITIES
-    from translink.parse import get_cars_from_json, extract_car_data, extract_car_basics
-elif system == "communauto":
-    from communauto.city import KNOWN_CITIES
-    from communauto.parse import get_cars_from_json, extract_car_data, extract_car_basics
-elif system == "evo":
-    from evo.city import KNOWN_CITIES
-    from evo.parse import get_cars_from_json, extract_car_data, extract_car_basics
-else:
-    KNOWN_CITIES = []
-    # will result in all cities being reported as unsupported
-
 
 def get_filepath(city, t, file_dir):
     filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
@@ -49,7 +24,13 @@ def get_filepath(city, t, file_dir):
     return os.path.join(file_dir, filename)
 
 
-def process_data(data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
+def process_data(system, data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
+    # get functions for the correct system
+    parse_module = cars.get_carshare_system_module(system_name=system, module_name='parse')
+    get_cars_from_json = getattr(parse_module, 'get_cars_from_json')
+    extract_car_basics = getattr(parse_module, 'extract_car_basics')
+    extract_car_data = getattr(parse_module, 'extract_car_data')
+
     # handle outer JSON structure and get a list we can loop through
     available_cars = get_cars_from_json(new_availability_json)
 
@@ -219,7 +200,7 @@ def process_data(data_time, prev_data_time, new_availability_json, unfinished_tr
     return finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips
 
 
-def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_skip):
+def batch_load_data(system, city, file_dir, starting_time, time_step, max_files, max_skip):
     global timer, DEBUG
 
     def load_file(filepath_to_load):
@@ -253,7 +234,7 @@ def batch_load_data(city, file_dir, starting_time, time_step, max_files, max_ski
         print t,
 
         finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips =\
-            process_data(t, prev_t, json_data, unfinished_trips, unfinished_parkings)
+            process_data(system, t, prev_t, json_data, unfinished_trips, unfinished_parkings)
 
         timer.append((filepath + ': batch_load_data process_data, ms',
              (time.time()-time_process_start)*1000.0))
@@ -372,7 +353,7 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     # read in all data
     time_load_start = time.time()
     (data_frames, all_positions, all_trips,
-     trips_by_vin, ending_time, total_frames) = batch_load_data(city, file_dir,
+     trips_by_vin, ending_time, total_frames) = batch_load_data(system, city, file_dir,
                                                                 starting_time, time_step,
                                                                 max_files, max_skip)
     if DEBUG:
@@ -567,8 +548,9 @@ def process_commandline():
         print 'file not found: ' + filename
         return
 
-    if not city in KNOWN_CITIES:
-        print 'unsupported city: ' + city
+    cities_for_system = cars.get_all_cities(args.system)
+    if not city in cities_for_system:
+        print 'unsupported city {city_name} for system {system_name}'.format(city_name=city, system_name=args.system)
         return
 
     try:

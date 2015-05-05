@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import os
+import importlib
 import math
 import urllib2
 import json
@@ -112,31 +113,22 @@ def get_electric_cars(city):
 
     return electric_cars,cache
 
-def get_all_cities(system="car2go"):
-    # TODO: migrate invocations of this function from depening on the default param,
-    # specify explicitly instead
+def get_all_cities(system):
+    city_module = get_carshare_system_module(system, 'city')
 
-    if system == "car2go":
-        from car2go import city as car2go_city
-        all_cities = car2go_city.CITIES
-    elif system == "drivenow":
-        from drivenow import city as drivenow_city
-        all_cities = drivenow_city.CITIES
-    elif system == "translink":
-        from translink import city as translink_city
-        all_cities = translink_city.CITIES
-    elif system == "communauto":
-        from communauto import city as communauto_city
-        all_cities = communauto_city.CITIES
-    elif system == "evo":
-        from evo import city as evo_city
-        all_cities = evo_city.CITIES
-    else:
-        raise KeyError("Unknown system: {system}".format(system=system))
+    all_cities = getattr(city_module, 'CITIES')
 
     all_cities = city_helper.fill_in_information(system, all_cities)
 
     return all_cities
+
+def get_carshare_system_module(system_name, module_name=''):
+    if module_name == '':
+        lib_name = system_name
+    else:
+        lib_name = '%s.%s' % (system_name, module_name)
+
+    return importlib.import_module(lib_name)
 
 def dist(ll1, ll2):
     # adapted from http://www.movable-type.co.uk/scripts/latlong.html
