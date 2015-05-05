@@ -3,6 +3,7 @@
 
 from datetime import timedelta
 from collections import OrderedDict
+import os
 import time
 import shutil
 import matplotlib.pyplot as plt
@@ -13,8 +14,6 @@ from cars import get_all_cities
 from city_helper import is_latlng_in_bounds, get_mean_pixel_size
 
 
-CITIES = get_all_cities()
-
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
 SPEED_CUTOFFS = [5, 15, 30, float('inf')]
 SPEED_COLOURS = ['r', 'y', 'g', 'b']
@@ -24,19 +23,17 @@ timer = []
 
 
 # strictly not correct as lat/lng isn't a grid, but close enough at city scales
-def map_latitude(city, latitudes):
-    city_data = CITIES[city]
+def map_latitude(city_data, latitudes):
     return ((latitudes - city_data['MAP_LIMITS']['SOUTH']) / \
         (city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH'])) * \
         city_data['MAP_SIZES']['MAP_Y']
 
-def map_longitude(city, longitudes):
-    city_data = CITIES[city]
+def map_longitude(city_data, longitudes):
     return ((longitudes - city_data['MAP_LIMITS']['WEST']) / \
         (city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST'])) * \
         city_data['MAP_SIZES']['MAP_X']
 
-def make_graph_axes(city, background = False, log_name = ''):
+def make_graph_axes(city_data, background = False, log_name = ''):
     """ Sets up figure area and axes for common properties for a city 
     to be graphed. The param `log_name` is used for logging only. """
 
@@ -51,8 +48,6 @@ def make_graph_axes(city, background = False, log_name = ''):
     # figure sizes are wrong otherwise. ???
     dpi_adj_x = 0.775
     dpi_adj_y = 0.8
-
-    city_data = CITIES[city]
 
     # TODO: the two below take ~20 ms. try to reuse
     f = plt.figure(dpi=dpi)
@@ -90,13 +85,13 @@ def plot_points(ax, points, colour, symbol):
 
     return ax
 
-def plot_geopoints(ax, city, geopoints_dict, symbol):
+def plot_geopoints(ax, city_data, geopoints_dict, symbol):
     for colour in geopoints_dict:
         if len(geopoints_dict[colour]):
             lats, lngs = zip(*geopoints_dict[colour])
 
-            latitudes = map_latitude(city, np.array(lats))
-            longitudes = map_longitude(city, np.array(lngs))
+            latitudes = map_latitude(city_data, np.array(lats))
+            longitudes = map_longitude(city_data, np.array(lngs))
 
             ax = plot_points(ax, zip(latitudes, longitudes), colour, symbol)
 
@@ -110,29 +105,29 @@ def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colou
 
     return ax
 
-def plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour = '#aaaaaa'):
+def plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour = '#aaaaaa'):
     # translate into map coordinates
-    lines_start_y = map_latitude(city, np.array(lines_start_lat))
-    lines_start_x = map_longitude(city, np.array(lines_start_lng))
-    lines_end_y = map_latitude(city, np.array(lines_end_lat))
-    lines_end_x = map_longitude(city, np.array(lines_end_lng))
+    lines_start_y = map_latitude(city_data, np.array(lines_start_lat))
+    lines_start_x = map_longitude(city_data, np.array(lines_start_lng))
+    lines_end_y = map_latitude(city_data, np.array(lines_end_lat))
+    lines_end_x = map_longitude(city_data, np.array(lines_end_lng))
 
     return plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour)
 
-def plot_trips(ax, city, trips, colour = '#aaaaaa'):
+def plot_trips(ax, city_data, trips, colour = '#aaaaaa'):
     lines_start_lat = [t['from'][0] for t in trips]
     lines_start_lng = [t['from'][1] for t in trips]
     lines_end_lat = [t['to'][0] for t in trips]
     lines_end_lng = [t['to'][1] for t in trips]
 
-    return plot_geolines(ax, city, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
+    return plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
-def filter_positions_to_bounds(city, positions):
+def filter_positions_to_bounds(city_data, positions):
     """
     Filters the list of positions to only include those that in graphing bounds for the given city
     """
 
-    return [p for p in positions if is_latlng_in_bounds(CITIES[city], p['coords'])]
+    return [p for p in positions if is_latlng_in_bounds(city_data, p['coords'])]
 
 def create_points_default_colour(positions):
     """
@@ -189,7 +184,7 @@ def create_points_trip_start_end(trips, from_colour='b', to_colour='r'):
         (to_colour, [trip['to'] for trip in trips])
     ])
 
-def graph_wrapper(city, plot_function, image_name, background = False):
+def graph_wrapper(city_data, plot_function, image_name, background = False):
     """
     Handles creating the figure, saving it as image, and closing the figure.
     :param plot_function: function accepting f, ax params to actually draw on the figure
@@ -205,7 +200,7 @@ def graph_wrapper(city, plot_function, image_name, background = False):
         log_name = log_name[:-4]
 
     # set up axes
-    f,ax = make_graph_axes(city, background, log_name)
+    f,ax = make_graph_axes(city_data, background, log_name)
 
     # pass axes back to function to actually do the plotting
     plot_function(f, ax)
@@ -233,7 +228,7 @@ def graph_wrapper(city, plot_function, image_name, background = False):
     timer.append((log_name + ': graph_wrapper save figure, ms',
         (time.time()-time_save_start)*1000.0))
 
-def make_graph(city, positions, trips, image_filename, copy_filename, turn,
+def make_graph(system, city, positions, trips, image_filename, copy_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
     """ Creates and saves matplotlib figure for provided positions and trips.
     If second_filename is specified, also copies the saved file to 
@@ -241,16 +236,18 @@ def make_graph(city, positions, trips, image_filename, copy_filename, turn,
 
     global timer
 
+    city_data = get_all_cities(system)[city]
+
     # use a different variable name for clarity where it'll be used only
     # for logging rather than actually accessing/creating files
     log_name = image_filename
 
     # filter to only vehicles that are in city's graphing bounds
-    filtered_positions = filter_positions_to_bounds(city, positions)
+    filtered_positions = filter_positions_to_bounds(city_data, positions)
 
     if highlight_distance:
         positions_without_metadata = [p['coords'] for p in filtered_positions]
-        graph_background = make_accessibility_background(city, positions_without_metadata, highlight_distance, log_name)
+        graph_background = make_accessibility_background(city_data, positions_without_metadata, highlight_distance, log_name)
     else:
         graph_background = False
 
@@ -265,14 +262,13 @@ def make_graph(city, positions, trips, image_filename, copy_filename, turn,
         time_plot_start = time.time()
 
         # plot points for vehicles
-        ax = plot_geopoints(ax, city, positions_by_colour, symbol)
+        ax = plot_geopoints(ax, city_data, positions_by_colour, symbol)
 
         # add in lines for moving vehicles
         if len(trips) > 0:
-            ax = plot_trips(ax, city, trips)
+            ax = plot_trips(ax, city_data, trips)
 
         # add labels
-        city_data = CITIES[city]
         printed_time = turn + timedelta(0, tz_offset*3600)
 
         coords = city_data['LABELS']['lines']
@@ -293,46 +289,52 @@ def make_graph(city, positions, trips, image_filename, copy_filename, turn,
             (time.time()-time_plot_start)*1000.0))
 
     # create and save plot
-    graph_wrapper(city, plotter, image_filename, graph_background)
+    graph_wrapper(city_data, plotter, image_filename, graph_background)
 
     # if requested, also copy with an iterative filename for ease of animation
     # copying the file rather than saving again is a lot faster
     if copy_filename:
         shutil.copy2(image_filename, copy_filename)
 
-def make_positions_graph(city, positions, image_name, symbol):
+def make_positions_graph(system, city, positions, image_name, symbol):
     global timer
 
     time_positions_graph_start = time.time()
 
-    def plotter(f, ax):
-        filtered = filter_positions_to_bounds(city, positions)
-        coloured = create_points_default_colour(filtered)
-        plot_geopoints(ax, city, coloured, symbol)
+    city_data = get_all_cities(system)[city]
 
-    graph_wrapper(city, plotter, image_name, background=False)
+    def plotter(f, ax):
+        filtered = filter_positions_to_bounds(city_data, positions)
+        coloured = create_points_default_colour(filtered)
+        plot_geopoints(ax, city_data, coloured, symbol)
+
+    graph_wrapper(city_data, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_positions_graph total, ms',
         (time.time()-time_positions_graph_start)*1000.0))
 
-def make_trips_graph(city, trips, image_name):
+def make_trips_graph(system, city, trips, image_name):
     global timer
 
     time_trips_graph_start = time.time()
 
+    city_data = get_all_cities(system)[city]
+
     def plotter(f, ax):
         if len(trips) > 0:
-            plot_trips(ax, city, trips)
+            plot_trips(ax, city_data, trips)
 
-    graph_wrapper(city, plotter, image_name, background=False)
+    graph_wrapper(city_data, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_trips_graph total, ms',
         (time.time()-time_trips_graph_start)*1000.0))
 
-def make_trip_origin_destination_graph(city, trips, image_name, symbol):
+def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
     global timer
 
     time_trips_graph_start = time.time()
+
+    city_data = get_all_cities(system)[city]
 
     # TODO: use a heatmap or something similar,
     # instead of just drawing points, to avoid problem/unexpected results
@@ -345,19 +347,19 @@ def make_trip_origin_destination_graph(city, trips, image_name, symbol):
 
     def plotter(f, ax):
         trip_points = create_points_trip_start_end(trips)
-        plot_geopoints(ax, city, trip_points, symbol)
+        plot_geopoints(ax, city_data, trip_points, symbol)
 
-    graph_wrapper(city, plotter, image_name, background=False)
+    graph_wrapper(city_data, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_trip_origin_destination_graph total, ms',
         (time.time()-time_trips_graph_start)*1000.0))
 
-def make_accessibility_background(city, positions, distance, log_name):
+def make_accessibility_background(city_data, positions, distance, log_name):
     global timer
 
     latitudes, longitudes = zip(*positions)
-    latitudes = np.round(map_latitude(city, np.array(latitudes)))
-    longitudes = np.round(map_longitude(city, np.array(longitudes)))
+    latitudes = np.round(map_latitude(city_data, np.array(latitudes)))
+    longitudes = np.round(map_longitude(city_data, np.array(longitudes)))
 
     # The below is based off http://stackoverflow.com/questions/8647024/how-to-apply-a-disc-shaped-mask-to-a-numpy-array
     # Basically, we build a True/False mask (master_mask) the same size 
@@ -374,8 +376,6 @@ def make_accessibility_background(city, positions, distance, log_name):
     accessible_multiplier = (1, 1, 1, 0.6)
     # if using accessible_multiplier, 160 alpha for inaccessible looks better
     inaccessible_colour = (239, 239, 239, 100) # #efefef, mostly transparent
-
-    city_data = CITIES[city]
 
     # generate basic background, for now uniformly indicating no cars available
     markers = np.empty(

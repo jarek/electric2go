@@ -20,6 +20,9 @@ DEBUG = False
 
 system = "car2go"  # TODO: read this in from command line
 
+# TODO: how to import libs/functions dynamically?
+"""parse functions are used in process_data and subfunctions only
+KNOWN_CITIES used in process_commandline only"""
 if system == "car2go":
     from car2go.city import KNOWN_CITIES
     from car2go.parse import get_cars_from_json, extract_car_data, extract_car_basics
@@ -32,6 +35,9 @@ elif system == "translink":
 elif system == "communauto":
     from communauto.city import KNOWN_CITIES
     from communauto.parse import get_cars_from_json, extract_car_data, extract_car_basics
+elif system == "evo":
+    from evo.city import KNOWN_CITIES
+    from evo.parse import get_cars_from_json, extract_car_data, extract_car_basics
 else:
     KNOWN_CITIES = []
     # will result in all cities being reported as unsupported
@@ -351,7 +357,7 @@ def filter_trips_list(all_trips_by_vin, find_by):
 
     return all_trips_by_vin[vin]
 
-def batch_process(city, starting_time, dry = False, make_iterations = True,
+def batch_process(system, city, starting_time, dry = False, make_iterations = True,
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES,
     show_speeds = False, symbol = '.',
@@ -404,7 +410,7 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
 
             time_graph_start = time.time()
 
-            process_graph.make_graph(city, current_positions, current_trips,
+            process_graph.make_graph(system, city, current_positions, current_trips,
                                      image_filename, copy_filename, turn,
                                      show_speeds, distance, symbol, tz_offset)
 
@@ -476,13 +482,13 @@ def batch_process(city, starting_time, dry = False, make_iterations = True,
         process_stats.stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
 
     if all_positions_image:
-        process_graph.make_positions_graph(city, all_positions, all_positions_image, symbol)
+        process_graph.make_positions_graph(system, city, all_positions, all_positions_image, symbol)
 
     if all_trips_lines_image:
-        process_graph.make_trips_graph(city, all_trips, all_trips_lines_image)
+        process_graph.make_trips_graph(system, city, all_trips, all_trips_lines_image)
 
     if all_trips_points_image:
-        process_graph.make_trip_origin_destination_graph(city, all_trips, all_trips_points_image, symbol)
+        process_graph.make_trip_origin_destination_graph(system, city, all_trips, all_trips_points_image, symbol)
 
     if DEBUG:
         print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
@@ -496,6 +502,8 @@ def process_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true',
         help='print extra debug and timing messages')
+    parser.add_argument('system', type=str,
+        help='system to be used (e.g. car2go, drivenow, ...)')
     parser.add_argument('starting_filename', type=str,
         help='name of first file to process')
     parser.add_argument('-max', '--max-files', type=int, default=False,

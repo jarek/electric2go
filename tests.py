@@ -9,7 +9,7 @@ import cars
 from analysis import graph as process_graph
 import city_helper
 
-CITIES = cars.get_all_cities()
+CITIES = cars.get_all_cities("car2go")
 
 class process_helper_functions(unittest.TestCase):
     def test_is_latlng_in_bounds(self):
@@ -35,20 +35,20 @@ class process_helper_functions(unittest.TestCase):
         #                                                VALUES['buenosaires']))
 
     def test_map_latitude(self):
-        toronto_res = process_graph.map_latitude('toronto', np.array([43.65]))
+        toronto_res = process_graph.map_latitude(CITIES['toronto'], np.array([43.65]))
         self.assertGreaterEqual(toronto_res, 0)
         self.assertLessEqual(toronto_res, CITIES['toronto']['MAP_SIZES']['MAP_Y'])
 
-        wien_res = process_graph.map_latitude('wien', np.array([48.2]))
+        wien_res = process_graph.map_latitude(CITIES['wien'], np.array([48.2]))
         self.assertGreaterEqual(wien_res, 0)
         self.assertLessEqual(wien_res, CITIES['wien']['MAP_SIZES']['MAP_Y'])
 
     def test_map_longitude(self):
-        toronto_res = process_graph.map_longitude('toronto', np.array([-79.3]))
+        toronto_res = process_graph.map_longitude(CITIES['toronto'], np.array([-79.3]))
         self.assertGreaterEqual(toronto_res, 0)
         self.assertLessEqual(toronto_res, CITIES['toronto']['MAP_SIZES']['MAP_X'])
 
-        wien_res = process_graph.map_longitude('wien', np.array([16.4]))
+        wien_res = process_graph.map_longitude(CITIES['wien'], np.array([16.4]))
         self.assertGreaterEqual(wien_res, 0)
         self.assertLessEqual(wien_res, CITIES['wien']['MAP_SIZES']['MAP_X'])
 
