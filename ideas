@@ -43,6 +43,18 @@ due to performance problems but perhaps it can be improved. Could try to
 use matplotlib's hexbin or something.
 
 
+Causes of carshare use: population/business density, etc
+--------------------------------------------------------
+
+Does higher population density in home areas drive higher carshare use, when
+compared between cities? When compared within cities?
+
+Could also do something fancy like colour-analyze sat images, for instance
+in Vancouver low-density residential areas are much greener because of trees,
+while business and higher-density residential tends to be greyer. So this could
+work around having to find numerical density data and be a cool experiment.
+
+
 Further ideas
 -------------
 
