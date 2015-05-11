@@ -10,20 +10,30 @@ to make visualizations and collect statistics.
 
 There is rudimentary support for other carshare systems (currently implemented
 a couple of cities for DriveNow and a couple of TransLink bus routes).
-download.py has been updated to support this but most other code assumes car2go.
 
 Multisystem operation
 ---------------------
 
-Systems are added by editing cars.py function get_all_cities(). It will probably
-be easiest to add support by cloning contents of the existing car2go directory
-(\_\_init\_\_.py, city.py, and process.py) and editing names, URLs, etc as needed.
+Systems are automatically found if a package with their name is included
+in the electric2go project root directory. They are imported in the
+get_carshare_system_module() function in cars.py. As of 2015-05-11,
+the following modules are required for a system:
+
+- city.py providing a CITIES dictionary
+- parse.py providing get_cars_from_json(), extract_car_basics(), and
+  extract_car_data()
+
+Check references to get_carshare_system_module() if in doubt.
+
+It will probably be easiest to add new systems by cloning contents of
+the existing car2go directory (\_\_init\_\_.py, city.py, and process.py)
+and editing names, URLs, etc as needed.
 
 Most code has been written with car2go in mind and might use abstractions
-that aren't valid in other systems. download.py has been updated. process.py is
-only hardcoded at the very beginning but might use car2go-specific concepts.
-The web interface currently only supports car2go. Making everything less
-car2go-specific is pretty high on the todo list.
+that aren't valid in other systems, but the download and analysis code should
+work with any system. The web interface (index.py, web_helper.py, api.py)
+currently only supports car2go. If you need to make changes to support
+other systems, patches or pull requests are most welcome.
 
 Web interface: finding electric cars
 ------------------------------------
@@ -80,9 +90,6 @@ There is also functionality to collect car positions and trips over a set period
 then graph them all or calculate statistics like trip distance or duration.
 
 Some filtering of trips/positions analyzed is available and more is coming.
-
-Currently hardcoded to car2go but most things are factored out properly so
-that is about to change.
 
 process.py -h describes the arguments it supports.
 

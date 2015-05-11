@@ -520,7 +520,7 @@ def process_commandline():
             accepts license plates, VINs, "random", "most_trips", "most_distance", and "most_duration". \
             affects output of STATS, TRACE, DUMP_TRIPS, and ALL_*_IMAGE params')
     parser.add_argument('-s', '--stats', action='store_true',
-        help='generate and print some basic statistics about car2go use')
+        help='generate and print some basic statistics about carshare use')
     parser.add_argument('-t', '--trace', action='store_true',
         help='print out all trips of a vehicle found in the dataset; \
             requires that FILTER_TRIPS is set')
