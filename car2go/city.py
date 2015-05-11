@@ -103,6 +103,43 @@ CITIES = {
             ]
         }
     },
+    'columbus': {
+        'of_interest': True, 'number_first_address': True,
+        'BOUNDS': {
+            'NORTH': 40.075535,
+            'SOUTH': 39.92898,
+            'EAST': -82.91279,
+            'WEST': -83.07589
+        },
+        'MAP_LIMITS': {
+            # E&W values are different than home area bounds - 16:9 aspect ratio
+            # N&S values are marginally larger to give a small margin at edges of map
+            # map scale is 75171 for 1920x1080
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-83.175943115,39.92398,-82.812736885,40.080535&scale=75171&format=png
+            'NORTH': 40.080535,
+            'SOUTH': 39.92398,
+            'EAST': -82.812736885,
+            'WEST': -83.175943115
+        },
+        'DEGREE_LENGTHS': {
+            # for latitude 40.00
+            'LENGTH_OF_LATITUDE': 111034.61,
+            'LENGTH_OF_LONGITUDE': 85393.83
+        },
+        'MAP_SIZES': {
+            'MAP_X': 1920,
+            'MAP_Y': 1080
+        },
+        'LABELS': {
+            'fontsizes': [35, 22, 30, 18],
+            'lines': [
+                (200, 1080 - 55),
+                (200, 1080 - 93),
+                (200, 1080 - 132),
+                (200, 1080 - 170)
+            ]
+        }
+    },
     'duesseldorf': {'display': 'Düsseldorf'},
     'hamburg': {},
     'koeln': {'display': 'Köln'},
