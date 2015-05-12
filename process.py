@@ -6,6 +6,7 @@ import stat
 import argparse
 import shutil
 import simplejson as json
+from collections import defaultdict
 from datetime import datetime, timedelta
 from random import choice
 import time
@@ -84,8 +85,10 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
         result = starting_car_info
 
         result['from'] = starting_car_info['coords']
+        del result['coords']
         result['starting_time'] = curr_time
         result['starting_fuel'] = result['fuel']
+        del result['fuel']
 
         return result
 
@@ -119,8 +122,9 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
         result['ending_time'] = prev_time
         result['ending_fuel'] = new_car_data['fuel']
 
+        result['end'] = {}
         for key in OTHER_KEYS:
-            result['ending_' + key] = new_car_data[key]
+            result['end'][key] = new_car_data[key]
 
         return result
 
@@ -225,6 +229,13 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     unfinished_trips = {}
     unfinished_parkings = {}
 
+    finished_trips = defaultdict(list)
+    finished_parkings = defaultdict(list)
+
+    unstarted_potential_trips = {}
+
+    missing_files = []
+
     json_data = load_file(filepath)
     # loop as long as new files exist
     # if we have a limit specified, loop only until limit is reached
@@ -233,8 +244,14 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
         print t,
 
-        finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips =\
+        new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips =\
             process_data(system, t, prev_t, json_data, unfinished_trips, unfinished_parkings)
+
+        for vin in new_finished_parkings:
+            finished_parkings[vin].append(new_finished_parkings[vin])
+
+        for vin in new_finished_trips:
+            finished_trips[vin].append(new_finished_trips[vin])
 
         timer.append((filepath + ': batch_load_data process_data, ms',
              (time.time()-time_process_start)*1000.0))
@@ -245,13 +262,13 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         current_positions = [{'coords': p, 'metadata': {}} for p in current_positions]
         all_positions.extend(current_positions)
         current_trips = []
-        for vin in finished_trips:
+        for vin in new_finished_trips:
             if vin not in trips_by_vin:
                 trips_by_vin[vin] = []
 
-            trips_by_vin[vin].append(finished_trips[vin])
-            all_trips.append(finished_trips[vin])
-            current_trips.append(finished_trips[vin])
+            trips_by_vin[vin].append(new_finished_trips[vin])
+            all_trips.append(new_finished_trips[vin])
+            current_trips.append(new_finished_trips[vin])
 
         data_frames.append((t, filepath, current_positions, current_trips))
 
@@ -293,6 +310,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
             if next_json_data != False:
                 print 'exists, using it instead' ,
+                missing_files.append(filepath)
                 shutil.copy2(next_filepath, filepath)
                 json_data = load_file(filepath)
 
@@ -308,6 +326,29 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         timer = []
 
     ending_time = data_frames[-1][0]  # complements starting_time from function params
+
+    result = {
+        'finished_trips': finished_trips,
+        'finished_parkings': finished_parkings,
+        'unfinished_trips': unfinished_trips,
+        'unfinished_parkings': unfinished_parkings,
+        'unstarted_trips': unstarted_potential_trips,
+        'metadata': {
+            'starting_time': starting_time,
+            'ending_time': ending_time,
+            'time_step': time_step,
+            'missing': missing_files
+        }
+    }
+
+    def json_serializer(obj):
+        # default doesn't serialize dates... tell it to use isoformat()
+        # syntax from http://blog.codevariety.com/2012/01/06/python-serializing-dates-datetime-datetime-into-json/
+        # TODO: might also want to update a worse solution to same problem in analysis/dump.py
+        return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
+    with open(datetime.now().strftime('%Y%m%d-%H%M%S') + '-alldata.json', 'w') as f:
+        json.dump(result, f, default=json_serializer, indent=2)
 
     # TODO: also return unstarted_potential_trips
     return data_frames, all_positions, all_trips, trips_by_vin, ending_time, i
