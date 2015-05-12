@@ -437,12 +437,9 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         png_filepaths = animation_files_prefix + '_%03d.png'
         mp4_path = animation_files_prefix + '.mp4'
 
-        framerate = 8
-        frames = total_frames - 1
-        if time_step < 5:
-            framerate = 30
-            # for framerates over 25, avconv assumes conversion from 25 fps
-            frames = (frames/25)*30
+        framerate = 30
+        # for framerates over 25, avconv assumes conversion from 25 fps
+        frames = (total_frames - 1/25)*framerate
 
         print '\nto animate:'
         print '''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path)
