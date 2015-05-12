@@ -18,13 +18,3 @@ for city, city_data in CITIES.items():
 
     if 'JSONP_CALLBACK_NAME' not in city_data:
         city_data['JSONP_CALLBACK_NAME'] = JSONP_CALLBACK_NAME
-
-KNOWN_CITIES = [
-    city for city in CITIES]
-# uncomment once we have map data - currently map tasks will fail, but we can still get stats
-"""if ('BOUNDS' in CITIES[city]
-        and 'MAP_LIMITS' in CITIES[city]
-        and 'DEGREE_LENGTHS' in CITIES[city]
-        and 'MAP_SIZES' in CITIES[city]
-        and 'LABELS' in CITIES[city])
-    ]"""

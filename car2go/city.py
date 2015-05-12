@@ -443,14 +443,6 @@ for city, city_data in CITIES.items():
     if 'API_AVAILABLE_VEHICLES_URL' not in city_data:
         city_data['API_AVAILABLE_VEHICLES_URL'] = API_URL(loc=city)
 
-KNOWN_CITIES = [
-    city for city in CITIES
-    if ('BOUNDS' in CITIES[city]
-        and 'MAP_LIMITS' in CITIES[city]
-        and 'DEGREE_LENGTHS' in CITIES[city]
-        and 'LABELS' in CITIES[city])
-    ]
-
 
 def get_operation_areas(city):
     import cars

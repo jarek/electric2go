@@ -54,13 +54,3 @@ for city, city_data in CITIES.items():
 
     if 'API_AVAILABLE_VEHICLES_HEADERS' not in city_data:
         city_data['API_AVAILABLE_VEHICLES_HEADERS'] = API_AVAILABLE_VEHICLES_HEADERS
-
-KNOWN_CITIES = [
-    city for city in CITIES]
-# uncomment once we have map data - currently map tasks will fail, but we can still get stats
-"""if ('BOUNDS' in CITIES[city]
-        and 'MAP_LIMITS' in CITIES[city]
-        and 'DEGREE_LENGTHS' in CITIES[city]
-        and 'MAP_SIZES' in CITIES[city]
-        and 'LABELS' in CITIES[city])
-    ]"""
