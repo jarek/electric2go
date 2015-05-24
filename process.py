@@ -273,7 +273,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         data_frames.append((t, filepath, current_positions, current_trips))
 
         print 'total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)),
-        print 'moved: %02d' % len(finished_trips)
+        print 'moved: %02d' % len(new_finished_trips)
 
         timer.append((filepath + ': batch_load_data organize data, ms',
              (time.time()-time_organize_start)*1000.0))

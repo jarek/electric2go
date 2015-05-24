@@ -4,12 +4,83 @@
 from __future__ import unicode_literals
 import unittest
 import numpy as np
+from datetime import datetime
 
 import cars
+import process
 from analysis import graph as process_graph
+from analysis import stats as process_stats
 import city_helper
 
 CITIES = cars.get_all_cities("car2go")
+
+# TODO: we need way more tests
+
+class stats_test(unittest.TestCase):
+    def test_stats_for_sample_datasets(self):
+        # This is hardcoded to a dataset I have, so won't be useful for anyone else.
+        # Sorry! But it's worth it for me. Can be adapted to a dataset you have.
+        # TODO: generate a sample dataset and test against that
+
+        datasets = {
+            "columbus": {
+                "params": {
+                    "system": "car2go",
+                    "city": "columbus",
+                    "file_dir": "/home/jarek/car2go-columbus/extracted/",
+                    "starting_time": datetime(2015, 04, 28, 8, 0, 0),
+                    "max_files": 2880,
+                    "max_skip": 0,
+                    "time_step": 1
+                },
+                "expected":  {
+                    "total vehicles": 279,
+                    "total trips": 1737,
+                    "time elapsed seconds": 172740,
+                    "trips per car median": 6,
+                    "distance per trip quartile 25": 0.6388606347651411,
+                    "duration per trip quartile 75": 32,
+                    "weird trip count": 64
+                }
+            },
+            "vancouver": {
+                "params": {
+                    "system": "evo",
+                    "city": "vancouver",
+                    "file_dir": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/",
+                    "starting_time": datetime(2015, 05, 16, 11, 0, 0),
+                    "max_files": 2880,
+                    "max_skip": 0,
+                    "time_step": 1
+                },
+                "expected":  {
+                    "total vehicles": 218,
+                    "total trips": 1967,
+                    "time elapsed seconds": 172740,
+                    "utilization ratio": 0.13461127876333207,
+                    "trips per car per day quartile 25": 2.5008683570684265,
+                    "distance per trip quartile 25": 0.3909876034341634,
+                    "duration per trip quartile 75": 40,
+                    "weird trip count": 103
+                }
+            }
+        }
+
+        for dataset_name in datasets:
+            params = datasets[dataset_name]["params"]
+            expected = datasets[dataset_name]["expected"]
+
+            (_data_frames, _all_positions, all_trips,
+             trips_by_vin, ending_time, _total_frames) = process.batch_load_data(**params)
+
+            stats = process_stats.stats_dict(all_trips, trips_by_vin.keys(), params["starting_time"], ending_time)
+
+            for category in expected:
+                self.assertEqual(expected[category], stats[category],
+                                 "{name} {cat}: expected {exp}, got {got}".format(
+                                     name=dataset_name, cat=category,
+                                     exp=expected[category], got=stats[category]))
+
 
 class process_helper_functions(unittest.TestCase):
     def test_is_latlng_in_bounds(self):
