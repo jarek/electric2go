@@ -5,7 +5,6 @@ from collections import Counter, OrderedDict
 import unicodecsv
 from datetime import datetime
 import numpy as np
-import scipy.stats as sps
 
 
 def csv_file_name(category):
@@ -90,7 +89,7 @@ def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
         def quartiles(quartiles_collection, quartiles_days):
             quartiles_dict = {}
             for i in range(0, 101, 25):
-                quartiles_dict[i] = sps.scoreatpercentile(quartiles_collection, i) / quartiles_days
+                quartiles_dict[i] = np.percentile(quartiles_collection, i) / quartiles_days
             return quartiles_dict
 
         result = OrderedDict()
