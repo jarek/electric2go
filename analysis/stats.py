@@ -207,6 +207,9 @@ def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
     trips_per_car = trip_counts_by_vin.values()
 
     stats = OrderedDict()
+    stats['starting time'] = starting_time
+    stats['ending time'] = ending_time
+
     stats['total vehicles'] = len(trip_counts_by_vin)
     stats['total trips'] = len(trips_good)
     stats['total trips per day'] = len(trips_good) / time_elapsed_days
