@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import print_function
 import os
 import stat
 import argparse
@@ -242,7 +243,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     while json_data != False and (max_files is False or i <= max_files):
         time_process_start = time.time()
 
-        print t,
+        print(t, end=' ')
 
         new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips =\
             process_data(system, t, prev_t, json_data, unfinished_trips, unfinished_parkings)
@@ -272,8 +273,8 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
         data_frames.append((t, filepath, current_positions, current_trips))
 
-        print 'total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)),
-        print 'moved: %02d' % len(new_finished_trips)
+        print('total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)), end=' ')
+        print('moved: %02d' % len(new_finished_trips))
 
         timer.append((filepath + ': batch_load_data organize data, ms',
              (time.time()-time_organize_start)*1000.0))
@@ -293,7 +294,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
              (time.time()-time_load_start)*1000.0))
 
         if json_data == False:
-            print 'would stop at %s' % filepath
+            print('would stop at %s' % filepath)
 
         skipped = 0
         next_t = t
@@ -306,21 +307,21 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
             next_filepath = get_filepath(city, next_t, file_dir)
             next_json_data = load_file(next_filepath)
 
-            print 'trying %s...' % next_filepath ,
+            print('trying %s...' % next_filepath, end=' ')
 
             if next_json_data != False:
-                print 'exists, using it instead' ,
+                print('exists, using it instead', end=' ')
                 missing_files.append(filepath)
                 shutil.copy2(next_filepath, filepath)
                 json_data = load_file(filepath)
 
-            print
+            print()
 
         timer.append((filepath + ': batch_load_data total load loop, ms',
              (time.time()-time_process_start)*1000.0))
 
         if DEBUG:
-            print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
+            print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer))
 
         # reset timer to only keep information about one file at a time
         timer = []
@@ -401,8 +402,8 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     if DEBUG:
         time_load_total = (time.time() - time_load_start)
         time_load_frame = time_load_total / total_frames
-        print '\ntotal data load loop: {:d} frames, {:f} s, {:f} ms per frame, {:f} s per 60 frames, {:f} s per 1440 frames'.format(
-            total_frames, time_load_total, time_load_frame * 1000, time_load_frame * 60, time_load_frame * 1440)
+        print('\ntotal data load loop: {:d} frames, {:f} s, {:f} ms per frame, {:f} s per 60 frames, {:f} s per 1440 frames'.format(
+            total_frames, time_load_total, time_load_frame * 1000, time_load_frame * 60, time_load_frame * 1440))
 
     # set up params for iteratively-named images
     starting_file_name = get_filepath(city, starting_time, file_dir)
@@ -440,11 +441,11 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
             time_graph = (time.time() - time_graph_start) * 1000.0
             timer.append((filepath + ': make_graph, ms', time_graph))
 
-            print turn, 'generated graph in %d ms' % time_graph
+            print(turn, 'generated graph in %d ms' % time_graph)
 
             if DEBUG:
-                print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
-                print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
+                print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer))
+                print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer))
 
     # print animation information if applicable
     if make_iterations and not dry:
@@ -461,17 +462,17 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
 
             crush_filebasename = animation_files_prefix
             f = open(crush_filebasename + '-pngcrush', 'w')
-            print >> f, '\n'.join(crush_commands)
+            print('\n'.join(crush_commands), file=f)
             os.chmod(crush_filebasename + '-pngcrush', 
                 stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
             f.close()
 
             f = open(crush_filebasename + '-filenames', 'w')
-            print >> f, json.dumps(iter_filenames)
+            print(json.dumps(iter_filenames), file=f)
             f.close()
 
-            print '\nto pngcrush:'
-            print './%s-pngcrush' % crush_filebasename
+            print('\nto pngcrush:')
+            print('./%s-pngcrush' % crush_filebasename)
 
         background_path = os.path.relpath(os.path.join(cars.root_dir,
             'backgrounds/', '%s-background.png' % city))
@@ -482,8 +483,8 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         # for framerates over 25, avconv assumes conversion from 25 fps
         frames = (total_frames - 1/25)*framerate
 
-        print '\nto animate:'
-        print '''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path)
+        print('\nto animate:')
+        print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
         # if i wanted to invoke this, just do os.system('avconv...')
 
     # TODO: allow filtering the data (both trips and positions) by timeframe, latlng, etc
@@ -511,10 +512,10 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         process_graph.make_trip_origin_destination_graph(system, city, all_trips, all_trips_points_image, symbol)
 
     if DEBUG:
-        print '\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer)
-        print '\n'.join(l[0] + ': ' + str(l[1]) for l in timer)
+        print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer))
+        print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer))
 
-    print
+    print()
 
 def process_commandline():
     global DEBUG
@@ -584,19 +585,19 @@ def process_commandline():
     file_dir,city = os.path.split(city.lower())
 
     if not os.path.exists(filename):
-        print 'file not found: ' + filename
+        print('file not found: ' + filename)
         return
 
     cities_for_system = cars.get_all_cities(args.system)
     if not city in cities_for_system:
-        print 'unsupported city {city_name} for system {system_name}'.format(city_name=city, system_name=args.system)
+        print('unsupported city {city_name} for system {system_name}'.format(city_name=city, system_name=args.system))
         return
 
     try:
         # parse out starting time
         starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
     except:
-        print 'time format not recognized: ' + filename
+        print('time format not recognized: ' + filename)
         return
 
     params['starting_time'] = starting_time

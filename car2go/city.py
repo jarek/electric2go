@@ -468,8 +468,8 @@ def print_operation_areas(city):
     areas = get_operation_areas(city)
 
     for area in areas:
-        print '%s: %s zone' % (area['name'], area['zoneType'])
-        print 'border points: %d, bounds: %s' % (len(area['coordinates']), get_max_latlng(area))
+        print('%s: %s zone' % (area['name'], area['zoneType']))
+        print('border points: %d, bounds: %s' % (len(area['coordinates']), get_max_latlng(area)))
 
 def print_parking_spots(city, lat_gt=False, lat_lt=False, lng_gt=False, lng_lt=False):
     spots = get_parking_spots(city)
@@ -494,7 +494,7 @@ def print_parking_spots(city, lat_gt=False, lat_lt=False, lng_gt=False, lng_lt=F
         # if we're here, point shouldn't be filtered, add to list
         all_coords['coordinates'].extend(spot['coordinates'])
 
-    print 'parking spots: %d, bounds: %s' % (len(all_coords['coordinates']), get_max_latlng(all_coords))
+    print('parking spots: %d, bounds: %s' % (len(all_coords['coordinates']), get_max_latlng(all_coords)))
 
 def get_max_latlng(area):
     latitudes = []

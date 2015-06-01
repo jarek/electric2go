@@ -204,7 +204,7 @@ def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
     time_elapsed_seconds = (ending_time - starting_time).total_seconds()
     time_elapsed_days = time_elapsed_seconds * 1.0 / (24*60*60)
 
-    trips_per_car = trip_counts_by_vin.values()
+    trips_per_car = list(trip_counts_by_vin.values())
 
     stats = OrderedDict()
     stats['starting time'] = starting_time
