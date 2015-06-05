@@ -110,6 +110,13 @@ there in downtown Seattle or Calgary, how many arrive, how many leave?
 Show when a destination is popular (day/week), or which destinations
 are strongly popular to enter / leave at given time.
 
+For cities with a central downtown, calculate radial distance from downtown
+for start and end of trip, average and collect over 24 hours, graph.
+This might be an easy way of showing most trips starting in the suburbs and
+and ending downtown in the morning rush, and starting downtown and ending
+in the suburbs in the evening rush. Play around, see what comes up.
+- suggested in https://www.reddit.com/r/Austin/comments/208ivi/#cg0t0l0
+
 Collect idle times between trips.
 I suspect heavily binomial distribution - most are grabbed right away or
 wait a long time - or might show up as a fat, long tail.
