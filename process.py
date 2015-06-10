@@ -480,8 +480,11 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         mp4_path = animation_files_prefix + '.mp4'
 
         framerate = 30
-        # for framerates over 25, avconv assumes conversion from 25 fps
-        frames = (total_frames - 1/25)*framerate
+        # to my best understanding, my "input" is the static background image
+        # which avconv assumes to be "25 fps".
+        # to get output at 30 fps to be correct length to include all frames,
+        # I need to convert framecount from 25 fps to 30 fps
+        frames = ((total_frames - 1)/25)*framerate
 
         print('\nto animate:')
         print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
