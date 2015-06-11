@@ -140,6 +140,46 @@ CITIES = {
             ]
         }
     },
+    'columbus_osu': {
+        'display': 'OSU area, Columbus',
+        'BOUNDS': {
+            # this map limits the area to be examined to University District
+            # (Lane Avenue / I-670 / Summit St / SR-315)
+            # plus whatever fits to east and west to get to 16:9 aspect ratio
+            'NORTH': 40.00664,  # Lane Avenue
+            'SOUTH': 39.97341,  # I-670
+            'EAST': -82.97675,  # original limit would be -82.99971, Summit St
+            'WEST': -83.05380   # original limit would be -83.03084, SR-315
+        },
+        'MAP_LIMITS': {
+            # map scale is 23920 for 1280x720
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-83.05380,39.97341,-82.97675,40.00664&scale=23920&format=png
+            # map scale is 15952 for 1920x1080
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-83.05380,39.97341,-82.97675,40.00664&scale=15952&format=png
+            'NORTH': 40.00664,
+            'SOUTH': 39.97341,
+            'EAST': -82.97675,
+            'WEST': -83.05380
+        },
+        'DEGREE_LENGTHS': {
+            # for latitude 40.00, close enough
+            'LENGTH_OF_LATITUDE': 111034.61,
+            'LENGTH_OF_LONGITUDE': 85393.83
+        },
+        'MAP_SIZES': {
+            'MAP_X': 1920,
+            'MAP_Y': 1080
+        },
+        'LABELS': {
+            'fontsizes': [35, 22, 30, 18],
+            'lines': [
+                (150, 1080 - 55),
+                (150, 1080 - 93),
+                (150, 1080 - 132),
+                (150, 1080 - 170)
+            ]
+        }
+    },
     'duesseldorf': {'display': 'Düsseldorf'},
     'hamburg': {},
     'koeln': {'display': 'Köln'},
