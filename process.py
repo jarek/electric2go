@@ -259,6 +259,12 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
         time_organize_start = time.time()
 
+        for vin in unfinished_parkings:
+            # make sure we also track number of trips by cars that end up
+            # making zero trips (and thus will never be in new_finished_trips below)
+            if vin not in trips_by_vin:
+                trips_by_vin[vin] = []
+
         current_positions = [unfinished_parkings[vin]['coords'] for vin in unfinished_parkings]
         current_positions = [{'coords': p, 'metadata': {}} for p in current_positions]
         all_positions.extend(current_positions)
