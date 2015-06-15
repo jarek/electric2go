@@ -34,7 +34,7 @@ class stats_test(unittest.TestCase):
                     "time_step": 1
                 },
                 "expected":  {
-                    "total vehicles": 279,
+                    "total vehicles": 296,
                     "total trips": 1737,
                     "starting time": datetime(2015, 4, 28, 8, 0, 0),
                     "ending time": datetime(2015, 4, 30, 7, 59, 0),
@@ -56,13 +56,13 @@ class stats_test(unittest.TestCase):
                     "time_step": 1
                 },
                 "expected":  {
-                    "total vehicles": 218,
+                    "total vehicles": 238,
                     "total trips": 1967,
                     "starting time": datetime(2015, 5, 16, 11, 0, 0),
                     "ending time": datetime(2015, 5, 18, 10, 59, 0),
                     "time elapsed seconds": 172740,
-                    "utilization ratio": 0.13461127876333207,
-                    "trips per car per day quartile 25": 2.5008683570684265,
+                    "utilization ratio": 0.12329940659834618,
+                    "trips per car per day quartile 25": 1.6255644320944773,
                     "distance per trip quartile 25": 0.3909876034341634,
                     "duration per trip quartile 75": 40,
                     "weird trip count": 103
