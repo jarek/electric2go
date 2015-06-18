@@ -24,9 +24,7 @@ else:
 t = datetime.datetime.utcnow()
 for city_name, city_data in cities_to_download.items():
     try:
-        city_obj = {'name': city_name, 'data': city_data}
-
-        cars_text, cache = cars.get_all_cars_text(city_obj, force_download=True)
+        cars_text, cache = cars.get_all_cars_text(city_data, force_download=True)
 
         with open(cars.get_current_filename(city_data), 'w') as f:
             f.write(cars_text)

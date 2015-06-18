@@ -61,7 +61,7 @@ def get_all_cars_text(city_obj, force_download=False):
     json_text = None
     cache = False
 
-    cached_data_filename = get_current_filename(city_obj['data'])
+    cached_data_filename = get_current_filename(city_obj)
     if os.path.exists(cached_data_filename) and not force_download:
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
         cached_data_age = time.time() - cached_data_timestamp
@@ -72,12 +72,12 @@ def get_all_cars_text(city_obj, force_download=False):
                 json_text = f.read()
 
     if not json_text:
-        json_text = get_URL(city_obj['data']['API_AVAILABLE_VEHICLES_URL'],
-                            city_obj['data']['API_AVAILABLE_VEHICLES_HEADERS'])
+        json_text = get_URL(city_obj['API_AVAILABLE_VEHICLES_URL'],
+                            city_obj['API_AVAILABLE_VEHICLES_HEADERS'])
 
     # handle JSONP if necessary
-    if 'JSONP_CALLBACK_NAME' in city_obj['data']:
-        prefix = '{callback}('.format(callback=city_obj['data']['JSONP_CALLBACK_NAME'])
+    if 'JSONP_CALLBACK_NAME' in city_obj:
+        prefix = '{callback}('.format(callback=city_obj['JSONP_CALLBACK_NAME'])
         suffix1 = ');'
         suffix2 = ')'
 

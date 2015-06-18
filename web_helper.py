@@ -29,5 +29,4 @@ def get_city():
     if param in all_cities:
         city_name = param
 
-    return {'name': city_name,
-            'data': all_cities[city_name]}
+    return all_cities[city_name]

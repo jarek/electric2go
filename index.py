@@ -44,7 +44,7 @@ def import_file(filename):
     return result
 
 def format_address(address, city):
-    if not city['data']['number_first_address']:
+    if not city['number_first_address']:
         return address
 
     # If possible and appropriate, try to reformat street address 
@@ -203,7 +203,7 @@ def print_all_html():
     print '<!doctype html>'
     print '<meta charset="utf-8" />'
     print '<title>electric car2go vehicles in %s</title>' % \
-        requested_city['data']['display']
+        requested_city['display']
     print '''<!-- Hello! If you're interested, the source code for this page is
         available at https://github.com/jarek/electric2go -->'''
     print '<style type="text/css" media="screen,projection">'
@@ -216,7 +216,7 @@ def print_all_html():
 
     print '<h2>%s currently available in %s</h2>' % \
         (pluralize(len(electric_cars), 'electric car'), 
-        requested_city['data']['display'])
+        requested_city['display'])
 
     print format_all_cars_map(requested_city)
 
