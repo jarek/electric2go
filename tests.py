@@ -3,10 +3,13 @@
 
 from __future__ import unicode_literals
 import unittest
+import os
 import numpy as np
+import simplejson as json
 from datetime import datetime
 
 import cars
+import download
 import process
 from analysis import graph as process_graph
 from analysis import stats as process_stats
@@ -16,7 +19,58 @@ CITIES = cars.get_all_cities("car2go")
 
 # TODO: we need way more tests
 
-class stats_test(unittest.TestCase):
+
+class DownloadTest(unittest.TestCase):
+    # the following must be defined in system definitions
+    test_cities = [
+        ('car2go', 'calgary'),
+        ('evo', 'vancouver'),
+        ('drivenow', 'koeln'),
+        ('communauto', 'montreal')
+    ]
+
+    def test_car2go_get_text(self):
+        for city in self.test_cities:
+            city_data = cars.get_all_cities(city[0])[city[1]]
+
+            text, cache = cars.get_all_cars_text(city_data, force_download=True)
+
+            # could throw exception if JSON is malformed, test if it does
+            info = json.loads(text)
+
+            # assert there is something
+            self.assertGreater(len(info), 0)
+
+    def test_download(self):
+        for city in self.test_cities:
+            city_data = cars.get_all_cities(city[0])[city[1]]
+
+            t, _ = download.save(city[0], city[1])
+
+            file_absolute = cars.get_filename(city_data, t)
+            file_current = cars.get_current_filename(city_data)
+
+            self.assertTrue(os.path.exists(file_absolute))
+            self.assertTrue(os.path.exists(file_current))
+
+    def test_cache(self):
+        for city in self.test_cities:
+            city_data = cars.get_all_cities(city[0])[city[1]]
+
+            # warm up the cache
+            _, _ = download.save(city[0], city[1])
+
+            text, cache = cars.get_all_cars_text(city_data)
+
+            # check we've gotten a cached file
+            self.assertTrue(cache != False and cache > 0)
+
+            info = json.loads(text)  # check the json can be parsed
+
+            self.assertGreater(len(info), 0)  # check there is something
+
+
+class StatsTest(unittest.TestCase):
     def test_stats_for_sample_datasets(self):
         # This is hardcoded to a dataset I have, so won't be useful for anyone else.
         # Sorry! But it's worth it for me. Can be adapted to a dataset you have.
@@ -86,7 +140,7 @@ class stats_test(unittest.TestCase):
                                      exp=expected[category], got=stats[category]))
 
 
-class process_helper_functions(unittest.TestCase):
+class HelperFunctionsTest(unittest.TestCase):
     def test_is_latlng_in_bounds(self):
         VALUES = {
             'vancouver': [49.25199,-123.06672],

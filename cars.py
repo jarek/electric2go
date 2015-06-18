@@ -64,6 +64,11 @@ def get_current_filename(city_data):
     return os.path.join(data_dir, 'current_%s' % city_data['name'])
 
 
+def get_filename(city_data, t):
+    filename = filename_format % (city_data['name'], t.year, t.month, t.day, t.hour, t.minute)
+    return os.path.join(get_data_dir(city_data['system']), filename)
+
+
 def get_all_cars_text(city_obj, force_download=False):
     json_text = None
     cache = False

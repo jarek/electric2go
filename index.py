@@ -201,9 +201,13 @@ def pluralize(amount, text):
     return '%d %s%s' % (amount, text, plural)
 
 
+def get_timer_info(t=timer):
+    return ['<!--%s: %f-->' % (timepoint[0], timepoint[1]) for timepoint in t]
+
+
 def print_timer_info(t=timer):
-    for timepoint in t:
-        print '<!--%s: %f-->' % (timepoint[0], timepoint[1])
+    for line in get_timer_info(t):
+        print line
 
 
 def print_all_html():
