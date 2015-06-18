@@ -21,6 +21,7 @@ def format_for_json(trips, tz_offset=0):
 
     return trips
 
+
 def dump_trips(all_trips, filename, tz_offset):
     trips = format_for_json(all_trips, tz_offset)
 

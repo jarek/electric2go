@@ -10,8 +10,8 @@ import time
 import city_helper
 
 
-CACHE_PERIOD = 60 # cache data for this many seconds at most
-DATA_COLLECTION_INTERVAL_MINUTES = 1 # used in download.py, process.py
+CACHE_PERIOD = 60  # cache data for this many seconds at most
+DATA_COLLECTION_INTERVAL_MINUTES = 1  # used in download.py, process.py
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
@@ -20,6 +20,10 @@ timer = []
 
 
 def get_URL(url, extra_headers=False):
+    """
+    :type extra_headers: dict
+    """
+
     # TODO: consider handling if-none-match, or modified-since, or etag, 
     # or something similar
     # http://www.diveintopython.net/http_web_services/etags.html
@@ -50,12 +54,15 @@ def get_URL(url, extra_headers=False):
 
     return html
 
+
 def get_data_dir(system):
     return os.path.join(root_dir, 'data', system)
+
 
 def get_current_filename(city_data):
     data_dir = get_data_dir(city_data['system'])
     return os.path.join(data_dir, 'current_%s' % city_data['name'])
+
 
 def get_all_cars_text(city_obj, force_download=False):
     json_text = None
@@ -89,8 +96,9 @@ def get_all_cars_text(city_obj, force_download=False):
 
     return json_text, cache
 
+
 def get_electric_cars(city):
-    json_text,cache = get_all_cars_text(city)
+    json_text, cache = get_all_cars_text(city)
 
     time1 = time.time()
 
@@ -111,7 +119,8 @@ def get_electric_cars(city):
     time2 = time.time()
     timer.append(['list search, ms', (time2-time1)*1000.0])
 
-    return electric_cars,cache
+    return electric_cars, cache
+
 
 def get_all_cities(system):
     city_module = get_carshare_system_module(system, 'city')
@@ -122,6 +131,7 @@ def get_all_cities(system):
 
     return all_cities
 
+
 def get_carshare_system_module(system_name, module_name=''):
     if module_name == '':
         lib_name = system_name
@@ -129,6 +139,7 @@ def get_carshare_system_module(system_name, module_name=''):
         lib_name = '%s.%s' % (system_name, module_name)
 
     return importlib.import_module(lib_name)
+
 
 def dist(ll1, ll2):
     # adapted from http://www.movable-type.co.uk/scripts/latlong.html
@@ -140,7 +151,7 @@ def dist(ll1, ll2):
     def deg2rad(deg):
         return deg * (math.pi/180.0)
 
-    R = 6371 # Radius of the earth in km
+    R = 6371  # Radius of the earth in km
     dLat = deg2rad(ll2[0]-ll1[0])
     dLon = deg2rad(ll2[1]-ll1[1])
 
@@ -149,6 +160,6 @@ def dist(ll1, ll2):
         math.sin(dLon/2) * math.sin(dLon/2)
 
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    d = R * c # distance in km
+    d = R * c  # distance in km
     return d
 

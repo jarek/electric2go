@@ -28,12 +28,14 @@ def map_latitude(city_data, latitudes):
         (city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH'])) * \
         city_data['MAP_SIZES']['MAP_Y']
 
+
 def map_longitude(city_data, longitudes):
     return ((longitudes - city_data['MAP_LIMITS']['WEST']) / \
         (city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST'])) * \
         city_data['MAP_SIZES']['MAP_X']
 
-def make_graph_axes(city_data, background = False, log_name = ''):
+
+def make_graph_axes(city_data, background=False, log_name=''):
     """ Sets up figure area and axes for common properties for a city 
     to be graphed. The param `log_name` is used for logging only. """
 
@@ -51,8 +53,8 @@ def make_graph_axes(city_data, background = False, log_name = ''):
 
     # TODO: the two below take ~20 ms. try to reuse
     f = plt.figure(dpi=dpi)
-    f.set_size_inches(city_data['MAP_SIZES']['MAP_X']/dpi_adj_x/dpi, \
-            city_data['MAP_SIZES']['MAP_Y']/dpi_adj_y/dpi)
+    f.set_size_inches(city_data['MAP_SIZES']['MAP_X']/dpi_adj_x/dpi,
+                      city_data['MAP_SIZES']['MAP_Y']/dpi_adj_y/dpi)
 
     # TODO: this takes 50 ms each time. try to reuse the whole set of axes
     # rather than regenerating it each time
@@ -74,9 +76,10 @@ def make_graph_axes(city_data, background = False, log_name = ''):
         implot = ax.imshow(background, origin = 'lower', aspect = 'auto')
 
     timer.append((log_name + ': make_graph_axes, ms',
-        (time.time()-time_plotsetup_start)*1000.0))
+                  (time.time()-time_plotsetup_start)*1000.0))
 
-    return f,ax
+    return f, ax
+
 
 def plot_points(ax, points, colour, symbol):
     ys, xs = zip(*points)
@@ -84,6 +87,7 @@ def plot_points(ax, points, colour, symbol):
     ax.plot(xs, ys, colour + symbol)
 
     return ax
+
 
 def plot_geopoints(ax, city_data, geopoints_dict, symbol):
     for colour in geopoints_dict:
@@ -97,15 +101,18 @@ def plot_geopoints(ax, city_data, geopoints_dict, symbol):
 
     return ax
 
-def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour = '#aaaaaa'):
+
+def plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour='#aaaaaa'):
     for i in range(len(lines_start_y)):
-        l = plt.Line2D([lines_start_x[i], lines_end_x[i]], \
-                [lines_start_y[i], lines_end_y[i]], color = colour)
+        l = plt.Line2D([lines_start_x[i], lines_end_x[i]],
+                       [lines_start_y[i], lines_end_y[i]],
+                       color=colour)
         ax.add_line(l)
 
     return ax
 
-def plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour = '#aaaaaa'):
+
+def plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour='#aaaaaa'):
     # translate into map coordinates
     lines_start_y = map_latitude(city_data, np.array(lines_start_lat))
     lines_start_x = map_longitude(city_data, np.array(lines_start_lng))
@@ -114,7 +121,8 @@ def plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat
 
     return plot_lines(ax, lines_start_y, lines_start_x, lines_end_y, lines_end_x, colour)
 
-def plot_trips(ax, city_data, trips, colour = '#aaaaaa'):
+
+def plot_trips(ax, city_data, trips, colour='#aaaaaa'):
     lines_start_lat = [t['from'][0] for t in trips]
     lines_start_lng = [t['from'][1] for t in trips]
     lines_end_lat = [t['to'][0] for t in trips]
@@ -122,12 +130,14 @@ def plot_trips(ax, city_data, trips, colour = '#aaaaaa'):
 
     return plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
+
 def filter_positions_to_bounds(city_data, positions):
     """
     Filters the list of positions to only include those that in graphing bounds for the given city
     """
 
     return [p for p in positions if is_latlng_in_bounds(city_data, p['coords'])]
+
 
 def create_points_default_colour(positions):
     """
@@ -138,6 +148,7 @@ def create_points_default_colour(positions):
     return {
         SPEED_COLOURS[-1]: [p['coords'] for p in positions]
     }
+
 
 def create_points_speed_colour(positions):
     """
@@ -184,7 +195,8 @@ def create_points_trip_start_end(trips, from_colour='b', to_colour='r'):
         (to_colour, [trip['to'] for trip in trips])
     ])
 
-def graph_wrapper(city_data, plot_function, image_name, background = False):
+
+def graph_wrapper(city_data, plot_function, image_name, background=False):
     """
     Handles creating the figure, saving it as image, and closing the figure.
     :param plot_function: function accepting f, ax params to actually draw on the figure
@@ -200,7 +212,7 @@ def graph_wrapper(city_data, plot_function, image_name, background = False):
         log_name = log_name[:-4]
 
     # set up axes
-    f,ax = make_graph_axes(city_data, background, log_name)
+    f, ax = make_graph_axes(city_data, background, log_name)
 
     # pass axes back to function to actually do the plotting
     plot_function(f, ax)
@@ -226,7 +238,8 @@ def graph_wrapper(city_data, plot_function, image_name, background = False):
     plt.close(f)
 
     timer.append((log_name + ': graph_wrapper save figure, ms',
-        (time.time()-time_save_start)*1000.0))
+                  (time.time()-time_save_start)*1000.0))
+
 
 def make_graph(system, city, positions, trips, image_filename, copy_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
@@ -275,18 +288,21 @@ def make_graph(system, city, positions, trips, image_filename, copy_filename, tu
         fontsizes = city_data['LABELS']['fontsizes']
 
         ax.text(coords[0][0], coords[0][1],
-            city_data['display'], fontsize = fontsizes[0])
+                city_data['display'], fontsize = fontsizes[0])
         # prints something like "December 10, 2014"
         ax.text(coords[1][0], coords[1][1],
-            '{d:%B} {d.day}, {d.year}'.format(d=printed_time), fontsize = fontsizes[1])
+                '{d:%B} {d.day}, {d.year}'.format(d=printed_time),
+                fontsize=fontsizes[1])
         # prints something like "Wednesday, 04:02"
         ax.text(coords[2][0], coords[2][1],
-            '{d:%A}, {d:%H}:{d:%M}'.format(d=printed_time), fontsize = fontsizes[2])
+                '{d:%A}, {d:%H}:{d:%M}'.format(d=printed_time),
+                fontsize=fontsizes[2])
         ax.text(coords[3][0], coords[3][1],
-            'available cars: %d' % len(filtered_positions), fontsize = fontsizes[3])
+                'available cars: %d' % len(filtered_positions),
+                fontsize=fontsizes[3])
 
         timer.append((log_name + ': make_graph plot and label, ms',
-            (time.time()-time_plot_start)*1000.0))
+                      (time.time()-time_plot_start)*1000.0))
 
     # create and save plot
     graph_wrapper(city_data, plotter, image_filename, graph_background)
@@ -295,6 +311,7 @@ def make_graph(system, city, positions, trips, image_filename, copy_filename, tu
     # copying the file rather than saving again is a lot faster
     if copy_filename:
         shutil.copy2(image_filename, copy_filename)
+
 
 def make_positions_graph(system, city, positions, image_name, symbol):
     global timer
@@ -311,7 +328,8 @@ def make_positions_graph(system, city, positions, image_name, symbol):
     graph_wrapper(city_data, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_positions_graph total, ms',
-        (time.time()-time_positions_graph_start)*1000.0))
+                  (time.time()-time_positions_graph_start)*1000.0))
+
 
 def make_trips_graph(system, city, trips, image_name):
     global timer
@@ -327,7 +345,8 @@ def make_trips_graph(system, city, trips, image_name):
     graph_wrapper(city_data, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_trips_graph total, ms',
-        (time.time()-time_trips_graph_start)*1000.0))
+                  (time.time()-time_trips_graph_start)*1000.0))
+
 
 def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
     global timer
@@ -352,7 +371,8 @@ def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
     graph_wrapper(city_data, plotter, image_name, background=False)
 
     timer.append((image_name + ': make_trip_origin_destination_graph total, ms',
-        (time.time()-time_trips_graph_start)*1000.0))
+                  (time.time()-time_trips_graph_start)*1000.0))
+
 
 def make_accessibility_background(city_data, positions, distance, log_name):
     global timer
@@ -368,20 +388,22 @@ def make_accessibility_background(city_data, positions, distance, log_name):
     # To build this, iterate over all cars and apply a circular mask of Trues
     # (circle_mask) around the point indicating each car. We'll need to shift 
     # things around near the borders of the map, but this is relatively
-    # straighforward.
+    # straightforward.
 
     time_preprocess_start = time.time()
 
-    accessible_colour = (255, 255, 255, 0) # white, fully transparent
-    accessible_multiplier = (1, 1, 1, 0.6)
+    accessible_colour = (255, 255, 255, 0)  # white, fully transparent
+    inaccessible_colour = (239, 239, 239, 100)  # #efefef, mostly transparent
+
+    # not using accessible_multiplier currently because it's too slow
+    # accessible_multiplier = (1, 1, 1, 0.6)
     # if using accessible_multiplier, 160 alpha for inaccessible looks better
-    inaccessible_colour = (239, 239, 239, 100) # #efefef, mostly transparent
 
     # generate basic background, for now uniformly indicating no cars available
     markers = np.empty(
         (city_data['MAP_SIZES']['MAP_Y'], city_data['MAP_SIZES']['MAP_X'], 4),
-        dtype = np.uint8)
-    markers[:] = inaccessible_colour # can't use fill since it isn't a scalar
+        dtype=np.uint8)
+    markers[:] = inaccessible_colour  # can't use fill since it isn't a scalar
 
     # find distance radius, in pixels
     pixel_in_m = get_mean_pixel_size(city_data)
@@ -390,17 +412,17 @@ def make_accessibility_background(city_data, positions, distance, log_name):
     # generate master availability mask
     master_mask = np.empty(
         (city_data['MAP_SIZES']['MAP_Y'], city_data['MAP_SIZES']['MAP_X']),
-        dtype = np.bool)
+        dtype=np.bool)
     master_mask.fill(False)
     m_m_shape = master_mask.shape
 
     # generate basic circle mask
-    y,x = np.ogrid[-radius: radius+1, -radius: radius+1]
+    y, x = np.ogrid[-radius: radius+1, -radius: radius+1]
     circle_mask = x**2+y**2 <= radius**2
     c_m_shape = circle_mask.shape
 
     timer.append((log_name + ': make_accessibility_background preprocess, ms',
-        (time.time()-time_preprocess_start)*1000.0))
+                  (time.time()-time_preprocess_start)*1000.0))
 
     time_iter_start = time.time()
 
@@ -430,27 +452,25 @@ def make_accessibility_background(city_data, positions, distance, log_name):
             circle_x_start = x * -1
         if y < 0:   # trim off top
             circle_y_start = y * -1
-        if master_x_end > m_m_shape[0]: # trim off right side
+        if master_x_end > m_m_shape[0]:  # trim off right side
             circle_x_end = (m_m_shape[0] - master_x_end)
-        if master_y_end > m_m_shape[1]: # trim off bottom
+        if master_y_end > m_m_shape[1]:  # trim off bottom
             circle_y_end = (m_m_shape[1] - master_y_end)
 
         # make sure to OR the masks so that earlier circles' Trues 
         # aren't overwritten by later circles' Falses
         master_mask[
-            master_x_start : master_x_end, 
-            master_y_start : master_y_end
+            master_x_start: master_x_end,
+            master_y_start: master_y_end
             ] |= circle_mask[
-                circle_x_start : circle_x_end, 
-                circle_y_start : circle_y_end]
+                circle_x_start: circle_x_end,
+                circle_y_start: circle_y_end]
 
-        #markers[master_mask] *= accessible_multiplier
-        #master_mask.fill(False)
-
-        #end for
+        # not using accessible_multiplier currently because it's too slow
+        # markers[master_mask] *= accessible_multiplier
 
     timer.append((log_name + ': make_accessibility_background mask iter, ms',
-        (time.time()-time_iter_start)*1000.0))
+                  (time.time()-time_iter_start)*1000.0))
 
     time_mask_apply_start = time.time()
 
@@ -464,13 +484,13 @@ def make_accessibility_background(city_data, positions, distance, log_name):
     markers[master_mask] = accessible_colour
 
     timer.append((log_name + ': make_accessibility_background mask apply, ms',
-        (time.time()-time_mask_apply_start)*1000.0))
+                  (time.time()-time_mask_apply_start)*1000.0))
 
     time_bg_render_start = time.time()
 
     created_background = Image.fromarray(markers, 'RGBA')
 
     timer.append((log_name + ': make_accessibility_background bg render, ms',
-        (time.time()-time_bg_render_start)*1000.0))
+                  (time.time()-time_bg_render_start)*1000.0))
 
     return created_background

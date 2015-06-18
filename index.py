@@ -23,6 +23,7 @@ MAP_SIZE_IN_DEGREES = 0.02
 
 timer = []
 
+
 def import_file(filename):
     result = ''
 
@@ -43,6 +44,7 @@ def import_file(filename):
 
     return result
 
+
 def format_address(address, city):
     if not city['number_first_address']:
         return address
@@ -62,15 +64,21 @@ def format_address(address, city):
 
     return ','.join(address_parts)
 
+
 def format_latlng(ll):
     return '%s,%s' % (ll[1], ll[0])
 
-def format_car(car, city, all_cars = False):
+
+def format_car(car, city, all_cars=False):
+    """
+    :type all_cars: list
+    """
+
     # something in Python doesn't like the Unicode returned by API,
     # so encode all strings explicitly
     for key in car:
         if isinstance(car[key], basestring):
-            car[key] = car[key].encode('ascii','xmlcharrefreplace')
+            car[key] = car[key].encode('ascii', 'xmlcharrefreplace')
 
     coords = format_latlng(car['coordinates'])
     address = format_address(car['address'], city)
@@ -85,8 +93,8 @@ def format_car(car, city, all_cars = False):
     else:
         # full charge range is approx 135 km, round down a bit
         # must end trip with more than 20% unless at charging station
-        range = int(math.floor(1.2 * (charge-20)))
-        info += 'Approx range: %s km, ' % range
+        car_range = int(math.floor(1.2 * (charge-20)))
+        info += 'Approx range: %s km, ' % car_range
 
     info += 'charge: %s%%' % charge
 
@@ -98,7 +106,7 @@ def format_car(car, city, all_cars = False):
     info += 'Plate: %s, interior: %s, exterior: %s<br/>\n' % \
         (car['name'], car['interior'].lower(), car['exterior'].lower())
 
-    mapurl = MAPS_URL.format(ll = coords, q = address.replace(' ','%20'))
+    mapurl = MAPS_URL.format(ll=coords, q=address.replace(' ', '%20'))
 
     # Show other nearby cars on map if they are within the map area.
     # Include only the cars that would actually fit on the map
@@ -111,7 +119,7 @@ def format_car(car, city, all_cars = False):
     # given the roughly 50-100% margin of error in the reference
     # degree difference value.
     other_ll = ''
-    if all_cars != False:
+    if all_cars:
         other_ll = []
         for other_car in all_cars:
             formatted = format_latlng(other_car['coordinates'])
@@ -128,8 +136,7 @@ def format_car(car, city, all_cars = False):
 
         other_ll = '|'.join(other_ll)
 
-    mapimg = MAPS_IMAGE_CODE.format( \
-            ll = coords, other_ll = other_ll, q = address)
+    mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_ll, q=address)
 
     info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
     info += '<span class="distance" '
@@ -140,8 +147,9 @@ def format_car(car, city, all_cars = False):
 
     return info
 
+
 def format_all_cars_map(city):
-    all_cars,cache = cars.get_electric_cars(city)
+    all_cars, cache = cars.get_electric_cars(city)
 
     if len(all_cars) < 2:
         # Don't show map if there's no cars.
@@ -151,19 +159,21 @@ def format_all_cars_map(city):
 
     coords = list(format_latlng(car['coordinates']) for car in all_cars)
 
-    code = MAPS_MULTI_CODE.format( \
-            ll = '|'.join(coords), alt = 'map of all available cars')
+    lls = '|'.join(coords)
+    code = MAPS_MULTI_CODE.format(ll=lls, alt='map of all available cars')
 
     return code
 
+
 def get_formatted_electric_cars(city):
-    electric_cars,cache = cars.get_electric_cars(city)
+    electric_cars, cache = cars.get_electric_cars(city)
     result = []
 
     for car in electric_cars:
         result.append(format_car(car, city, electric_cars))
 
-    return result,cache
+    return result, cache
+
 
 def get_formatted_all_cities(requested_city):
     formatted_cities = []
@@ -185,13 +195,16 @@ def get_formatted_all_cities(requested_city):
     return 'car2go cities with a few electric vehicles: %s' % \
         ', '.join(formatted_cities)
 
+
 def pluralize(amount, text):
     plural = 's' if amount != 1 else ''
     return '%d %s%s' % (amount, text, plural)
 
-def print_timer_info(t = timer):
+
+def print_timer_info(t=timer):
     for timepoint in t:
         print '<!--%s: %f-->' % (timepoint[0], timepoint[1])
+
 
 def print_all_html():
     print 'Content-type: text/html\n'
@@ -212,11 +225,11 @@ def print_all_html():
 
     print '<nav>%s</nav>' % get_formatted_all_cities(requested_city)
 
-    electric_cars,cache = get_formatted_electric_cars(requested_city)
+    electric_cars, cache = get_formatted_electric_cars(requested_city)
 
     print '<h2>%s currently available in %s</h2>' % \
-        (pluralize(len(electric_cars), 'electric car'), 
-        requested_city['display'])
+        (pluralize(len(electric_cars), 'electric car'),
+         requested_city['display'])
 
     print format_all_cars_map(requested_city)
 
@@ -231,7 +244,7 @@ def print_all_html():
         cache_age = time.time() - cache
         print 'Using cached data. Data age: %s, next refresh in %s.' % \
             (pluralize(cache_age, 'second'),
-            pluralize(cars.CACHE_PERIOD - cache_age, 'second'))
+             pluralize(cars.CACHE_PERIOD - cache_age, 'second'))
     print '''This product uses the car2go API 
         but is not endorsed or certified by car2go.</footer>'''
     

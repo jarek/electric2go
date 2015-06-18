@@ -9,7 +9,8 @@ import web_helper
 
 timer = []
 
-def fill_in_info(car, query_ll = False):
+
+def fill_in_info(car, query_ll=False):
     # estimate range
     # full charge range is approx 135 km, round down a bit
     # must end trip with more than 20% unless at charging station
@@ -26,13 +27,14 @@ def fill_in_info(car, query_ll = False):
 
     return car
 
+
 def json_respond():
     print 'Content-type: application/json\n'
 
     ttime1 = time.time()
 
     requested_city = web_helper.get_city()
-    electric_cars,cache = cars.get_electric_cars(requested_city)
+    electric_cars, cache = cars.get_electric_cars(requested_city)
 
     limit = web_helper.get_param('limit')
     if limit:

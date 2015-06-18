@@ -27,6 +27,7 @@ def fill_in_information(system, all_cities):
 
     return all_cities
 
+
 def is_latlng_in_bounds(city_data, lat, lng=False):
     if not lng:
         lng = lat[1]
@@ -36,6 +37,7 @@ def is_latlng_in_bounds(city_data, lat, lng=False):
     is_lng = city_data['BOUNDS']['WEST'] <= lng <= city_data['BOUNDS']['EAST']
 
     return is_lat and is_lng
+
 
 def get_pixel_size(city_data):
     # find the length in metres represented by one pixel on graph in both lat and lng direction
@@ -49,6 +51,7 @@ def get_pixel_size(city_data):
     pixel_in_lng_m = lng_in_m / city_data['MAP_SIZES']['MAP_X']
 
     return pixel_in_lat_m, pixel_in_lng_m
+
 
 def get_mean_pixel_size(city_data):
     # find the length in metres represented by one pixel on graph
