@@ -95,6 +95,11 @@ Where do cars arriving in Seattle's South Lake Union come from? Particularly
 useful if combined with time analysis to show inbound/outbound commutes and
 the like.
 
+Carshare availability analysis: given a position, map nearby fixed carshare
+stations and historical availability, and calculate/map historical availability
+of floating carshare vehicles nearby. Big project but pretty interesting.
+Might need to get data from Zipcar/Modo/Communauto/etc for full effect.
+
 
 Based on time
 -------------
