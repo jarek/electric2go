@@ -23,7 +23,7 @@ CITIES = cars.get_all_cities("car2go")
 class DownloadTest(unittest.TestCase):
     # the following must be defined in system definitions
     test_cities = [
-        ('car2go', 'calgary'),
+        ('car2go', 'wien'),  # use to test non-ASCII handling
         ('evo', 'vancouver'),
         ('drivenow', 'koeln'),
         ('communauto', 'montreal')

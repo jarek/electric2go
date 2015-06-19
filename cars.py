@@ -4,7 +4,7 @@
 import os
 import importlib
 import math
-import urllib2
+import requests
 import json
 import time
 import city_helper
@@ -19,40 +19,18 @@ filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 timer = []
 
 
-def get_URL(url, extra_headers=False):
-    """
-    :type extra_headers: dict
-    """
-
-    # TODO: consider handling if-none-match, or modified-since, or etag, 
-    # or something similar
-    # http://www.diveintopython.net/http_web_services/etags.html
-    # Maybe before doing so, look into existing data and see 
-    # how often the data doesn't change over a minute or over five minutes.
-    # At first glance it doesn't look like the the car2go server is sending
-    # either last-modified or etag, actually.
-
-    # TODO: also support gzip, if urllib doesn't for me. Connection 
-    # establishment is likely to be much of the delay, but perhaps not all.
-
-    # TODO: Maybe try to support keep-alive too? Not sure if I can do it 
+def get_URL(url, extra_headers=None):
+    # TODO: Maybe try to support keep-alive too? Not sure if I can do it
     # over separate script runs...
 
     htime1 = time.time()
 
-    req = urllib2.Request(url)
-
-    if extra_headers:
-        for header, value in extra_headers.items():
-            req.add_header(header, value)
-
-    resp = urllib2.urlopen(req)
-    html = resp.read()
+    r = requests.get(url, headers=extra_headers)
 
     htime2 = time.time()
     timer.append(['http get, ms', (htime2-htime1)*1000.0])
 
-    return html
+    return r.content
 
 
 def get_data_dir(system):

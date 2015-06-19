@@ -23,7 +23,7 @@ def fill_in_information(system, all_cities):
             city_data['MAP_SIZES'] = {'MAP_X': 1920, 'MAP_Y': 1080}
 
         if 'API_AVAILABLE_VEHICLES_HEADERS' not in city_data:
-            city_data['API_AVAILABLE_VEHICLES_HEADERS'] = False
+            city_data['API_AVAILABLE_VEHICLES_HEADERS'] = None
 
     return all_cities
 

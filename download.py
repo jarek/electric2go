@@ -57,7 +57,7 @@ def process_commandline():
     print('{timestamp} {info}'.format(timestamp=str(t), info=info))
 
     for failed in failures:
-        message = '!!! could not download or save information for system {system} city {city}\n'
+        message = '!!! could not download or save information for system {system} city {city}'
         print(message.format(system=failed[0], city=failed[1]))
 
 
