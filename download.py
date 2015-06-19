@@ -9,8 +9,10 @@ import cars
 import index
 
 
-def save_one_city(city, t):
-    cars_text, cache = cars.get_all_cars_text(city, force_download=True)
+def save_one_city(city, t, session=None):
+    cars_text, _, session = cars.get_all_cars_text(city,
+                                                   force_download=True,
+                                                   session=session)
 
     with open(cars.get_current_filename(city), 'w') as f:
         f.write(cars_text)
@@ -19,6 +21,8 @@ def save_one_city(city, t):
     if t.minute % cars.DATA_COLLECTION_INTERVAL_MINUTES == 0:
         with open(cars.get_filename(city, t), 'w') as f:
             f.write(cars_text)
+
+    return session
 
 
 def save(requested_system, requested_city):
@@ -33,9 +37,10 @@ def save(requested_system, requested_city):
         cities_to_download_list = [all_cities[requested_city]]
 
     t = datetime.datetime.utcnow()
+    session = None
     for city in cities_to_download_list:
         try:
-            save_one_city(city, t)
+            session = save_one_city(city, t, session=session)
         except:
             # bypass cities that fail (like Ulm did in 2015-01) without killing whole script
             failures.append((city['system'], city['name']))

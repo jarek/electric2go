@@ -19,18 +19,21 @@ filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 timer = []
 
 
-def get_URL(url, extra_headers=None):
+def get_URL(url, extra_headers=None, session=None):
     # TODO: Maybe try to support keep-alive too? Not sure if I can do it
     # over separate script runs...
 
     htime1 = time.time()
 
-    r = requests.get(url, headers=extra_headers)
+    if session is None:
+        session = requests.Session()
+
+    r = session.get(url, headers=extra_headers)
 
     htime2 = time.time()
     timer.append(['http get, ms', (htime2-htime1)*1000.0])
 
-    return r.content
+    return r.content, session
 
 
 def get_data_dir(system):
@@ -47,7 +50,7 @@ def get_filename(city_data, t):
     return os.path.join(get_data_dir(city_data['system']), filename)
 
 
-def get_all_cars_text(city_obj, force_download=False):
+def get_all_cars_text(city_obj, force_download=False, session=None):
     json_text = None
     cache = False
 
@@ -62,8 +65,9 @@ def get_all_cars_text(city_obj, force_download=False):
                 json_text = f.read()
 
     if not json_text:
-        json_text = get_URL(city_obj['API_AVAILABLE_VEHICLES_URL'],
-                            city_obj['API_AVAILABLE_VEHICLES_HEADERS'])
+        json_text, session = get_URL(city_obj['API_AVAILABLE_VEHICLES_URL'],
+                                     city_obj['API_AVAILABLE_VEHICLES_HEADERS'],
+                                     session=session)
 
     # handle JSONP if necessary
     if 'JSONP_CALLBACK_NAME' in city_obj:
@@ -77,11 +81,11 @@ def get_all_cars_text(city_obj, force_download=False):
             elif json_text.endswith(suffix2):
                 json_text = json_text[len(prefix):-len(suffix2)]
 
-    return json_text, cache
+    return json_text, cache, session
 
 
 def get_electric_cars(city):
-    json_text, cache = get_all_cars_text(city)
+    json_text, cache, _ = get_all_cars_text(city)
 
     time1 = time.time()
 
