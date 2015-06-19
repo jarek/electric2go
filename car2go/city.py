@@ -485,24 +485,22 @@ for city, city_data in CITIES.items():
 
 
 def get_operation_areas(city):
-    import cars
-    import json
+    import requests
 
     API_AREAS_URL = 'https://www.car2go.com/api/v2.1/operationareas?loc={loc}&oauth_consumer_key={key}&format=json'
 
-    data_text = cars.get_URL(API_AREAS_URL.format(loc=city, key=OAUTH_KEY))
-
-    return json.loads(data_text).get('placemarks')
+    r = requests.get(API_AREAS_URL.format(loc=city, key=OAUTH_KEY))
+    
+    return r.json().get('placemarks')
 
 def get_parking_spots(city):
-    import cars
-    import json
+    import requests
 
     API_PARKING_URL = 'https://www.car2go.com/api/v2.1/parkingspots?loc={loc}&oauth_consumer_key={key}&format=json'
 
-    data_text = cars.get_URL(API_PARKING_URL.format(loc=city, key=OAUTH_KEY))
+    r = requests.get(API_PARKING_URL.format(loc=city, key=OAUTH_KEY))
 
-    return json.loads(data_text).get('placemarks')
+    return r.json().get('placemarks')
 
 def print_operation_areas(city):
     areas = get_operation_areas(city)
