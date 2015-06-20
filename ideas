@@ -95,6 +95,10 @@ Where do cars arriving in Seattle's South Lake Union come from? Particularly
 useful if combined with time analysis to show inbound/outbound commutes and
 the like.
 
+In grid-based cities, how close do cars park to the grid arterials? That is,
+is more usage nearer to grid, or inside the blocks, where the transit is
+farther away?
+
 Carshare availability analysis: given a position, map nearby fixed carshare
 stations and historical availability, and calculate/map historical availability
 of floating carshare vehicles nearby. Big project but pretty interesting.
@@ -127,6 +131,11 @@ I suspect heavily binomial distribution - most are grabbed right away or
 wait a long time - or might show up as a fat, long tail.
 Calculate and show idle times by times of day. 11 pm - 7 am, 7 am - 6 pm,
 6 pm - 11 pm, or something. Check every hour to find the transition points.
+
+For cars that hadn't moved for a while, find day of week/time of first trip.
+If it's during work hours, particularly on a specific day, it might indicate
+an administrative move rather than a customer trip - and analysing a subset
+of only administrative moves would be pretty interesting.
 
 
 Based on reported fuel level
