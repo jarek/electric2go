@@ -20,9 +20,6 @@ timer = []
 
 
 def get_URL(url, extra_headers=None, session=None):
-    # TODO: Maybe try to support keep-alive too? Not sure if I can do it
-    # over separate script runs...
-
     htime1 = time.time()
 
     if session is None:

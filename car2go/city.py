@@ -490,7 +490,7 @@ def get_operation_areas(city):
     API_AREAS_URL = 'https://www.car2go.com/api/v2.1/operationareas?loc={loc}&oauth_consumer_key={key}&format=json'
 
     r = requests.get(API_AREAS_URL.format(loc=city, key=OAUTH_KEY))
-    
+
     return r.json().get('placemarks')
 
 def get_parking_spots(city):
