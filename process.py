@@ -348,14 +348,8 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         }
     }
 
-    def json_serializer(obj):
-        # default doesn't serialize dates... tell it to use isoformat()
-        # syntax from http://blog.codevariety.com/2012/01/06/python-serializing-dates-datetime-datetime-into-json/
-        # TODO: might also want to update a worse solution to same problem in analysis/dump.py
-        return obj.isoformat() if hasattr(obj, 'isoformat') else obj
-
     with open(datetime.now().strftime('%Y%m%d-%H%M%S') + '-alldata.json', 'w') as f:
-        json.dump(result, f, default=json_serializer, indent=2)
+        json.dump(result, f, default=process_dump.json_serializer, indent=2)
 
     # TODO: also return unstarted_potential_trips
     return data_frames, all_positions, all_trips, trips_by_vin, ending_time, i
