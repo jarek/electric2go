@@ -21,7 +21,8 @@ DEBUG = False
 
 
 def get_filepath(city, t, file_dir):
-    filename = cars.filename_format % (city, t.year, t.month, t.day, t.hour, t.minute)
+    city_obj = {'name': city}
+    filename = cars.get_file_name(city_obj, t)
 
     return os.path.join(file_dir, filename)
 

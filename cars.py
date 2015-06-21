@@ -14,7 +14,6 @@ CACHE_PERIOD = 60  # cache data for this many seconds at most
 DATA_COLLECTION_INTERVAL_MINUTES = 1  # used in download.py, process.py
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
-filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
 
 timer = []
 
@@ -42,8 +41,13 @@ def get_current_filename(city_data):
     return os.path.join(data_dir, 'current_%s' % city_data['name'])
 
 
-def get_filename(city_data, t):
-    filename = filename_format % (city_data['name'], t.year, t.month, t.day, t.hour, t.minute)
+def get_file_name(city_data, t):
+    filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
+    return filename_format % (city_data['name'], t.year, t.month, t.day, t.hour, t.minute)
+
+
+def get_file_path(city_data, t):
+    filename = get_file_name(city_data, t)
     return os.path.join(get_data_dir(city_data['system']), filename)
 
 

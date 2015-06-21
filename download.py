@@ -19,7 +19,7 @@ def save_one_city(city, t, session=None):
 
     # also save data every DATA_COLLECTION_INTERVAL_MINUTES
     if t.minute % cars.DATA_COLLECTION_INTERVAL_MINUTES == 0:
-        with open(cars.get_filename(city, t), 'w') as f:
+        with open(cars.get_file_path(city, t), 'w') as f:
             f.write(cars_text)
 
     return session
