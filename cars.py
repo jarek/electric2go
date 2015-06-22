@@ -76,11 +76,15 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
         suffix1 = ');'
         suffix2 = ')'
 
+        json_text = json_text.decode('utf-8')
+
         if json_text.startswith(prefix):
             if json_text.endswith(suffix1):
                 json_text = json_text[len(prefix):-len(suffix1)]
             elif json_text.endswith(suffix2):
                 json_text = json_text[len(prefix):-len(suffix2)]
+
+        json_text = json_text.encode('utf-8')
 
     return json_text, cache, session
 
