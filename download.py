@@ -14,12 +14,12 @@ def save_one_city(city, t, session=None):
                                                    force_download=True,
                                                    session=session)
 
-    with open(cars.get_current_filename(city), 'w') as f:
+    with open(cars.get_current_filename(city), 'wb') as f:
         f.write(cars_text)
 
     # also save data every DATA_COLLECTION_INTERVAL_MINUTES
     if t.minute % cars.DATA_COLLECTION_INTERVAL_MINUTES == 0:
-        with open(cars.get_file_path(city, t), 'w') as f:
+        with open(cars.get_file_path(city, t), 'wb') as f:
             f.write(cars_text)
 
     return session
