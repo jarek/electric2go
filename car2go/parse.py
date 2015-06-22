@@ -30,6 +30,7 @@ def extract_car_data(car):
 
     result['fuel'] = car['fuel']
     result['fuel_type'] = car['engineType']
+    result['charging'] = car['charging'] if 'charging' in car else False
 
     result['transmission'] = 'A'
 
@@ -37,3 +38,20 @@ def extract_car_data(car):
     result['cleanliness_exterior'] = car['exterior']
 
     return result
+
+
+def get_range(car):
+    if 'fuel' not in car:
+        car = extract_car_data(car)
+
+    # Wikipedia quotes full charge range 135 km (NEDC), car2go quotes 130 km.
+    # Use 130 km.
+    # car2go policy is that less than 20% charge remaining requires ending
+    # trip at a charging point. Use 20% as indicator for minimum charge level.
+
+    if car['fuel'] > 20:
+        range = int(1.3 * (car['fuel']-20))
+    else:
+        range = 0
+
+    return range

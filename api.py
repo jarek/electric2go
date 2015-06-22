@@ -2,7 +2,6 @@
 # coding=utf-8
 
 from __future__ import print_function
-import math
 import json
 import time
 import cars
@@ -11,22 +10,16 @@ import web_helper
 timer = []
 
 
-def fill_in_info(car, query_ll=False):
-    # estimate range
-    # full charge range is approx 135 km, round down a bit
-    # must end trip with more than 20% unless at charging station
-    if car['engineType'] == 'ED':
-        if car['fuel'] > 20:
-            car['range'] = int(math.floor(1.2 * (car['fuel']-20)))
-        else:
-            car['range'] = 0
+def get_info(car, query_ll=False):
+    parse = cars.get_carshare_system_module(web_helper.WEB_SYSTEM, 'parse')
+    info = parse.extract_car_data(car)
 
-    coords = (car['coordinates'][1], car['coordinates'][0])
+    info['range'] = parse.get_range(info)
 
     if query_ll:
-        car['distance'] = cars.dist(coords, query_ll)
+        info['distance'] = cars.dist((info['lat'], info['lng']), query_ll)
 
-    return car
+    return info
 
 
 def json_respond():
@@ -35,7 +28,7 @@ def json_respond():
     ttime1 = time.time()
 
     requested_city = web_helper.get_city()
-    electric_cars, cache = cars.get_electric_cars(requested_city)
+    electric_cars, cache = web_helper.get_electric_cars(requested_city)
 
     limit = web_helper.get_param('limit')
     if limit:
@@ -49,16 +42,14 @@ def json_respond():
         query_ll[0] = float(query_ll[0])
         query_ll[1] = float(query_ll[1])
 
-    results = []
-    for car in electric_cars:
-        results.append(fill_in_info(car, query_ll))
+    results = [get_info(car, query_ll) for car in electric_cars]
 
     if query_ll:
-        results.sort(key = lambda x: x['distance'])
+        results.sort(key=lambda x: x['distance'])
 
     results = results[:limit]
 
-    result = {'placemarks': results}
+    result = {'cars': results}
 
     if cache:
         result['cache'] = True

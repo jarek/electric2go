@@ -3,7 +3,6 @@
 
 from __future__ import print_function
 import os
-import math
 import time
 import cars
 import web_helper
@@ -83,12 +82,11 @@ def format_car(car, city, all_cars=False):
     info += '<p><!--vin: %s-->' % car['vin']
 
     charge = car['fuel']
-    if charge < 20:
+    parse = cars.get_carshare_system_module(web_helper.WEB_SYSTEM, 'parse')
+    car_range = parse.get_range(car)
+    if car_range == 0:
         info += '<span style="color: red">Not driveable</span>, '
     else:
-        # full charge range is approx 135 km, round down a bit
-        # must end trip with more than 20% unless at charging station
-        car_range = int(math.floor(1.2 * (charge-20)))
         info += 'Approx range: %s km, ' % car_range
 
     info += 'charge: %s%%' % charge
@@ -144,7 +142,7 @@ def format_car(car, city, all_cars=False):
 
 
 def format_all_cars_map(city):
-    all_cars, cache = cars.get_electric_cars(city)
+    all_cars, cache = web_helper.get_electric_cars(city)
 
     if len(all_cars) < 2:
         # Don't show map if there's no cars.
@@ -161,7 +159,7 @@ def format_all_cars_map(city):
 
 
 def get_formatted_electric_cars(city):
-    electric_cars, cache = cars.get_electric_cars(city)
+    electric_cars, cache = web_helper.get_electric_cars(city)
     result = []
 
     for car in electric_cars:
