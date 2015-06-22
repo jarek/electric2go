@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import print_function
 import os
 import math
 import time
@@ -73,12 +74,6 @@ def format_car(car, city, all_cars=False):
     """
     :type all_cars: list
     """
-
-    # something in Python doesn't like the Unicode returned by API,
-    # so encode all strings explicitly
-    for key in car:
-        if isinstance(car[key], basestring):
-            car[key] = car[key].encode('ascii', 'xmlcharrefreplace')
 
     coords = format_latlng(car['coordinates'])
     address = format_address(car['address'], city)
@@ -207,54 +202,54 @@ def get_timer_info(t=timer):
 
 def print_timer_info(t=timer):
     for line in get_timer_info(t):
-        print line
+        print(line)
 
 
 def print_all_html():
-    print 'Content-type: text/html\n'
+    print('Content-type: text/html\n')
 
     ttime1 = time.time()
 
     requested_city = web_helper.get_city()
 
-    print '<!doctype html>'
-    print '<meta charset="utf-8" />'
-    print '<title>electric car2go vehicles in %s</title>' % \
-        requested_city['display']
-    print '''<!-- Hello! If you're interested, the source code for this page is
-        available at https://github.com/jarek/electric2go -->'''
-    print '<style type="text/css" media="screen,projection">'
-    print import_file('frontend/style.css')
-    print '</style>'
+    print('<!doctype html>')
+    print('<meta charset="utf-8" />')
+    print('<title>electric car2go vehicles in %s</title>' %
+          requested_city['display'])
+    print('''<!-- Hello! If you're interested, the source code for this page is
+        available at https://github.com/jarek/electric2go -->''')
+    print('<style type="text/css" media="screen,projection">')
+    print(import_file('frontend/style.css'))
+    print('</style>')
 
-    print '<nav>%s</nav>' % get_formatted_all_cities(requested_city)
+    print('<nav>%s</nav>' % get_formatted_all_cities(requested_city))
 
     electric_cars, cache = get_formatted_electric_cars(requested_city)
 
-    print '<h2>%s currently available in %s</h2>' % \
-        (pluralize(len(electric_cars), 'electric car'),
-         requested_city['display'])
+    print('<h2>%s currently available in %s</h2>' %
+          (pluralize(len(electric_cars), 'electric car'),
+           requested_city['display']))
 
-    print format_all_cars_map(requested_city)
+    print(format_all_cars_map(requested_city))
 
     for car in electric_cars:
-        print car
+        print(car)
 
     ttime2 = time.time()
     timer.append(['total, ms', (ttime2-ttime1)*1000.0])
 
-    print '<footer>',
+    print('<footer>', end='')
     if cache:
         cache_age = time.time() - cache
-        print 'Using cached data. Data age: %s, next refresh in %s.' % \
-            (pluralize(cache_age, 'second'),
-             pluralize(cars.CACHE_PERIOD - cache_age, 'second'))
-    print '''This product uses the car2go API 
-        but is not endorsed or certified by car2go.</footer>'''
+        print('Using cached data. Data age: %s, next refresh in %s.' %
+              (pluralize(cache_age, 'second'),
+               pluralize(cars.CACHE_PERIOD - cache_age, 'second')))
+    print('''This product uses the car2go API
+        but is not endorsed or certified by car2go.</footer>''')
     
-    print '<script type="text/javascript">'
-    print import_file('frontend/sort.js')
-    print '</script>'
+    print('<script type="text/javascript">')
+    print(import_file('frontend/sort.js'))
+    print('</script>')
 
     print_timer_info(cars.timer)
     print_timer_info()

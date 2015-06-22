@@ -62,7 +62,7 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
         if cached_data_age < CACHE_PERIOD:
             cache = cached_data_timestamp
             timer.append(['using cached data, age in seconds', cached_data_age])
-            with open(cached_data_filename, 'r') as f:
+            with open(cached_data_filename, 'rb') as f:
                 json_text = f.read()
 
     if not json_text:
@@ -90,7 +90,7 @@ def get_electric_cars(city):
 
     time1 = time.time()
 
-    cars = json.loads(json_text).get('placemarks')
+    cars = json.loads(json_text.decode('utf-8')).get('placemarks')
 
     time2 = time.time()
     timer.append(['json size, kB', len(json_text)/1000.0])

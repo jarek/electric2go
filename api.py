@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import print_function
 import math
 import json
 import time
@@ -29,7 +30,7 @@ def fill_in_info(car, query_ll=False):
 
 
 def json_respond():
-    print 'Content-type: application/json\n'
+    print('Content-type: application/json\n')
 
     ttime1 = time.time()
 
@@ -71,7 +72,7 @@ def json_respond():
         cars.timer.extend(timer)
         result['timer'] = cars.timer
 
-    print json.dumps(result)
+    print(json.dumps(result))
 
 
 if __name__ == '__main__':
