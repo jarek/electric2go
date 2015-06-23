@@ -25,44 +25,14 @@ timer = []
 
 
 def import_file(filename):
-    result = ''
-
-    if os.path.exists(filename):
-        f = open(filename, 'r')
-        result = f.read().strip()
-        f.close()
-
-    if filename.endswith('.css'):
-        result = ' '.join(result.split())
-
-    # TODO: not doing the above for js because split() uses all whitespace,
-    # including newlines, breaking on js "//" comments.
-    # see if removing the comments or something might be worth it.
-    # difference in size to transfer with whitespace removed is
-    # negligible. with comments removed it's about ~10% on a ~10 car page.
-    # not sure if I want to send uncommented js to gain that, really.
+    with open(filename, 'r') as f:
+        result = f.read()
 
     return result
 
-
-def format_address(address, city):
-    if not city['number_first_address']:
-        return address
-
-    # If possible and appropriate, try to reformat street address 
-    # to more usual form used in English-speaking areas.
-    # Except for designated parking areas, API always returns 
-    # German-style "Main St 100", change it to "100 Main St"
-
-    address_parts = address.split(',')
-
-    street_parts = address_parts[0].split()
-
-    if street_parts[-1].isdigit() and not street_parts[0].isdigit():
-        street_parts.insert(0, street_parts.pop())
-        address_parts[0] = ' '.join(street_parts)
-
-    return ','.join(address_parts)
+    # I used to have code here that "minified" CSS by stripping out whitespace,
+    # but the size difference is on the order of 3 kB and not worth the effort.
+    # (Not to mention the JS is larger and harder to minify.)
 
 
 def format_latlng(car):
@@ -75,7 +45,7 @@ def format_car(car, city, all_cars=False):
     """
 
     coords = format_latlng(car)
-    address = format_address(car['address'], city)
+    address = web_helper.format_address(car['address'], city)
 
     info = '<section class="sort" data-loc="%s">' % coords
     info += '<h3>%s</h3>' % address
@@ -98,9 +68,9 @@ def format_car(car, city, all_cars=False):
 
     info += 'Plate: %s' % car['license_plate']
     if 'cleanliness_interior' in car:
-        info += ', interior: %s' % car['cleanliness_interior'].lower()
+        info += ', interior: %s' % car['cleanliness_interior'].lower().replace('_', ' ')
     if 'cleanliness_exterior' in car:
-        info += ', exterior: %s' % car['cleanliness_exterior'].lower()
+        info += ', exterior: %s' % car['cleanliness_exterior'].lower().replace('_', ' ')
     info += '<br/>\n'
 
     mapurl = MAPS_URL.format(ll=coords, q=address.replace(' ', '%20'))
@@ -153,8 +123,7 @@ def format_all_cars_map(city):
         # with the rest of car info will be above fold or quite high.
         return ''
 
-    coords = ['%s,%s' % (car['lat'], car['lng']) for car in all_cars]
-
+    coords = [format_latlng(car) for car in all_cars]
     lls = '|'.join(coords)
     code = MAPS_MULTI_CODE.format(ll=lls, alt='map of all available cars')
 
@@ -256,4 +225,3 @@ def print_all_html():
 
 if __name__ == '__main__':
     print_all_html()
-

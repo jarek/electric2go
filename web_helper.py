@@ -57,3 +57,23 @@ def get_electric_cars(city):
     cars.timer.append(['list search, ms', (time2-time1)*1000.0])
 
     return electric_cars, cache
+
+
+def format_address(address, city):
+    if not city['number_first_address']:
+        return address
+
+    # If possible and appropriate, try to reformat street address
+    # to more usual form used in English-speaking areas.
+    # Except for designated parking areas, API always returns
+    # German-style "Main St 100", change it to "100 Main St"
+
+    address_parts = address.split(',')
+
+    street_parts = address_parts[0].split()
+
+    if street_parts[-1].isdigit() and not street_parts[0].isdigit():
+        street_parts.insert(0, street_parts.pop())
+        address_parts[0] = ' '.join(street_parts)
+
+    return ','.join(address_parts)
