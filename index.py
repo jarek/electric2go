@@ -65,8 +65,8 @@ def format_address(address, city):
     return ','.join(address_parts)
 
 
-def format_latlng(ll):
-    return '%s,%s' % (ll[1], ll[0])
+def format_latlng(car):
+    return '%s,%s' % (car['lat'], car['lng'])
 
 
 def format_car(car, city, all_cars=False):
@@ -74,7 +74,7 @@ def format_car(car, city, all_cars=False):
     :type all_cars: list
     """
 
-    coords = format_latlng(car['coordinates'])
+    coords = format_latlng(car)
     address = format_address(car['address'], city)
 
     info = '<section class="sort" data-loc="%s">' % coords
@@ -96,8 +96,12 @@ def format_car(car, city, all_cars=False):
     else:
         info += '<br/>'
 
-    info += 'Plate: %s, interior: %s, exterior: %s<br/>\n' % \
-        (car['name'], car['interior'].lower(), car['exterior'].lower())
+    info += 'Plate: %s' % car['license_plate']
+    if 'cleanliness_interior' in car:
+        info += ', interior: %s' % car['cleanliness_interior'].lower()
+    if 'cleanliness_exterior' in car:
+        info += ', exterior: %s' % car['cleanliness_exterior'].lower()
+    info += '<br/>\n'
 
     mapurl = MAPS_URL.format(ll=coords, q=address.replace(' ', '%20'))
 
@@ -115,13 +119,12 @@ def format_car(car, city, all_cars=False):
     if all_cars:
         other_ll = []
         for other_car in all_cars:
-            formatted = format_latlng(other_car['coordinates'])
+            formatted = format_latlng(other_car)
             if formatted != coords:
                 # if it's not the same car, compare with current car's coordinates
 
-                other_coords = other_car['coordinates']
-                lat_dist = abs(other_coords[0] - car['coordinates'][0])
-                lng_dist = abs(other_coords[1] - car['coordinates'][1])
+                lat_dist = abs(other_car['lat'] - car['lat'])
+                lng_dist = abs(other_car['lng'] - car['lng'])
 
                 if lat_dist < MAP_SIZE_IN_DEGREES \
                 and lng_dist < MAP_SIZE_IN_DEGREES:
@@ -150,7 +153,7 @@ def format_all_cars_map(city):
         # with the rest of car info will be above fold or quite high.
         return ''
 
-    coords = list(format_latlng(car['coordinates']) for car in all_cars)
+    coords = ['%s,%s' % (car['lat'], car['lng']) for car in all_cars]
 
     lls = '|'.join(coords)
     code = MAPS_MULTI_CODE.format(ll=lls, alt='map of all available cars')
@@ -160,10 +163,8 @@ def format_all_cars_map(city):
 
 def get_formatted_electric_cars(city):
     electric_cars, cache = web_helper.get_electric_cars(city)
-    result = []
 
-    for car in electric_cars:
-        result.append(format_car(car, city, electric_cars))
+    result = [format_car(car, city, electric_cars) for car in electric_cars]
 
     return result, cache
 

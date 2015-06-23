@@ -43,14 +43,15 @@ def get_electric_cars(city):
 
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))
 
+    parsed_cars = [parse.extract_car_data(car) for car in all_cars]
+
     time2 = time.time()
     cars.timer.append(['json size, kB', len(json_text)/1000.0])
     cars.timer.append(['json load, ms', (time2-time1)*1000.0])
 
     time1 = time.time()
 
-    electric_cars = [car for car in all_cars
-                     if parse.extract_car_data(car)['fuel_type'] in ('E', 'ED')]
+    electric_cars = [car for car in parsed_cars if car['electric']]
 
     time2 = time.time()
     cars.timer.append(['list search, ms', (time2-time1)*1000.0])

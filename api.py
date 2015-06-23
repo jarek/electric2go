@@ -12,14 +12,13 @@ timer = []
 
 def get_info(car, query_ll=False):
     parse = cars.get_carshare_system_module(web_helper.WEB_SYSTEM, 'parse')
-    info = parse.extract_car_data(car)
 
-    info['range'] = parse.get_range(info)
+    car['range'] = parse.get_range(car)
 
     if query_ll:
-        info['distance'] = cars.dist((info['lat'], info['lng']), query_ll)
+        car['distance'] = cars.dist((car['lat'], car['lng']), query_ll)
 
-    return info
+    return car
 
 
 def json_respond():

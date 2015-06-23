@@ -30,6 +30,7 @@ def extract_car_data(car):
 
     result['fuel'] = car['fuel']
     result['fuel_type'] = car['engineType']
+    result['electric'] = (car['engineType'] == 'ED')
     result['charging'] = car['charging'] if 'charging' in car else False
 
     result['transmission'] = 'A'
