@@ -23,7 +23,8 @@ CITIES = {
         }
     },
     'london': {
-        'loc_key': 40758
+        'loc_key': 40758,
+        'electric': 'some'
     },
     'muenchen': {
         'loc_key': 4604,
@@ -34,7 +35,8 @@ CITIES = {
     },
     'sanfrancisco': {
         'loc_key': 4259,
-        'display': 'San Francisco'
+        'display': 'San Francisco',
+        'electric': 'some'
     },
     'wien': {
         'loc_key': 40468,

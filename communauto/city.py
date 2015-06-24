@@ -6,6 +6,8 @@ from . import API_AVAILABLE_VEHICLES_URL, JSONP_CALLBACK_NAME
 
 CITIES = {
     'montreal': {
+        'display': 'Montréal',
+        'electric': 'some'
     }
 }
 
