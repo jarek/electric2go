@@ -5,11 +5,17 @@ import sys
 import cgi
 import json
 import time
+
 import cars
 
 
-# at least for now, web pages use only 'car2go' system
-WEB_SYSTEM = 'car2go'
+# systems are loaded dynamically based on their name,
+# so the easiest thing is to manually define a list
+# of systems with mixed fleets to search
+ALL_SYSTEMS = ['car2go', 'drivenow', 'communauto']
+
+DEFAULT_SYSTEM = 'drivenow'
+DEFAULT_CITY = 'london'
 
 
 def get_param(param_name):
@@ -21,17 +27,26 @@ def get_param(param_name):
         return False
 
 
-def get_city():
-    city_name = 'vancouver'  # default to Vancouver
+def get_arg(param_number):
+    return sys.argv[param_number].lower() if len(sys.argv) > param_number else False
 
-    all_cities = cars.get_all_cities(WEB_SYSTEM)
 
-    param = get_param('city') or (sys.argv[1].lower() if len(sys.argv) > 1 else False)
+def get_system_and_city():
+    system = get_param('system') or get_arg(1)
+    city = get_param('city') or get_arg(2)
 
-    if param in all_cities:
-        city_name = param
+    if system in ALL_SYSTEMS:
+        all_cities = cars.get_all_cities(system)
+        if city in all_cities:
+            city_data = all_cities[city]
+            city_data.update(system=system)
+            return city_data
 
-    return all_cities[city_name]
+    # if city or system were incorrect, return default
+    all_cities = cars.get_all_cities(DEFAULT_SYSTEM)
+    city_data = all_cities[DEFAULT_CITY]
+    city_data.update(system=DEFAULT_SYSTEM)
+    return city_data
 
 
 def get_electric_cars(city):
@@ -39,7 +54,7 @@ def get_electric_cars(city):
 
     time1 = time.time()
 
-    parse = cars.get_carshare_system_module(WEB_SYSTEM, 'parse')
+    parse = cars.get_carshare_system_module(city['system'], 'parse')
 
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))
 

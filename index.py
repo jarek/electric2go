@@ -2,8 +2,8 @@
 # coding=utf-8
 
 from __future__ import print_function
-import os
 import time
+
 import cars
 import web_helper
 
@@ -52,7 +52,7 @@ def format_car(car, city, all_cars=False):
     info += '<p><!--vin: %s-->' % car['vin']
 
     charge = car['fuel']
-    parse = cars.get_carshare_system_module(web_helper.WEB_SYSTEM, 'parse')
+    parse = cars.get_carshare_system_module(city['system'], 'parse')
     car_range = parse.get_range(car)
     if car_range == 0:
         info += '<span style="color: red">Not driveable</span>, '
@@ -115,6 +115,7 @@ def format_car(car, city, all_cars=False):
 
 
 def format_all_cars_map(city):
+    # TODO: this depends on caching, if there is no caching it makes a duplicate request
     all_cars, cache = web_helper.get_electric_cars(city)
 
     if len(all_cars) < 2:
@@ -141,21 +142,22 @@ def get_formatted_electric_cars(city):
 def get_formatted_all_cities(requested_city):
     formatted_cities = []
 
-    all_cities = cars.get_all_cities(web_helper.WEB_SYSTEM)
-    for city_key, data in sorted(all_cities.items()):
-        # show only cities that have some electric cars,
-        # but not a full fleet of electric.
-        # there's nothing to show for cities that don't have any,
-        # and there's no benefit over official apps for all-fleet.
-        if data['electric'] == 'some':
-            if city_key == requested_city['name']:
-                formatted_cities.append(
-                    '<strong>%s</strong>' % data['display'])
-            else:
-                formatted_cities.append(
-                    '<a href="?city=%s">%s</a>' % (city_key, data['display']))
+    for system in web_helper.ALL_SYSTEMS:
+        all_cities = cars.get_all_cities(system)
+        for city_key, data in sorted(all_cities.items()):
+            # show only cities that have some electric cars,
+            # but not a full fleet of electric.
+            # there's nothing to show for cities that don't have any,
+            # and there's no benefit over official apps for all-fleet.
+            if data['electric'] == 'some':
+                if system == requested_city['system'] and city_key == requested_city['name']:
+                    formatted_cities.append(
+                        '<strong>%s (%s)</strong>' % (data['display'], system))
+                else:
+                    formatted_cities.append(
+                        '<a href="?system=%s&city=%s">%s (%s)</a>' % (system, city_key, data['display'], system))
 
-    return 'car2go cities with a few electric vehicles: %s' % \
+    return 'cities with a few electric vehicles: %s' % \
         ', '.join(formatted_cities)
 
 
@@ -178,11 +180,11 @@ def print_all_html():
 
     ttime1 = time.time()
 
-    requested_city = web_helper.get_city()
+    requested_city = web_helper.get_system_and_city()
 
     print('<!doctype html>')
     print('<meta charset="utf-8" />')
-    print('<title>electric car2go vehicles in %s</title>' %
+    print('<title>electric carshare vehicles in %s</title>' %
           requested_city['display'])
     print('''<!-- Hello! If you're interested, the source code for this page is
         available at https://github.com/jarek/electric2go -->''')
@@ -212,8 +214,9 @@ def print_all_html():
         print('Using cached data. Data age: %s, next refresh in %s.' %
               (pluralize(cache_age, 'second'),
                pluralize(cars.CACHE_PERIOD - cache_age, 'second')))
-    print('''This product uses the car2go API
-        but is not endorsed or certified by car2go.</footer>''')
+    if requested_city['system'] == 'car2go':
+        print('''This product uses the car2go API but is not endorsed
+              or certified by car2go.</footer>''')
     
     print('<script type="text/javascript">')
     print(import_file('frontend/sort.js'))

@@ -4,6 +4,7 @@
 from __future__ import print_function
 import json
 import time
+
 import cars
 import web_helper
 
@@ -11,7 +12,7 @@ timer = []
 
 
 def get_info(car, city, query_ll=False):
-    parse = cars.get_carshare_system_module(web_helper.WEB_SYSTEM, 'parse')
+    parse = cars.get_carshare_system_module(city['system'], 'parse')
 
     car['range'] = parse.get_range(car)
 
@@ -28,7 +29,7 @@ def json_respond():
 
     ttime1 = time.time()
 
-    requested_city = web_helper.get_city()
+    requested_city = web_helper.get_system_and_city()
     electric_cars, cache = web_helper.get_electric_cars(requested_city)
 
     limit = web_helper.get_param('limit')
