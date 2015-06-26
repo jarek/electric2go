@@ -64,7 +64,21 @@ def trace_vehicle(trips, criterion):
                       items=formatted_trips)
 
 
-def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
+def stats_dict(data_dict):
+    starting_time = data_dict['metadata']['starting_time']
+    ending_time = data_dict['metadata']['ending_time']
+
+    all_trips = []
+    for vin in data_dict['finished_trips']:
+        all_trips.extend(data_dict['finished_trips'][vin])
+
+    all_known_vins = set()
+    all_known_vins.update(data_dict['unfinished_trips'].keys())
+    all_known_vins.update(data_dict['finished_trips'].keys())
+    all_known_vins.update(data_dict['unfinished_parkings'].keys())
+    all_known_vins.update(data_dict['finished_parkings'].keys())
+    all_known_vins.update(data_dict['unstarted_trips'].keys())
+
     def stats_for_collection(collection, collection_binned, days=1.0, over=False, under=False, most_common_count=10):
         """
         :type over: list
@@ -257,7 +271,7 @@ def stats_dict(all_trips, all_known_vins, starting_time, ending_time):
     return stats
 
 
-def stats(all_trips, all_known_vins, starting_time, ending_time):
-    result = stats_dict(all_trips, all_known_vins, starting_time, ending_time)
+def stats(data_dict):
+    result = stats_dict(data_dict)
 
     write_csv_to_file(category='stats', items=[result])

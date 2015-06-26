@@ -226,9 +226,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     filepath = get_filepath(city, starting_time, file_dir)
 
     data_frames = []
-    all_trips = []
-    all_positions = []
-    trips_by_vin = {}
 
     unfinished_trips = {}
     unfinished_parkings = {}
@@ -263,25 +260,10 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
         time_organize_start = time.time()
 
-        for vin in unfinished_parkings:
-            # make sure we also track number of trips by cars that end up
-            # making zero trips (and thus will never be in new_finished_trips below)
-            if vin not in trips_by_vin:
-                trips_by_vin[vin] = []
-
         current_positions = [unfinished_parkings[vin]['coords'] for vin in unfinished_parkings]
         current_positions = [{'coords': p, 'metadata': {}} for p in current_positions]
-        all_positions.extend(current_positions)
-        current_trips = []
-        for vin in new_finished_trips:
-            if vin not in trips_by_vin:
-                trips_by_vin[vin] = []
 
-            trips_by_vin[vin].append(new_finished_trips[vin])
-            all_trips.append(new_finished_trips[vin])
-            current_trips.append(new_finished_trips[vin])
-
-        data_frames.append((t, filepath, current_positions, current_trips))
+        data_frames.append((t, filepath, current_positions, new_finished_trips))
 
         print('total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)), end=' ')
         print('moved: %02d' % len(new_finished_trips))
@@ -347,16 +329,13 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         'metadata': {
             'starting_time': starting_time,
             'ending_time': ending_time,
-            'time_step': time_step,
+            'time_step': time_step*60,
+            'total_frames': i,
             'missing': missing_files
         }
     }
 
-    # TODO: return the `result` dict instead of writing it to file
-    with open(datetime.now().strftime('%Y%m%d-%H%M%S') + '-alldata.json', 'w') as f:
-        json.dump(result, f, default=process_dump.json_serializer, indent=2)
-
-    return data_frames, all_positions, all_trips, trips_by_vin, ending_time, i
+    return data_frames, result
 
 def filter_trips_list(all_trips_by_vin, find_by):
     """
@@ -399,10 +378,50 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
 
     # read in all data
     time_load_start = time.time()
-    (data_frames, all_positions, all_trips,
-     trips_by_vin, ending_time, total_frames) = batch_load_data(system, city, file_dir,
-                                                                starting_time, time_step,
-                                                                max_files, max_skip)
+    data_frames, result_dict = batch_load_data(system, city, file_dir,
+                                               starting_time, time_step,
+                                               max_files, max_skip)
+
+    # write out for testing. TODO: remove once a proper write/dump function is present
+    with open(datetime.now().strftime('%Y%m%d-%H%M%S') + '-alldata.json', 'w') as f:
+        json.dump(result_dict, f, default=process_dump.json_serializer, indent=2)
+
+    # TEMP: rewrite variables based on result_dict
+    # TODO: move the functions that use these variables to use result_dict
+
+    total_frames = result_dict['metadata']['total_frames']
+
+    all_positions = []
+    for vin in result_dict['finished_parkings']:
+        ps = result_dict['finished_parkings'][vin]
+        processed = [{'coords': p['coords'], 'metadata': {}} for p in ps]
+        all_positions.extend(processed)
+    for vin in result_dict['unfinished_parkings']:
+        p = result_dict['unfinished_parkings'][vin]
+        processed = {'coords': p['coords'], 'metadata': {}}
+        all_positions.append(processed)
+
+    all_trips = []
+    for vin in result_dict['finished_trips']:
+        all_trips.extend(result_dict['finished_trips'][vin])
+
+    # trips_by_vin is result_dict['finished_trips'] except for adding of cars that never made a full trip
+    trips_by_vin = result_dict['finished_trips']
+    for vin in result_dict['unfinished_trips']:
+        if vin not in trips_by_vin:
+            trips_by_vin[vin] = []
+    for vin in result_dict['unfinished_parkings']:
+        if vin not in trips_by_vin:
+            trips_by_vin[vin] = []
+    for vin in result_dict['finished_parkings']:
+        if vin not in trips_by_vin:
+            trips_by_vin[vin] = []
+    for vin in result_dict['unstarted_trips']:
+        if vin not in trips_by_vin:
+            trips_by_vin[vin] = []
+
+    # end of TEMP override
+
     if DEBUG:
         time_load_total = (time.time() - time_load_start)
         time_load_frame = time_load_total / total_frames
@@ -418,6 +437,18 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     iter_filenames = []
 
     # generate images
+    # TODO: this really needs to be rewritten and moved to a separate function/file
+    # to rewrite:
+    # - loop between starting_time and ending_time
+    #   - updating turn and filepath
+    #     - turn = turn + timedelta(0, time_step*60)
+    #     - filepath = get_filepath(city, turn, file_dir)
+    #   - current_positions are finished_parkings with start_time < turn and end_time >= turn
+    #     plus unfinished_parkings with start_time < turn
+    #   - current_trips are finished_trips with end_time == (turn - 1)
+    #     (note that with this we can also show trips while they're actually happening, but that's for later)
+    # CHECK OFF BY ONES HERE
+    # compare output with previous data_frames format to make sure they're the same
     if not dry:
         for index, data in enumerate(data_frames):
             # reset timer to only keep information about one file at a time
@@ -507,7 +538,7 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         process_stats.trace_vehicle(all_trips, filter_trips)
 
     if stats:
-        process_stats.stats(all_trips, trips_by_vin.keys(), starting_time, ending_time)
+        process_stats.stats(result_dict)
 
     if all_positions_image:
         process_graph.make_positions_graph(system, city, all_positions, all_positions_image, symbol)

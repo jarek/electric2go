@@ -128,10 +128,9 @@ class StatsTest(unittest.TestCase):
             params = datasets[dataset_name]["params"]
             expected = datasets[dataset_name]["expected"]
 
-            (_data_frames, _all_positions, all_trips,
-             trips_by_vin, ending_time, _total_frames) = process.batch_load_data(**params)
+            _data_frames, result_dict = process.batch_load_data(**params)
 
-            stats = process_stats.stats_dict(all_trips, trips_by_vin.keys(), params["starting_time"], ending_time)
+            stats = process_stats.stats_dict(result_dict)
 
             for category in expected:
                 self.assertEqual(expected[category], stats[category],
