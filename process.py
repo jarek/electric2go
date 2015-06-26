@@ -247,6 +247,8 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
             process_data(system, t, prev_t, json_data, unfinished_trips, unfinished_parkings)
 
+        # update data dictionaries
+
         unstarted_trips.update(unstarted_trips_this_round)
 
         for vin in new_finished_parkings:
@@ -391,16 +393,6 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
 
     total_frames = result_dict['metadata']['total_frames']
 
-    all_positions = []
-    for vin in result_dict['finished_parkings']:
-        ps = result_dict['finished_parkings'][vin]
-        processed = [{'coords': p['coords'], 'metadata': {}} for p in ps]
-        all_positions.extend(processed)
-    for vin in result_dict['unfinished_parkings']:
-        p = result_dict['unfinished_parkings'][vin]
-        processed = {'coords': p['coords'], 'metadata': {}}
-        all_positions.append(processed)
-
     all_trips = []
     for vin in result_dict['finished_trips']:
         all_trips.extend(result_dict['finished_trips'][vin])
@@ -541,7 +533,7 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         process_stats.stats(result_dict)
 
     if all_positions_image:
-        process_graph.make_positions_graph(system, city, all_positions, all_positions_image, symbol)
+        process_graph.make_positions_graph(system, city, result_dict, all_positions_image, symbol)
 
     if all_trips_lines_image:
         process_graph.make_trips_graph(system, city, all_trips, all_trips_lines_image)

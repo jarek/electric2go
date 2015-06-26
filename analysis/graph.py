@@ -313,16 +313,23 @@ def make_graph(system, city, positions, trips, image_filename, copy_filename, tu
         shutil.copy2(image_filename, copy_filename)
 
 
-def make_positions_graph(system, city, positions, image_name, symbol):
+def make_positions_graph(system, city, data_dict, image_name, symbol):
     global timer
 
     time_positions_graph_start = time.time()
 
     city_data = get_all_cities(system)[city]
 
+    # positions are "unfinished parkings" (cars still parked at the end of the dataset)
+    # plus all of the "finished parkings" (cars that were parked at one point but moved)
+    positions = [p for p in data_dict['unfinished_parkings'].values()]
+    for vin in data_dict['finished_parkings']:
+        positions.extend(data_dict['finished_parkings'][vin])
+
+    filtered = filter_positions_to_bounds(city_data, positions)
+    coloured = create_points_default_colour(filtered)
+
     def plotter(f, ax):
-        filtered = filter_positions_to_bounds(city_data, positions)
-        coloured = create_points_default_colour(filtered)
         plot_geopoints(ax, city_data, coloured, symbol)
 
     graph_wrapper(city_data, plotter, image_name, background=False)
