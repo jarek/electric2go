@@ -477,29 +477,26 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     # print animation information if applicable
     if make_iterations and not dry:
         if web:
-            crush_commands = []
+            crush_filebasename = animation_files_prefix
+
+            with open(crush_filebasename + '-filenames', 'w') as f:
+                json.dump(iter_filenames, f)
 
             crushed_dir = animation_files_prefix + '-crushed'
             if not os.path.exists(crushed_dir):
                 os.makedirs(crushed_dir)
 
-            for filename in iter_filenames:
-                crush_commands.append('pngcrush %s %s' % (filename, 
-                    os.path.join(crushed_dir, os.path.basename(filename))))
+            crush_commands = ['pngcrush %s %s' %
+                              (filename, os.path.join(crushed_dir, os.path.basename(filename)))
+                              for filename in iter_filenames]
 
-            crush_filebasename = animation_files_prefix
-            f = open(crush_filebasename + '-pngcrush', 'w')
-            print('\n'.join(crush_commands), file=f)
-            os.chmod(crush_filebasename + '-pngcrush', 
-                stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
-            f.close()
-
-            f = open(crush_filebasename + '-filenames', 'w')
-            print(json.dumps(iter_filenames), file=f)
-            f.close()
+            command_file_name = crush_filebasename + '-pngcrush'
+            with open(command_file_name, 'w') as f:
+                f.write('\n'.join(crush_commands))
+            os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
             print('\nto pngcrush:')
-            print('./%s-pngcrush' % crush_filebasename)
+            print('./' + command_file_name)
 
         background_path = os.path.relpath(os.path.join(cars.root_dir,
             'backgrounds/', '%s-background.png' % city))
