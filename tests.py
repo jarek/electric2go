@@ -87,7 +87,7 @@ class StatsTest(unittest.TestCase):
                     "max_skip": 0,
                     "time_step": 1
                 },
-                "expected":  {
+                "expected_stats": {
                     "total vehicles": 296,
                     "total trips": 1737,
                     "starting time": datetime(2015, 4, 28, 8, 0, 0),
@@ -97,6 +97,22 @@ class StatsTest(unittest.TestCase):
                     "distance per trip quartile 25": 0.6388606347651411,
                     "duration per trip quartile 75": 32,
                     "weird trip count": 64
+                },
+                "expected_dataframes": {
+                    0: {
+                        "turn": "2015-04-28T08:00:00",
+                        "len_cars": 287
+                    },
+                    2009: {
+                        "len_cars": 272
+                    },
+                    2010: {
+                        "len_cars": 270
+                    },
+                    -1: {
+                        "filename": "/home/jarek/car2go-columbus/extracted/columbus_2015-04-30--07-59",
+                        "len_cars": 285
+                    }
                 }
             },
             "vancouver": {
@@ -109,7 +125,7 @@ class StatsTest(unittest.TestCase):
                     "max_skip": 0,
                     "time_step": 1
                 },
-                "expected":  {
+                "expected_stats": {
                     "total vehicles": 238,
                     "total trips": 1967,
                     "starting time": datetime(2015, 5, 16, 11, 0, 0),
@@ -120,23 +136,69 @@ class StatsTest(unittest.TestCase):
                     "distance per trip quartile 25": 0.3909876034341634,
                     "duration per trip quartile 75": 40,
                     "weird trip count": 103
+                },
+                "expected_dataframes": {
+                    0: {
+                        "filename": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/vancouver_2015-05-16--11-00",
+                        "len_trips": 0
+                    },
+                    250: {
+                        "filename": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/vancouver_2015-05-16--15-10",
+                        "len_cars": 215
+                    },
+                    1999: {
+                        "len_cars": 188
+                    },
+                    2000: {
+                        "len_cars": 187,
+                        "len_trips": 1
+                    },
+                    -1: {
+                        "turn": "2015-05-18T10:59:00",
+                        "len_cars": 226,
+                        "len_trips": 0,
+                    }
                 }
             }
         }
 
         for dataset_name in datasets:
             params = datasets[dataset_name]["params"]
-            expected = datasets[dataset_name]["expected"]
+            exp_stats = datasets[dataset_name]["expected_stats"]
+            exp_dataframes = datasets[dataset_name]["expected_dataframes"]
 
-            _data_frames, result_dict = process.batch_load_data(**params)
+            data_frames, result_dict = process.batch_load_data(**params)
 
             stats = process_stats.stats_dict(result_dict)
 
-            for category in expected:
-                self.assertEqual(expected[category], stats[category],
+            for category in exp_stats:
+                self.assertEqual(exp_stats[category], stats[category],
                                  "{name} {cat}: expected {exp}, got {got}".format(
                                      name=dataset_name, cat=category,
-                                     exp=expected[category], got=stats[category]))
+                                     exp=exp_stats[category], got=stats[category]))
+
+            for i in exp_dataframes:
+                exp_frame = exp_dataframes[i]
+                if 'turn' in exp_frame:
+                    self.assertEqual(exp_frame['turn'], data_frames[i][0].isoformat(),
+                                     "{name} {frame} turn: expected {exp}, got {got}".format(
+                                         name=dataset_name, frame=i,
+                                         exp=exp_frame['turn'], got=data_frames[i][0].isoformat()))
+                if 'filename' in exp_frame:
+                    self.assertEqual(exp_frame['filename'], data_frames[i][1],
+                                     "{name} {frame} filename: expected {exp}, got {got}".format(
+                                         name=dataset_name, frame=i,
+                                         exp=exp_frame['filename'], got=data_frames[i][1]))
+                if 'len_cars' in exp_frame:
+                    self.assertEqual(exp_frame['len_cars'], len(data_frames[i][2]),
+                                     "{name} {frame} len_cars: expected {exp}, got {got}".format(
+                                         name=dataset_name, frame=i,
+                                         exp=exp_frame['len_cars'], got=len(data_frames[i][2])))
+                if 'len_trips' in exp_frame:
+                    self.assertEqual(exp_frame['len_trips'], len(data_frames[i][3]),
+                                     "{name} {frame} len_trips: expected {exp}, got {got}".format(
+                                         name=dataset_name, frame=i,
+                                         exp=exp_frame['len_trips'], got=len(data_frames[i][3])))
 
 
 class HelperFunctionsTest(unittest.TestCase):
