@@ -337,7 +337,9 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         }
     }
 
-    return data_frames, result
+    new_data_frames = [fr for fr in build_data_frames(result, file_dir, city)]
+
+    return new_data_frames, result
 
 def filter_trips_list(all_trips_by_vin, find_by):
     """
@@ -365,6 +367,44 @@ def filter_trips_list(all_trips_by_vin, find_by):
         raise KeyError("VIN %s not found in all_trips_by_vin" % vin)
 
     return all_trips_by_vin[vin]
+
+def build_data_frames(result_dict, file_dir, city):
+    # temp function to facilitate switchover and testing to new data format
+
+    from itertools import chain
+
+    # flatten lists. TODO: improve this syntax
+    all_finished_parkings = [result_dict['finished_parkings'][vin] for vin in result_dict['finished_parkings']]
+    all_finished_parkings = [c for c in chain.from_iterable(all_finished_parkings)]
+    all_finished_trips = [result_dict['finished_trips'][vin] for vin in result_dict['finished_trips']]
+    all_finished_trips = [c for c in chain.from_iterable(all_finished_trips)]
+
+    turn = result_dict['metadata']['starting_time']
+
+    while turn <= result_dict['metadata']['ending_time']:
+        filepath = get_filepath(city, turn, file_dir)
+
+        # TODO: the second <= for all_finished_parkings is needed to pass
+        # test of equivalency with old data_frame code, but is it right? Seems wrong.
+        # Is the other code assembling dataframes, the one I got the test values from, wrong?
+        # comment from process_data above:
+        # "data_time is when we know about a car's position; prev_data_time is the previous cycle.
+        # A parking period starts on data_time and ends on prev_data_time.
+        # A trip starts on prev_data_time and ends on data_time."
+
+        current_positions = [p for p in all_finished_parkings
+                             if p['starting_time'] <= turn <= p['ending_time']]
+        current_positions.extend([result_dict['unfinished_parkings'][vin] for vin in result_dict['unfinished_parkings']
+                                  if result_dict['unfinished_parkings'][vin]['starting_time'] <= turn])
+
+        current_trips = [p for p in all_finished_trips
+                         if p['ending_time'] == turn]
+
+        data_frame = (turn, filepath, current_positions, current_trips)
+
+        turn += timedelta(seconds=result_dict['metadata']['time_step'])
+
+        yield data_frame
 
 def batch_process(system, city, starting_time, dry = False, make_iterations = True,
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
@@ -429,18 +469,7 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     iter_filenames = []
 
     # generate images
-    # TODO: this really needs to be rewritten and moved to a separate function/file
-    # to rewrite:
-    # - loop between starting_time and ending_time
-    #   - updating turn and filepath
-    #     - turn = turn + timedelta(0, time_step*60)
-    #     - filepath = get_filepath(city, turn, file_dir)
-    #   - current_positions are finished_parkings with start_time < turn and end_time >= turn
-    #     plus unfinished_parkings with start_time < turn
-    #   - current_trips are finished_trips with end_time == (turn - 1)
-    #     (note that with this we can also show trips while they're actually happening, but that's for later)
-    # CHECK OFF BY ONES HERE
-    # compare output with previous data_frames format to make sure they're the same
+    # TODO: switch to using build_data_frames()
     if not dry:
         for index, data in enumerate(data_frames):
             # reset timer to only keep information about one file at a time
