@@ -357,15 +357,15 @@ def filter_trips_list(all_trips_by_vin, find_by):
 def build_data_frames(result_dict, file_dir, city):
     # temp function to facilitate switchover and testing to new data format
 
-    from itertools import chain
-
-    # flatten lists. TODO: improve this syntax
-    all_finished_parkings = [result_dict['finished_parkings'][vin] for vin in result_dict['finished_parkings']]
-    all_finished_parkings = [c for c in chain.from_iterable(all_finished_parkings)]
-    all_finished_trips = [result_dict['finished_trips'][vin] for vin in result_dict['finished_trips']]
-    all_finished_trips = [c for c in chain.from_iterable(all_finished_trips)]
-
+    # shorter variable names for easier access
     turn = result_dict['metadata']['starting_time']
+    fin_parkings = result_dict['finished_parkings']
+    fin_trips = result_dict['finished_trips']
+    unfinished_parkings = result_dict['unfinished_parkings']
+
+    # flatten lists
+    finished_parkings = [item for vin in fin_parkings for item in fin_parkings[vin]]
+    finished_trips = [trip for vin in fin_trips for trip in fin_trips[vin]]
 
     while turn <= result_dict['metadata']['ending_time']:
         filepath = get_filepath(city, turn, file_dir)
@@ -386,19 +386,18 @@ def build_data_frames(result_dict, file_dir, city):
         # would be double-filtering.
         # (Confirmed with actually looking at source data.)
 
-        current_positions = [p for p in all_finished_parkings
+        current_positions = [p for p in finished_parkings
                              if p['starting_time'] <= turn <= p['ending_time']]
-        current_positions.extend([result_dict['unfinished_parkings'][vin] for vin in result_dict['unfinished_parkings']
-                                  if result_dict['unfinished_parkings'][vin]['starting_time'] <= turn])
+        current_positions.extend([unfinished_parkings[vin] for vin in unfinished_parkings
+                                  if unfinished_parkings[vin]['starting_time'] <= turn])
 
-        current_trips = [p for p in all_finished_trips
+        current_trips = [p for p in finished_trips
                          if p['ending_time'] == turn]
 
         data_frame = (turn, filepath, current_positions, current_trips)
+        yield data_frame
 
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
-
-        yield data_frame
 
 def batch_process(system, city, starting_time, dry = False, make_iterations = True,
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
