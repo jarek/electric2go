@@ -169,7 +169,7 @@ class StatsTest(unittest.TestCase):
         for dataset_name in cls.datasets:
             params = cls.datasets[dataset_name]["params"]
 
-            _, result_dict = process.batch_load_data(**params)
+            result_dict = process.batch_load_data(**params)
 
             cls.results[dataset_name] = result_dict
 

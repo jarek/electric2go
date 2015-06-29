@@ -225,8 +225,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     prev_t = t
     filepath = get_filepath(city, starting_time, file_dir)
 
-    data_frames = []
-
     unfinished_trips = {}
     unfinished_parkings = {}
     unstarted_trips = {}
@@ -260,18 +258,8 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         timer.append((filepath + ': batch_load_data process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
-        time_organize_start = time.time()
-
-        current_positions = [unfinished_parkings[vin]['coords'] for vin in unfinished_parkings]
-        current_positions = [{'coords': p, 'metadata': {}} for p in current_positions]
-
-        data_frames.append((t, filepath, current_positions, new_finished_trips))
-
         print('total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)), end=' ')
         print('moved: %02d' % len(new_finished_trips))
-
-        timer.append((filepath + ': batch_load_data organize data, ms',
-             (time.time()-time_organize_start)*1000.0))
 
         # find next file according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
@@ -320,7 +308,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         # reset timer to only keep information about one file at a time
         timer = []
 
-    ending_time = data_frames[-1][0]  # complements starting_time from function params
+    ending_time = prev_t  # complements starting_time from function params
 
     result = {
         'finished_trips': finished_trips,
@@ -337,9 +325,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         }
     }
 
-    new_data_frames = [fr for fr in build_data_frames(result, file_dir, city)]
-
-    return new_data_frames, result
+    return result
 
 def filter_trips_list(all_trips_by_vin, find_by):
     """
@@ -428,9 +414,8 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
 
     # read in all data
     time_load_start = time.time()
-    data_frames, result_dict = batch_load_data(system, city, file_dir,
-                                               starting_time, time_step,
-                                               max_files, max_skip)
+    result_dict = batch_load_data(system, city, file_dir, starting_time,
+                                  time_step, max_files, max_skip)
 
     # write out for testing. TODO: remove once a proper write/dump function is present
     with open(datetime.now().strftime('%Y%m%d-%H%M%S') + '-alldata.json', 'w') as f:
@@ -477,9 +462,11 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     iter_filenames = []
 
     # generate images
-    # TODO: switch to using build_data_frames()
     if not dry:
-        for index, data in enumerate(data_frames):
+        index = -1  # will be incremented to 0 straight away
+        for data in build_data_frames(result_dict, file_dir, city):
+            index += 1
+
             # reset timer to only keep information about one file at a time
             timer = []
             process_graph.timer = []
