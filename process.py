@@ -384,13 +384,21 @@ def build_data_frames(result_dict, file_dir, city):
     while turn <= result_dict['metadata']['ending_time']:
         filepath = get_filepath(city, turn, file_dir)
 
-        # TODO: the second <= for all_finished_parkings is needed to pass
-        # test of equivalency with old data_frame code, but is it right? Seems wrong.
-        # Is the other code assembling dataframes, the one I got the test values from, wrong?
-        # comment from process_data above:
-        # "data_time is when we know about a car's position; prev_data_time is the previous cycle.
-        # A parking period starts on data_time and ends on prev_data_time.
-        # A trip starts on prev_data_time and ends on data_time."
+        # The condition of `p['starting_time'] <= turn <= p['ending_time']`
+        # (with the two less-than-or-equal) in the statement to get
+        # current_positions is correct.
+
+        # I was initially afraid it was wrong because parking periods
+        # are defined in process_data as follows:
+        #   "A parking period starts on data_time and ends on prev_data_time."
+        # and so I thought this had to be `turn < p['ending_time']`
+
+        # But actually the equals on both ends is fine. process_data does the
+        # logical filtering as to when a parking starts and ends. With this,
+        # in process_data output, cars are still available when
+        # `turn == p['ending_time']`. Trying to do `turn < p['ending_time']`
+        # would be double-filtering.
+        # (Confirmed with actually looking at source data.)
 
         current_positions = [p for p in all_finished_parkings
                              if p['starting_time'] <= turn <= p['ending_time']]
