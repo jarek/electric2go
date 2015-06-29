@@ -71,12 +71,11 @@ class DownloadTest(unittest.TestCase):
 
 
 class StatsTest(unittest.TestCase):
-    def test_stats_for_sample_datasets(self):
-        # This is hardcoded to a dataset I have, so won't be useful for anyone else.
-        # Sorry! But it's worth it for me. Can be adapted to a dataset you have.
-        # TODO: generate a sample dataset and test against that
+    # This is hardcoded to a dataset I have, so won't be useful for anyone else.
+    # Sorry! But it's worth it for me. Can be adapted to a dataset you have.
+    # TODO: generate a sample dataset and test against that
 
-        datasets = {
+    datasets = {
             "columbus": {
                 "params": {
                     "system": "car2go",
@@ -160,22 +159,42 @@ class StatsTest(unittest.TestCase):
                     }
                 }
             }
-        }
+    }
 
-        for dataset_name in datasets:
-            params = datasets[dataset_name]["params"]
-            exp_stats = datasets[dataset_name]["expected_stats"]
-            exp_dataframes = datasets[dataset_name]["expected_dataframes"]
+    @classmethod
+    def setUpClass(cls):
+        # read in data just once
+        cls.results = {}
 
-            data_frames, result_dict = process.batch_load_data(**params)
+        for dataset_name in cls.datasets:
+            params = cls.datasets[dataset_name]["params"]
 
-            stats = process_stats.stats_dict(result_dict)
+            _, result_dict = process.batch_load_data(**params)
+
+            cls.results[dataset_name] = result_dict
+
+    def test_stats_for_sample_datasets(self):
+        for dataset_name in self.datasets:
+            exp_stats = self.datasets[dataset_name]["expected_stats"]
+
+            stats = process_stats.stats_dict(self.results[dataset_name])
 
             for category in exp_stats:
                 self.assertEqual(exp_stats[category], stats[category],
                                  "{name} {cat}: expected {exp}, got {got}".format(
                                      name=dataset_name, cat=category,
                                      exp=exp_stats[category], got=stats[category]))
+
+    def test_dataframes_for_sample_datasets(self):
+        for dataset_name in self.datasets:
+            params = self.datasets[dataset_name]["params"]
+            exp_dataframes = self.datasets[dataset_name]["expected_dataframes"]
+
+            # immediately evaluating a generator is kinda rude, but this is
+            # only for testing, where I have expected values for
+            # specific indexes. don't do this in non-test code obviously.
+            data_frames = list(process.build_data_frames(self.results[dataset_name],
+                                                         params['file_dir'], params['city']))
 
             for i in exp_dataframes:
                 exp_frame = exp_dataframes[i]
