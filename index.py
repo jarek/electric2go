@@ -1,8 +1,11 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import unicode_literals
 from __future__ import print_function
 import time
+
+from jinja2 import Environment, PackageLoader
 
 import cars
 import web_helper
@@ -39,41 +42,11 @@ def format_latlng(car):
     return '%s,%s' % (car['lat'], car['lng'])
 
 
-def format_car(car, city, all_cars=False):
-    """
-    :type all_cars: list
-    """
+def get_car_info(car, all_cars, city, parse):
+    # Extract information specific for web display
 
     coords = format_latlng(car)
     address = web_helper.format_address(car['address'], city)
-
-    info = '<section class="sort" data-loc="%s">' % coords
-    info += '<h3>%s</h3>' % address
-    info += '<p><!--vin: %s-->' % car['vin']
-
-    charge = car['fuel']
-    parse = cars.get_carshare_system_module(city['system'], 'parse')
-    car_range = parse.get_range(car)
-    if car_range == 0:
-        info += '<span style="color: red">Not driveable</span>, '
-    else:
-        info += 'Approx range: %s km, ' % car_range
-
-    info += 'charge: %s%%' % charge
-
-    if car['charging']:
-        info += ', charging<br/>'
-    else:
-        info += '<br/>'
-
-    info += 'Plate: %s' % car['license_plate']
-    if 'cleanliness_interior' in car:
-        info += ', interior: %s' % car['cleanliness_interior'].lower().replace('_', ' ')
-    if 'cleanliness_exterior' in car:
-        info += ', exterior: %s' % car['cleanliness_exterior'].lower().replace('_', ' ')
-    info += '<br/>\n'
-
-    mapurl = MAPS_URL.format(ll=coords, q=address.replace(' ', '%20'))
 
     # Show other nearby cars on map if they are within the map area.
     # Include only the cars that would actually fit on the map
@@ -81,43 +54,42 @@ def format_car(car, city, all_cars=False):
     # to avoid unnecessarily long image URLs.
     # We do this by simple subtraction of latitudes/longitudes and comparing
     # against a reference value (declared with comments above).
-    # This has some error compared to proper Haversine distance calculation, 
+    # This has some error compared to proper Haversine distance calculation,
     # but at scales involved (~1 km) this shouldn't really matter, especially
     # given the roughly 50-100% margin of error in the reference
     # degree difference value.
-    other_ll = ''
-    if all_cars:
-        other_ll = []
-        for other_car in all_cars:
-            formatted = format_latlng(other_car)
-            if formatted != coords:
-                # if it's not the same car, compare with current car's coordinates
+    def in_bounds(car1, car2):
+        lat_dist = abs(car1['lat'] - car2['lat'])
+        lng_dist = abs(car1['lng'] - car2['lng'])
+        return lat_dist < MAP_SIZE_IN_DEGREES and lng_dist < MAP_SIZE_IN_DEGREES
 
-                lat_dist = abs(other_car['lat'] - car['lat'])
-                lng_dist = abs(other_car['lng'] - car['lng'])
+    other_ll = [format_latlng(other_car) for other_car in all_cars
+                if (other_car['lat'] != car['lat'] and other_car['lng'] != car['lng'])
+                and in_bounds(car, other_car)]
+    other_str = '|'.join(other_ll)
 
-                if lat_dist < MAP_SIZE_IN_DEGREES \
-                and lng_dist < MAP_SIZE_IN_DEGREES:
-                    other_ll.append(formatted)
+    mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_str, q=address)
 
-        other_ll = '|'.join(other_ll)
+    title = car['address']
+    if title == '':
+        # communauto doesn't have the address geocoded. use license plate
+        title = car['license_plate']
 
-    mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_ll, q=address)
+    return {
+        'title': title,
+        'coords': coords,
+        'vin': car['vin'],
+        'license_plate': car['license_plate'],
+        'charge': car['fuel'],
+        'range': parse.get_range(car),
+        'cleanliness_interior': car.get('cleanliness_interior', None),
+        'cleanliness_exterior': car.get('cleanliness_exterior', None),
+        'map_url': MAPS_URL.format(ll=coords, q=address.replace(' ', '%20')),
+        'map_img': mapimg
+    }
 
-    info += 'Location: <a href="%s">%s</a>' % (mapurl, coords)
-    info += '<span class="distance" '
-    info += 'data-template=", approx distance: {dist} km{min}"></span><br/>\n'
 
-    info += '<a href="%s">%s</a>' % (mapurl, mapimg)
-    info += '</section>'
-
-    return info
-
-
-def format_all_cars_map(city):
-    # TODO: this depends on caching, if there is no caching it makes a duplicate request
-    all_cars, cache = web_helper.get_electric_cars(city)
-
+def format_all_cars_map(all_cars):
     if len(all_cars) < 2:
         # Don't show map if there's no cars.
         # Also don't show map is there's just one car - the map shown
@@ -131,39 +103,15 @@ def format_all_cars_map(city):
     return code
 
 
-def get_formatted_electric_cars(city):
-    electric_cars, cache = web_helper.get_electric_cars(city)
+def pluralize(count, string, end_ptr=None, rep_ptr=''):
+    if int(count) == 1:
+        label = string
+    elif end_ptr and string.endswith(end_ptr):
+        label = string[:-1*len(end_ptr)] + rep_ptr
+    else:
+        label = string + 's'
 
-    result = [format_car(car, city, electric_cars) for car in electric_cars]
-
-    return result, cache
-
-
-def get_formatted_all_cities(requested_city):
-    formatted_cities = []
-
-    for system in web_helper.ALL_SYSTEMS:
-        all_cities = cars.get_all_cities(system)
-        for city_key, data in sorted(all_cities.items()):
-            # show only cities that have some electric cars,
-            # but not a full fleet of electric.
-            # there's nothing to show for cities that don't have any,
-            # and there's no benefit over official apps for all-fleet.
-            if data['electric'] == 'some':
-                if system == requested_city['system'] and city_key == requested_city['name']:
-                    formatted_cities.append(
-                        '<strong>%s (%s)</strong>' % (data['display'], system))
-                else:
-                    formatted_cities.append(
-                        '<a href="?system=%s&city=%s">%s (%s)</a>' % (system, city_key, data['display'], system))
-
-    return 'cities with a few electric vehicles: %s' % \
-        ', '.join(formatted_cities)
-
-
-def pluralize(amount, text):
-    plural = 's' if amount != 1 else ''
-    return '%d %s%s' % (amount, text, plural)
+    return '{count:.0f} {label}'.format(count=count, label=label)
 
 
 def get_timer_info(t=timer):
@@ -180,47 +128,48 @@ def print_all_html():
 
     ttime1 = time.time()
 
+    env = Environment(loader=PackageLoader('frontend', '.'))
+    env.filters['count'] = pluralize
+
     requested_city = web_helper.get_system_and_city()
+    electric_cars, cache = web_helper.get_electric_cars(requested_city)
 
-    print('<!doctype html>')
-    print('<meta charset="utf-8" />')
-    print('<title>electric carshare vehicles in %s</title>' %
-          requested_city['display'])
-    print('''<!-- Hello! If you're interested, the source code for this page is
-        available at https://github.com/jarek/electric2go -->''')
-    print('<style type="text/css" media="screen,projection">')
-    print(import_file('frontend/style.css'))
-    print('</style>')
+    # render list of cities
+    all_cities = [city for system in web_helper.ALL_SYSTEMS
+                  for city in cars.get_all_cities(system).values()
+                  if city['electric'] == 'some']
 
-    print('<nav>%s</nav>' % get_formatted_all_cities(requested_city))
+    tmpl_cities = env.get_template('cities.html')
+    html_cities = tmpl_cities.render(cities=all_cities, current_city=requested_city)
 
-    electric_cars, cache = get_formatted_electric_cars(requested_city)
+    # render car details
+    parse = cars.get_carshare_system_module(requested_city['system'], 'parse')
+    car_infos = [get_car_info(car, electric_cars, requested_city, parse) for car in electric_cars]
 
-    print('<h2>%s currently available in %s</h2>' %
-          (pluralize(len(electric_cars), 'electric car'),
-           requested_city['display']))
+    tmpl_car = env.get_template('car.html')
+    html_cars = '\n'.join([tmpl_car.render(**info) for info in car_infos])
 
-    print(format_all_cars_map(requested_city))
+    # supplementary information
+    cache_age = (time.time() - cache) if cache else cache
+    cache_next_refresh = cars.CACHE_PERIOD - cache_age
 
-    for car in electric_cars:
-        print(car)
+    # render big template
+    tmpl_layout = env.get_template('layout.html')
+    full_html = tmpl_layout.render(city=requested_city,
+                                   all_cars_count=len(electric_cars),
+                                   all_cars_map=format_all_cars_map(electric_cars),
+                                   cache_age=cache_age,
+                                   cache_next_refresh=cache_next_refresh,
+                                   block_nav=html_cities,
+                                   cars_html=html_cars,
+                                   block_css=import_file('frontend/style.css'),
+                                   block_js=import_file('frontend/sort.js'))
 
+    print(full_html.encode('utf-8'))
+
+    # print timer info separately. TODO: rewrite timers to not be horrible
     ttime2 = time.time()
     timer.append(['total, ms', (ttime2-ttime1)*1000.0])
-
-    print('<footer>', end='')
-    if cache:
-        cache_age = time.time() - cache
-        print('Using cached data. Data age: %s, next refresh in %s.' %
-              (pluralize(cache_age, 'second'),
-               pluralize(cars.CACHE_PERIOD - cache_age, 'second')))
-    if requested_city['system'] == 'car2go':
-        print('''This product uses the car2go API but is not endorsed
-              or certified by car2go.</footer>''')
-    
-    print('<script type="text/javascript">')
-    print(import_file('frontend/sort.js'))
-    print('</script>')
 
     print_timer_info(cars.timer)
     print_timer_info()
