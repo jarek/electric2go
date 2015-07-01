@@ -65,6 +65,11 @@ def get_car_info(car, all_cars, city):
 
     mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_str, q=car['address'])
 
+    address_for_map = car['address'].replace(' ', '%20')
+    if address_for_map == '':
+        # fall back on coords for search
+        address_for_map = coords
+
     return {
         'title': title,
         'coords': coords,
@@ -74,7 +79,7 @@ def get_car_info(car, all_cars, city):
         'range': car['range'],
         'cleanliness_interior': car.get('cleanliness_interior', '').replace('_', ' '),
         'cleanliness_exterior': car.get('cleanliness_exterior', '').replace('_', ' '),
-        'map_url': MAPS_URL.format(ll=coords, q=car['address'].replace(' ', '%20')),
+        'map_url': MAPS_URL.format(ll=coords, q=address_for_map),
         'map_img': mapimg
     }
 
