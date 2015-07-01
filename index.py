@@ -42,11 +42,17 @@ def format_latlng(car):
     return '%s,%s' % (car['lat'], car['lng'])
 
 
-def get_car_info(car, all_cars, city, parse):
+def get_car_info(car, all_cars, city):
     # Extract information specific for web display
 
+    car = web_helper.fill_in_car(car, city)
+
     coords = format_latlng(car)
-    address = web_helper.format_address(car['address'], city)
+
+    title = car['address']
+    if title == '':
+        # communauto doesn't provide the geocoded address. use license plate
+        title = car['license_plate']
 
     # Show other nearby cars on map if they are within the map area.
     # Include only the cars that would actually fit on the map
@@ -68,12 +74,7 @@ def get_car_info(car, all_cars, city, parse):
                 and in_bounds(car, other_car)]
     other_str = '|'.join(other_ll)
 
-    mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_str, q=address)
-
-    title = car['address']
-    if title == '':
-        # communauto doesn't have the address geocoded. use license plate
-        title = car['license_plate']
+    mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_str, q=car['address'])
 
     return {
         'title': title,
@@ -81,10 +82,10 @@ def get_car_info(car, all_cars, city, parse):
         'vin': car['vin'],
         'license_plate': car['license_plate'],
         'charge': car['fuel'],
-        'range': parse.get_range(car),
-        'cleanliness_interior': car.get('cleanliness_interior', None),
-        'cleanliness_exterior': car.get('cleanliness_exterior', None),
-        'map_url': MAPS_URL.format(ll=coords, q=address.replace(' ', '%20')),
+        'range': car['range'],
+        'cleanliness_interior': car.get('cleanliness_interior', '').replace('_', ' '),
+        'cleanliness_exterior': car.get('cleanliness_exterior', '').replace('_', ' '),
+        'map_url': MAPS_URL.format(ll=coords, q=car['address'].replace(' ', '%20')),
         'map_img': mapimg
     }
 
@@ -140,8 +141,7 @@ def print_all_html():
                   if city['electric'] == 'some']
 
     # get car details
-    parse = cars.get_carshare_system_module(requested_city['system'], 'parse')
-    car_infos = [get_car_info(car, electric_cars, requested_city, parse) for car in electric_cars]
+    car_infos = [get_car_info(car, electric_cars, requested_city) for car in electric_cars]
 
     # supplementary information
     cache_age = (time.time() - cache) if cache else cache

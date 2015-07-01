@@ -17,6 +17,8 @@ ALL_SYSTEMS = ['car2go', 'drivenow', 'communauto']
 DEFAULT_SYSTEM = 'drivenow'
 DEFAULT_CITY = 'london'
 
+_parse_modules = {}
+
 
 def get_param(param_name):
     arguments = cgi.FieldStorage()
@@ -49,15 +51,20 @@ def get_system_and_city():
     return city_data
 
 
+def get_parser(city):
+    if city['system'] not in _parse_modules:
+        _parse_modules[city['system']] = cars.get_carshare_system_module(city['system'], 'parse')
+
+    return _parse_modules[city['system']]
+
+
 def get_electric_cars(city):
     json_text, cache, _ = cars.get_all_cars_text(city)
 
     time1 = time.time()
 
-    parse = cars.get_carshare_system_module(city['system'], 'parse')
-
+    parse = get_parser(city)
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))
-
     parsed_cars = [parse.extract_car_data(car) for car in all_cars]
 
     time2 = time.time()
@@ -72,6 +79,13 @@ def get_electric_cars(city):
     cars.timer.append(['list search, ms', (time2-time1)*1000.0])
 
     return electric_cars, cache
+
+
+def fill_in_car(car, city):
+    car['range'] = get_parser(city).get_range(car)
+    car['address'] = format_address(car['address'], city)
+
+    return car
 
 
 def format_address(address, city):

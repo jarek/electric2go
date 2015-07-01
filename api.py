@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import unicode_literals
 from __future__ import print_function
 import json
 import time
@@ -11,16 +12,8 @@ import web_helper
 timer = []
 
 
-def get_info(car, city, query_ll=False):
-    parse = cars.get_carshare_system_module(city['system'], 'parse')
-
-    car['range'] = parse.get_range(car)
-
-    if query_ll:
-        car['distance'] = cars.dist((car['lat'], car['lng']), query_ll)
-
-    car['address'] = web_helper.format_address(car['address'], city)
-
+def fill_in_distance(car, query_ll):
+    car['distance'] = cars.dist((car['lat'], car['lng']), query_ll)
     return car
 
 
@@ -31,6 +24,8 @@ def json_respond():
 
     requested_city = web_helper.get_system_and_city()
     electric_cars, cache = web_helper.get_electric_cars(requested_city)
+
+    results = [web_helper.fill_in_car(car, requested_city) for car in electric_cars]
 
     limit = web_helper.get_param('limit')
     if limit:
@@ -44,9 +39,7 @@ def json_respond():
         query_ll[0] = float(query_ll[0])
         query_ll[1] = float(query_ll[1])
 
-    results = [get_info(car, requested_city, query_ll) for car in electric_cars]
-
-    if query_ll:
+        results = [fill_in_distance(car, query_ll) for car in results]
         results.sort(key=lambda x: x['distance'])
 
     results = results[:limit]
@@ -65,7 +58,7 @@ def json_respond():
         cars.timer.extend(timer)
         result['timer'] = cars.timer
 
-    print(json.dumps(result))
+    print(json.dumps(result).encode('utf-8'))
 
 
 if __name__ == '__main__':
