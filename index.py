@@ -27,17 +27,6 @@ MAP_SIZE_IN_DEGREES = 0.02
 timer = []
 
 
-def import_file(filename):
-    with open(filename, 'r') as f:
-        result = f.read()
-
-    return result
-
-    # I used to have code here that "minified" CSS by stripping out whitespace,
-    # but the size difference is on the order of 3 kB and not worth the effort.
-    # (Not to mention the JS is larger and harder to minify.)
-
-
 def format_latlng(car):
     return '%s,%s' % (car['lat'], car['lng'])
 
@@ -129,7 +118,7 @@ def print_all_html():
 
     ttime1 = time.time()
 
-    env = Environment(loader=PackageLoader('frontend', '.'))
+    env = Environment(loader=PackageLoader('frontend', '.'), trim_blocks=True, lstrip_blocks=True)
     env.filters['count'] = pluralize
 
     requested_city = web_helper.get_system_and_city()
@@ -155,9 +144,7 @@ def print_all_html():
                                    all_cars_count=len(car_infos),
                                    all_cars_map=format_all_cars_map(car_infos),
                                    cache_age=cache_age,
-                                   cache_next_refresh=cache_next_refresh,
-                                   block_css=import_file('frontend/style.css'),
-                                   block_js=import_file('frontend/sort.js'))
+                                   cache_next_refresh=cache_next_refresh)
 
     print(full_html.encode('utf-8'))
 

@@ -4,7 +4,7 @@
 <!-- Hello! If you're interested, the source code for this page is
 available at https://github.com/jarek/electric2go -->
 <style type="text/css" media="screen,projection">
-{{ block_css }}
+{% include('style.css') %}
 </style>
 <body>
 {% include "cities.html" %}
@@ -26,7 +26,7 @@ available at https://github.com/jarek/electric2go -->
 </footer>
 
 <script type="text/javascript">
-{{ block_js }}
+{% include('sort.js') %}
 </script>
 
 {{ block_endmatter }}

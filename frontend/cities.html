@@ -1,12 +1,11 @@
 <nav>
     cities with a few electric carshare vehicles:
-
     {% for city in cities %}
-        {% if city.name == displayed_city.name %}
+        {% if city.name == displayed_city.name -%}
             <strong>{{ city.display }}</strong>
-        {% else %}
+        {%- else -%}
             <a href="?system={{ city.system }}&amp;city={{ city.name }}">{{ city.display }}</a>
-        {% endif %}
+        {%- endif %}
         {% if not loop.last %}
             &middot;
         {% endif %}
