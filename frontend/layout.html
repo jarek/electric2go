@@ -1,42 +1,34 @@
 <!doctype html>
 <meta charset="utf-8" />
-<title>electric carshare vehicles in {{ city.display }}</title>
+<title>electric carshare vehicles in {{ displayed_city.display }}</title>
 <!-- Hello! If you're interested, the source code for this page is
 available at https://github.com/jarek/electric2go -->
-{% block css %}
 <style type="text/css" media="screen,projection">
 {{ block_css }}
 </style>
-{% endblock %}
 <body>
-{% block nav %}
-{{ block_nav }}
-{% endblock %}
+{% include "cities.html" %}
 
-<h2>{{all_cars_count|count("electric car")}} currently available in {{ city.display }}</h2>
+<h2>{{all_cars_count|count("electric car")}} currently available in {{ displayed_city.display }}</h2>
 
-{% block cars %}
 {{ all_cars_map }}
-{{ cars_html }}
-{% endblock %}
+{% for car in all_cars %}
+    {% include "car.html" %}
+{% endfor %}
 
 <footer>
     {% if cache_age %}
     Using cached data. Data age: {{ cache_age|count("second") }}, next refresh in {{ cache_next_refresh|count("second") }}.
     {% endif %}
-    {% if city.system == 'car2go' %}
+    {% if displayed_city.system == 'car2go' %}
     This product uses the car2go API but is not endorsed or certified by car2go.
     {% endif %}
 </footer>
 
-{% block javascript %}
 <script type="text/javascript">
 {{ block_js }}
 </script>
-{% endblock %}
 
-{% block endmatter %}
 {{ block_endmatter }}
-{% endblock %}
 
 </body>

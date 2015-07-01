@@ -89,14 +89,14 @@ def get_car_info(car, all_cars, city, parse):
     }
 
 
-def format_all_cars_map(all_cars):
-    if len(all_cars) < 2:
+def format_all_cars_map(all_car_infos):
+    if len(all_car_infos) < 2:
         # Don't show map if there's no cars.
         # Also don't show map is there's just one car - the map shown
         # with the rest of car info will be above fold or quite high.
         return ''
 
-    coords = [format_latlng(car) for car in all_cars]
+    coords = [car['coords'] for car in all_car_infos]
     lls = '|'.join(coords)
     code = MAPS_MULTI_CODE.format(ll=lls, alt='map of all available cars')
 
@@ -134,20 +134,14 @@ def print_all_html():
     requested_city = web_helper.get_system_and_city()
     electric_cars, cache = web_helper.get_electric_cars(requested_city)
 
-    # render list of cities
+    # get list of cities
     all_cities = [city for system in web_helper.ALL_SYSTEMS
                   for city in cars.get_all_cities(system).values()
                   if city['electric'] == 'some']
 
-    tmpl_cities = env.get_template('cities.html')
-    html_cities = tmpl_cities.render(cities=all_cities, current_city=requested_city)
-
-    # render car details
+    # get car details
     parse = cars.get_carshare_system_module(requested_city['system'], 'parse')
     car_infos = [get_car_info(car, electric_cars, requested_city, parse) for car in electric_cars]
-
-    tmpl_car = env.get_template('car.html')
-    html_cars = '\n'.join([tmpl_car.render(**info) for info in car_infos])
 
     # supplementary information
     cache_age = (time.time() - cache) if cache else cache
@@ -155,13 +149,13 @@ def print_all_html():
 
     # render big template
     tmpl_layout = env.get_template('layout.html')
-    full_html = tmpl_layout.render(city=requested_city,
-                                   all_cars_count=len(electric_cars),
-                                   all_cars_map=format_all_cars_map(electric_cars),
+    full_html = tmpl_layout.render(displayed_city=requested_city,
+                                   cities=all_cities,
+                                   all_cars=car_infos,
+                                   all_cars_count=len(car_infos),
+                                   all_cars_map=format_all_cars_map(car_infos),
                                    cache_age=cache_age,
                                    cache_next_refresh=cache_next_refresh,
-                                   block_nav=html_cities,
-                                   cars_html=html_cars,
                                    block_css=import_file('frontend/style.css'),
                                    block_js=import_file('frontend/sort.js'))
 

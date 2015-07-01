@@ -1,31 +1,31 @@
-<section class="sort" data-loc="{{ coords }}">
-    <h3>{{ title }}</h3>
+<section class="sort" data-loc="{{ car.coords }}">
+    <h3>{{ car.title }}</h3>
     <p><!--vin: {{ vin }}-->
 
-    {% if range == 0 %}
+    {% if car.range == 0 %}
         <span style="color: red">Not driveable</span>,
     {% else %}
-        Approx range: {{ range }} km,
+        Approx range: {{ car.range }} km,
     {% endif %}
-    charge: {{ charge }}%{% if charging: %}, charging{% endif %}
+    charge: {{ car.charge }}%{% if car.charging: %}, charging{% endif %}
     <br/>
 
-    {% if license_plate != title %}
-        Plate: {{ license_plate }}.
+    {% if car.license_plate != title %}
+        Plate: {{ car.license_plate }}.
     {% endif %}
-    {% if cleanliness_interior %}
-        Interior: {{ cleanliness_interior|lower }}.
+    {% if car.cleanliness_interior %}
+        Interior: {{ car.cleanliness_interior|lower }}.
     {% endif %}
-    {% if cleanliness_exterior %}
-        Exterior: {{ cleanliness_exterior|lower }}.
+    {% if car.cleanliness_exterior %}
+        Exterior: {{ car.cleanliness_exterior|lower }}.
     {% endif %}
-    {% if license_plate != title or cleanliness_interior or cleanliness_exterior %}
+    {% if car.license_plate != car.title or car.cleanliness_interior or car.cleanliness_exterior %}
         <br/>
     {% endif %}
 
-    Location: <a href="{{ map_url }}">{{ coords }}</a>.
+    Location: <a href="{{ car.map_url }}">{{ car.coords }}</a>.
     <span class="distance" data-template="Approx distance: {dist} km{min}"></span>
     <br/>
 
-    <a href="{{ map_url }}">{{ map_img }}</a>
+    <a href="{{ car.map_url }}">{{ car.map_img }}</a>
 </section>
