@@ -34,6 +34,15 @@ function order_cars(position) {
             cars.push([ car_dist, car_list[i] ]);
         }
 
+        nearby_cars = cars.filter(function (car_data) {
+            return car_data[0] < 20;
+        });
+        if (nearby_cars.length == 0) {
+            // don't reorder cars if there aren't any within 20 km.
+            // no point showing distance for cars on another continent.
+            return;
+        }
+
         // sort based on distance - distance is stored in cars[i][0]
         cars.sort(function(a, b) {
             var dst_a = a[0];
