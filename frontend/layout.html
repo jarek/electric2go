@@ -9,9 +9,14 @@ available at https://github.com/jarek/electric2go -->
 <body>
 {% include "cities.html" %}
 
-<h2>{{all_cars_count|count("electric car")}} currently available in {{ displayed_city.display }}</h2>
+<h2>{{all_cars|length|count("electric car")}} currently available in {{ displayed_city.display }}</h2>
 
-{{ all_cars_map }}
+{% if all_cars|length > 1 %}
+{# Don't show map if there's no cars, or there is only one car. #}
+<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&amp;markers=size:small|{{ all_cars|map(attribute='coords')|join('|') }}&amp;visual_refresh=true&amp;sensor=false"
+     alt="map of all available cars" width="300" height="250" id="multimap" />
+{% endif %}
+
 {% for car in all_cars %}
     {% include "car.html" %}
 {% endfor %}

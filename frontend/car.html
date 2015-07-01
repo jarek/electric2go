@@ -17,17 +17,21 @@
         Plate: {{ car.license_plate }}
     {%- endif -%}
     {%- if car.cleanliness_interior -%}
-        , interior: {{ car.cleanliness_interior|lower }}
+        , interior: {{ car.cleanliness_interior|replace('_', ' ')|lower }}
     {%- endif -%}
     {%- if car.cleanliness_exterior -%}
-        , exterior: {{ car.cleanliness_exterior|lower }}
+        , exterior: {{ car.cleanliness_exterior|replace('_', ' ')|lower }}
     {%- endif %}
     {% if car.license_plate != car.title or car.cleanliness_interior or car.cleanliness_exterior %}
         <br/>
     {% endif %}
 
-    Location: <a href="{{ car.map_url }}">{{ car.coords }}</a><span class="distance" data-template=", approx distance: {dist} km{min}"></span>
+    Location: <a href="geo:{{ car.coords }}?q={{ car.coords }}({{ car['address_or_coords']|urlencode }})">
+            {{ car.coords }}</a><span class="distance" data-template=", approx distance: {dist} km{min}"></span>
     <br/>
 
-    <a href="{{ car.map_url }}">{{ car.map_img }}</a>
+    <a href="https://maps.google.ca/maps?q={{ car['address_or_coords']|urlencode }}&amp;ll={{ car.coords }}&amp;z=16&amp;t=h">
+        <img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&amp;zoom=15&amp;markers=size:small|{{ car.coords }}&amp;markers=size:tiny|{{ car['other_cars_ll']|join('|') }}&amp;center={{ car.coords }}&amp;visual_refresh=true&amp;sensor=false"
+             alt="map of {{ car['address_or_coords'] }}" width="300" height="250" />
+    </a>
 </section>

@@ -11,10 +11,6 @@ import cars
 import web_helper
 
 
-MAPS_URL = 'https://maps.google.ca/maps?q={q}&ll={ll}&z=16&t=h'.replace('&', '&amp;')
-MAPS_IMAGE_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&zoom=15&markers=size:small|{ll}&markers=size:tiny|{other_ll}&center={ll}&visual_refresh=true&sensor=false" alt="map of {q}" width="300" height="250" />'.replace('&', '&amp;')
-MAPS_MULTI_CODE = '<img src="http://maps.googleapis.com/maps/api/staticmap?size=300x250&markers=size:small|{ll}&visual_refresh=true&sensor=false" alt="{alt}" width="300" height="250" id="multimap" />'.replace('&', '&amp;')
-
 # For zoom=15 and size 300x250, the map is less than 0.02 degrees across
 # in both directions. In practice the observed value varies from 
 # roughly 0.007385 degrees latitude to roughly 0.013326 degrees longitude
@@ -61,41 +57,23 @@ def get_car_info(car, all_cars, city):
     other_ll = [format_latlng(other_car) for other_car in all_cars
                 if (other_car['lat'] != car['lat'] and other_car['lng'] != car['lng'])
                 and in_bounds(car, other_car)]
-    other_str = '|'.join(other_ll)
 
-    mapimg = MAPS_IMAGE_CODE.format(ll=coords, other_ll=other_str, q=car['address'])
-
-    address_for_map = car['address'].replace(' ', '%20')
-    if address_for_map == '':
-        # fall back on coords for search
-        address_for_map = coords
+    # provide a value that will have either address or coords.
+    # some systems don't provide geocoded address.
+    address_for_map = car['address'] if car['address'] != '' else coords
 
     return {
         'title': title,
-        'coords': coords,
-        'vin': car['vin'],
         'license_plate': car['license_plate'],
         'charge': car['fuel'],
         'range': car['range'],
-        'cleanliness_interior': car.get('cleanliness_interior', '').replace('_', ' '),
-        'cleanliness_exterior': car.get('cleanliness_exterior', '').replace('_', ' '),
-        'map_url': MAPS_URL.format(ll=coords, q=address_for_map),
-        'map_img': mapimg
+        'coords': coords,
+        'vin': car['vin'],
+        'address_or_coords': address_for_map,
+        'other_cars_ll': other_ll,
+        'cleanliness_interior': car.get('cleanliness_interior', ''),
+        'cleanliness_exterior': car.get('cleanliness_exterior', '')
     }
-
-
-def format_all_cars_map(all_car_infos):
-    if len(all_car_infos) < 2:
-        # Don't show map if there's no cars.
-        # Also don't show map is there's just one car - the map shown
-        # with the rest of car info will be above fold or quite high.
-        return ''
-
-    coords = [car['coords'] for car in all_car_infos]
-    lls = '|'.join(coords)
-    code = MAPS_MULTI_CODE.format(ll=lls, alt='map of all available cars')
-
-    return code
 
 
 def pluralize(count, string, end_ptr=None, rep_ptr=''):
@@ -146,8 +124,6 @@ def print_all_html():
     full_html = tmpl_layout.render(displayed_city=requested_city,
                                    cities=all_cities,
                                    all_cars=car_infos,
-                                   all_cars_count=len(car_infos),
-                                   all_cars_map=format_all_cars_map(car_infos),
                                    cache_age=cache_age,
                                    cache_next_refresh=cache_next_refresh)
 
