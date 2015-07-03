@@ -1,6 +1,6 @@
 <nav>
-    cities with a few electric carshare vehicles:
-    {% for city in cities %}
+    <p class="intro">cities with a few electric carshare vehicles
+    <p>{% for city in cities %}
         {% if city.name == displayed_city.name -%}
             <strong>{{ city.display }}</strong>
         {%- else -%}
