@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 import os
+import sys
 import copy
 import stat
 import argparse
@@ -240,8 +241,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     while json_data != False and (max_files is False or i <= max_files):
         time_process_start = time.time()
 
-        print(t, end=' ')
-
         new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
             process_data(system, t, prev_t, json_data, unfinished_trips, unfinished_parkings)
 
@@ -258,9 +257,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         timer.append((filepath + ': batch_load_data process_data, ms',
              (time.time()-time_process_start)*1000.0))
 
-        print('total known: %d' % (len(unfinished_parkings) + len(unfinished_trips)), end=' ')
-        print('moved: %02d' % len(new_finished_trips))
-
         # find next file according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
         i = i + 1
@@ -276,7 +272,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
              (time.time()-time_load_start)*1000.0))
 
         if json_data == False:
-            print('would stop at %s' % filepath)
+            print('would stop at %s' % filepath, file=sys.stderr)
 
         skipped = 0
         next_t = t
@@ -289,21 +285,21 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
             next_filepath = get_filepath(city, next_t, file_dir)
             next_json_data = load_file(next_filepath)
 
-            print('trying %s...' % next_filepath, end=' ')
+            print('trying %s...' % next_filepath, end=' ', file=sys.stderr)
 
             if next_json_data != False:
-                print('exists, using it instead', end=' ')
+                print('exists, using it instead', end=' ', file=sys.stderr)
                 missing_files.append(filepath)
                 shutil.copy2(next_filepath, filepath)
                 json_data = load_file(filepath)
 
-            print()
+            print(file=sys.stderr)
 
         timer.append((filepath + ': batch_load_data total load loop, ms',
              (time.time()-time_process_start)*1000.0))
 
         if DEBUG:
-            print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer))
+            print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
         # reset timer to only keep information about one file at a time
         timer = []
@@ -450,7 +446,8 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         time_load_total = (time.time() - time_load_start)
         time_load_frame = time_load_total / total_frames
         print('\ntotal data load loop: {:d} frames, {:f} s, {:f} ms per frame, {:f} s per 60 frames, {:f} s per 1440 frames'.format(
-            total_frames, time_load_total, time_load_frame * 1000, time_load_frame * 60, time_load_frame * 1440))
+            total_frames, time_load_total, time_load_frame * 1000, time_load_frame * 60, time_load_frame * 1440),
+            file=sys.stderr)
 
     # set up params for iteratively-named images
     starting_file_name = get_filepath(city, starting_time, file_dir)
@@ -463,6 +460,8 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
     # generate images
     if not dry:
         index = -1  # will be incremented to 0 straight away
+        # TODO: loop currently cannot be parallelized due to shared `index` variable. move it into data_frame instead
+        # TODO: shared use of process_graph.timer is also a problem
         for data in build_data_frames(result_dict, file_dir, city):
             index += 1
 
@@ -491,11 +490,11 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
             time_graph = (time.time() - time_graph_start) * 1000.0
             timer.append((filepath + ': make_graph, ms', time_graph))
 
-            print(turn, 'generated graph in %d ms' % time_graph)
+            print(turn, 'generated graph in %d ms' % time_graph, file=sys.stderr)
 
             if DEBUG:
-                print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer))
-                print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer))
+                print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
+                print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
     # print animation information if applicable
     if make_iterations and not dry:
@@ -562,17 +561,15 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
         process_graph.make_trip_origin_destination_graph(system, city, all_trips, all_trips_points_image, symbol)
 
     if DEBUG:
-        print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer))
-        print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer))
-
-    print()
+        print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
+        print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
 def process_commandline():
     global DEBUG
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true',
-        help='print extra debug and timing messages')
+        help='print extra debug and timing messages to stderr')
     parser.add_argument('system', type=str,
         help='system to be used (e.g. car2go, drivenow, ...)')
     parser.add_argument('starting_filename', type=str,
@@ -635,20 +632,17 @@ def process_commandline():
     file_dir,city = os.path.split(city.lower())
 
     if not os.path.exists(filename):
-        print('file not found: ' + filename)
-        return
+        sys.exit('file not found: ' + filename)
 
     cities_for_system = cars.get_all_cities(args.system)
     if not city in cities_for_system:
-        print('unsupported city {city_name} for system {system_name}'.format(city_name=city, system_name=args.system))
-        return
+        sys.exit('unsupported city {city_name} for system {system_name}'.format(city_name=city, system_name=args.system))
 
     try:
         # parse out starting time
         starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
     except:
-        print('time format not recognized: ' + filename)
-        return
+        sys.exit('time format not recognized: ' + filename)
 
     params['starting_time'] = starting_time
     params['make_iterations'] = not args.no_iter
