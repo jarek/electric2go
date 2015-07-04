@@ -395,7 +395,7 @@ def build_data_frames(result_dict, file_dir, city):
 
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
-def batch_process(system, city, starting_time, dry = False, make_iterations = True,
+def batch_process(system, city, starting_time, dry = False,
     show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
     time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES,
     show_speeds = False, symbol = '.',
@@ -474,21 +474,17 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
             if not show_move_lines:
                 current_trips = []
 
-            image_filename = filepath + '.png'
-            copy_filename = False
-            if make_iterations:
-                copy_filename = animation_files_prefix + '_' + \
-                    str(index).rjust(3, '0') + '.png'
-                iter_filenames.append(copy_filename)
+            image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
+            iter_filenames.append(image_filename)
 
             time_graph_start = time.time()
 
             process_graph.make_graph(system, city, current_positions, current_trips,
-                                     image_filename, copy_filename, turn,
+                                     image_filename, turn,
                                      show_speeds, distance, symbol, tz_offset)
 
             time_graph = (time.time() - time_graph_start) * 1000.0
-            timer.append((filepath + ': make_graph, ms', time_graph))
+            timer.append((str(turn) + ': make_graph, ms', time_graph))
 
             print(turn, 'generated graph in %d ms' % time_graph, file=sys.stderr)
 
@@ -496,8 +492,7 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
                 print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
                 print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
-    # print animation information if applicable
-    if make_iterations and not dry:
+        # print animation information if applicable
         if web:
             crush_filebasename = animation_files_prefix
 
@@ -522,7 +517,7 @@ def batch_process(system, city, starting_time, dry = False, make_iterations = Tr
 
         background_path = os.path.relpath(os.path.join(cars.root_dir,
             'backgrounds/', '%s-background.png' % city))
-        png_filepaths = animation_files_prefix + '_%03d.png'
+        png_filepaths = animation_files_prefix + '_%05d.png'
         mp4_path = animation_files_prefix + '.mp4'
 
         framerate = 30
@@ -587,11 +582,8 @@ def process_commandline():
         help='offset times by TZ_OFFSET hours')
     parser.add_argument('-dry', action='store_true',
         help='dry run: do not generate any images')
-    parser.add_argument('-noiter', '--no-iter', action='store_true',
-        help='do not create consecutively-named files for animating')
     parser.add_argument('-web', action='store_true',
-        help='create pngcrush script and JS filelist for HTML animation \
-            page use; forces NO_ITER to false')
+        help='create pngcrush script and JS filelist for HTML animation page use')
     parser.add_argument('-nolines', '--no-lines', action='store_true',
         help='do not show lines indicating vehicles\' moves')
     parser.add_argument('-d', '--distance', type=float, default=False,
@@ -645,18 +637,13 @@ def process_commandline():
         sys.exit('time format not recognized: ' + filename)
 
     params['starting_time'] = starting_time
-    params['make_iterations'] = not args.no_iter
     params['show_move_lines'] = not args.no_lines
 
     params['city'] = city
     params['file_dir'] = file_dir
-
-    if args.web is True:
-        params['make_iterations'] = True
 
     batch_process(**params)
 
 
 if __name__ == '__main__':
     process_commandline()
-

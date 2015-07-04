@@ -5,7 +5,6 @@ from datetime import timedelta
 from collections import OrderedDict
 import os
 import time
-import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import Image
@@ -241,7 +240,7 @@ def graph_wrapper(city_data, plot_function, image_name, background=False):
                   (time.time()-time_save_start)*1000.0))
 
 
-def make_graph(system, city, positions, trips, image_filename, copy_filename, turn,
+def make_graph(system, city, positions, trips, image_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
     """ Creates and saves matplotlib figure for provided positions and trips.
     If second_filename is specified, also copies the saved file to 
@@ -251,9 +250,7 @@ def make_graph(system, city, positions, trips, image_filename, copy_filename, tu
 
     city_data = get_all_cities(system)[city]
 
-    # use a different variable name for clarity where it'll be used only
-    # for logging rather than actually accessing/creating files
-    log_name = image_filename
+    log_name = str(turn)
 
     # filter to only vehicles that are in city's graphing bounds
     filtered_positions = filter_positions_to_bounds(city_data, positions)
@@ -306,11 +303,6 @@ def make_graph(system, city, positions, trips, image_filename, copy_filename, tu
 
     # create and save plot
     graph_wrapper(city_data, plotter, image_filename, graph_background)
-
-    # if requested, also copy with an iterative filename for ease of animation
-    # copying the file rather than saving again is a lot faster
-    if copy_filename:
-        shutil.copy2(image_filename, copy_filename)
 
 
 def make_positions_graph(system, city, data_dict, image_name, symbol):
