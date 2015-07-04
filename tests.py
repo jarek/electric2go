@@ -109,7 +109,8 @@ class StatsTest(unittest.TestCase):
                         "len_cars": 270
                     },
                     -1: {
-                        "filename": "/home/jarek/car2go-columbus/extracted/columbus_2015-04-30--07-59",
+                        "index": 2879,
+                        "turn": "2015-04-30T07:59:00",
                         "len_cars": 285
                     }
                 }
@@ -138,11 +139,13 @@ class StatsTest(unittest.TestCase):
                 },
                 "expected_dataframes": {
                     0: {
-                        "filename": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/vancouver_2015-05-16--11-00",
+                        "index": 0,
+                        "turn": "2015-05-16T11:00:00",
                         "len_trips": 0
                     },
                     250: {
-                        "filename": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/vancouver_2015-05-16--15-10",
+                        "index": 250,
+                        "turn": "2015-05-16T15:10:00",
                         "len_cars": 215
                     },
                     1999: {
@@ -187,27 +190,25 @@ class StatsTest(unittest.TestCase):
 
     def test_dataframes_for_sample_datasets(self):
         for dataset_name in self.datasets:
-            params = self.datasets[dataset_name]["params"]
             exp_dataframes = self.datasets[dataset_name]["expected_dataframes"]
 
             # immediately evaluating a generator is kinda rude, but this is
             # only for testing, where I have expected values for
             # specific indexes. don't do this in non-test code obviously.
-            data_frames = list(process.build_data_frames(self.results[dataset_name],
-                                                         params['file_dir'], params['city']))
+            data_frames = list(process.build_data_frames(self.results[dataset_name]))
 
             for i in exp_dataframes:
                 exp_frame = exp_dataframes[i]
-                if 'turn' in exp_frame:
-                    self.assertEqual(exp_frame['turn'], data_frames[i][0].isoformat(),
+                if 'index' in exp_frame:
+                    self.assertEqual(exp_frame['index'], data_frames[i][0],
                                      "{name} {frame} turn: expected {exp}, got {got}".format(
                                          name=dataset_name, frame=i,
-                                         exp=exp_frame['turn'], got=data_frames[i][0].isoformat()))
-                if 'filename' in exp_frame:
-                    self.assertEqual(exp_frame['filename'], data_frames[i][1],
-                                     "{name} {frame} filename: expected {exp}, got {got}".format(
+                                         exp=exp_frame['index'], got=data_frames[i][0]))
+                if 'turn' in exp_frame:
+                    self.assertEqual(exp_frame['turn'], data_frames[i][1].isoformat(),
+                                     "{name} {frame} turn: expected {exp}, got {got}".format(
                                          name=dataset_name, frame=i,
-                                         exp=exp_frame['filename'], got=data_frames[i][1]))
+                                         exp=exp_frame['turn'], got=data_frames[i][1].isoformat()))
                 if 'len_cars' in exp_frame:
                     self.assertEqual(exp_frame['len_cars'], len(data_frames[i][2]),
                                      "{name} {frame} len_cars: expected {exp}, got {got}".format(

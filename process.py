@@ -350,7 +350,7 @@ def filter_trips_list(all_trips_by_vin, find_by):
 
     return all_trips_by_vin[vin]
 
-def build_data_frames(result_dict, file_dir, city):
+def build_data_frames(result_dict):
     # temp function to facilitate switchover and testing to new data format
 
     # shorter variable names for easier access
@@ -363,9 +363,9 @@ def build_data_frames(result_dict, file_dir, city):
     finished_parkings = [item for vin in fin_parkings for item in fin_parkings[vin]]
     finished_trips = [trip for vin in fin_trips for trip in fin_trips[vin]]
 
-    while turn <= result_dict['metadata']['ending_time']:
-        filepath = get_filepath(city, turn, file_dir)
+    index = 0
 
+    while turn <= result_dict['metadata']['ending_time']:
         # The condition of `p['starting_time'] <= turn <= p['ending_time']`
         # (with the two less-than-or-equal) in the statement to get
         # current_positions is correct.
@@ -390,9 +390,10 @@ def build_data_frames(result_dict, file_dir, city):
         current_trips = [p for p in finished_trips
                          if p['ending_time'] == turn]
 
-        data_frame = (turn, filepath, current_positions, current_trips)
+        data_frame = (index, turn, current_positions, current_trips)
         yield data_frame
 
+        index += 1
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 def batch_process(system, city, starting_time, dry = False,
@@ -459,17 +460,13 @@ def batch_process(system, city, starting_time, dry = False,
 
     # generate images
     if not dry:
-        index = -1  # will be incremented to 0 straight away
-        # TODO: loop currently cannot be parallelized due to shared `index` variable. move it into data_frame instead
-        # TODO: shared use of process_graph.timer is also a problem
-        for data in build_data_frames(result_dict, file_dir, city):
-            index += 1
-
+        # TODO: could be parallelized, except for iter_filenames order uses of timer and process_graph.timer
+        for data in build_data_frames(result_dict):
             # reset timer to only keep information about one file at a time
             timer = []
             process_graph.timer = []
 
-            turn, filepath, current_positions, current_trips = data
+            index, turn, current_positions, current_trips = data
 
             if not show_move_lines:
                 current_trips = []
