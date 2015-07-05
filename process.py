@@ -316,7 +316,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
             'starting_time': starting_time,
             'ending_time': ending_time,
             'time_step': time_step*60,
-            'total_frames': i,
             'missing': missing_files
         }
     }
@@ -420,8 +419,6 @@ def batch_process(system, city, starting_time, dry = False,
     # TEMP: rewrite variables based on result_dict
     # TODO: move the functions that use these variables to use result_dict
 
-    total_frames = result_dict['metadata']['total_frames']
-
     all_trips = []
     for vin in result_dict['finished_trips']:
         all_trips.extend(result_dict['finished_trips'][vin])
@@ -445,9 +442,10 @@ def batch_process(system, city, starting_time, dry = False,
 
     if DEBUG:
         time_load_total = (time.time() - time_load_start)
-        time_load_frame = time_load_total / total_frames
-        print('\ntotal data load loop: {:d} frames, {:f} s, {:f} ms per frame, {:f} s per 60 frames, {:f} s per 1440 frames'.format(
-            total_frames, time_load_total, time_load_frame * 1000, time_load_frame * 60, time_load_frame * 1440),
+        data_duration = (result_dict['metadata']['ending_time'] - result_dict['metadata']['starting_time']).total_seconds()
+        time_load_minute = time_load_total / (data_duration/60)
+        print('\ntotal data load loop: {:f} hours of data, {:f} s, {:f} ms per 1 minute of data, {:f} s per 1 day of data'.format(
+            data_duration/3600, time_load_total, time_load_minute * 1000, time_load_minute * 1440),
             file=sys.stderr)
 
     # set up params for iteratively-named images
@@ -460,7 +458,7 @@ def batch_process(system, city, starting_time, dry = False,
 
     # generate images
     if not dry:
-        # TODO: could be parallelized, except for iter_filenames order uses of timer and process_graph.timer
+        # TODO: could be parallelized, except for iter_filenames order and uses of timer and process_graph.timer
         for data in build_data_frames(result_dict):
             # reset timer to only keep information about one file at a time
             timer = []
@@ -522,7 +520,7 @@ def batch_process(system, city, starting_time, dry = False,
         # which avconv assumes to be "25 fps".
         # to get output at 30 fps to be correct length to include all frames,
         # I need to convert framecount from 25 fps to 30 fps
-        frames = ((total_frames - 1)/25)*framerate
+        frames = (len(iter_filenames)/25.0)*framerate
 
         print('\nto animate:')
         print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
