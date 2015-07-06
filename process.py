@@ -7,7 +7,6 @@ import sys
 import copy
 import stat
 import argparse
-import shutil
 import simplejson as json
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -259,41 +258,37 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
         # find next file according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
-        i = i + 1
-        prev_t = t
-        t = t + timedelta(0, time_step*60)
-        filepath = get_filepath(city, t, file_dir)
 
-        time_load_start = time.time()
+        prev_t = t  # prev_t is now last file that was successfully loaded
 
-        json_data = load_file(filepath)
+        # detect and attempt to counteract missing or malformed
+        # data files, unless instructed otherwise by max_skip = 0
+        # TODO: while loop in a while loop... can probably be done cleaner
+        skipped = -1
+        potentially_missing = []
+        while skipped < max_skip and (skipped == -1 or not json_data):
+            # loop for a minimum of one time, then until either json_data is valid
+            # or we've reached the max_skip limit
 
-        timer.append((filepath + ': batch_load_data load_file, ms',
-             (time.time()-time_load_start)*1000.0))
+            i += 1
+            t += timedelta(minutes=time_step)
+            filepath = get_filepath(city, t, file_dir)
+            json_data = load_file(filepath)
 
-        if json_data == False:
-            print('would stop at %s' % filepath, file=sys.stderr)
+            if not json_data:
+                # file found was not valid, try to skip past it
+                print('file %s is missing or malformed' % filepath, file=sys.stderr)
+                potentially_missing.append(filepath)
 
-        skipped = 0
-        next_t = t
-        while json_data == False and skipped < max_skip:
-            # this will detect and attempt to counteract missing or malformed
-            # data files, unless instructed otherwise by max_skip = 0
-            skipped += 1
+                skipped = skipped + 1 if skipped > 0 else 1  # handle the initial -1
+            else:
+                # we've found a valid file, indicate we can end loop
+                skipped = max_skip
 
-            next_t = next_t + timedelta(0, time_step*60)
-            next_filepath = get_filepath(city, next_t, file_dir)
-            next_json_data = load_file(next_filepath)
-
-            print('trying %s...' % next_filepath, end=' ', file=sys.stderr)
-
-            if next_json_data != False:
-                print('exists, using it instead', end=' ', file=sys.stderr)
-                missing_files.append(filepath)
-                shutil.copy2(next_filepath, filepath)
-                json_data = load_file(filepath)
-
-            print(file=sys.stderr)
+        # if we got out of the loop after finding a file that works,
+        # save files that we skipped
+        if json_data:
+            missing_files.extend(potentially_missing)
 
         timer.append((filepath + ': batch_load_data total load loop, ms',
              (time.time()-time_process_start)*1000.0))
