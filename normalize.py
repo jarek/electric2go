@@ -5,12 +5,14 @@ from __future__ import print_function
 import os
 import sys
 import copy
+import argparse
 import simplejson as json
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 import time
 
 import cars
+from analysis import dump as process_dump
 
 
 DEBUG = False
@@ -313,3 +315,65 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     }
 
     return result
+
+
+def process_commandline():
+    global DEBUG
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-debug', action='store_true',
+                        help='print extra debug and timing messages to stderr')
+    parser.add_argument('system', type=str,
+                        help='system to be used (e.g. car2go, drivenow, ...)')
+    parser.add_argument('starting_filename', type=str,
+                        help='name of first file to process')
+    parser.add_argument('-max', '--max-files', type=int, default=False,
+                        help='limit maximum amount of files to process')
+    parser.add_argument('-skip', '--max-skip', type=int, default=3,
+                        help='amount of missing or malformed sequential '
+                             'data files to try to work around (default 3;'
+                             'specify 0 to work only on data provided)')
+    parser.add_argument('-step', '--time-step', type=int,
+                        default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
+                        help='analyze data for every TIME_STEP minutes (default %i)' %
+                             cars.DATA_COLLECTION_INTERVAL_MINUTES)
+
+    args = parser.parse_args()
+    params = vars(args)
+
+    DEBUG = args.debug
+    filename = args.starting_filename
+
+    city, starting_time = filename.rsplit('_', 1)
+
+    # strip off directory, if any.
+    file_dir, city = os.path.split(city.lower())
+
+    if not os.path.exists(filename):
+        sys.exit('file not found: ' + filename)
+
+    cities_for_system = cars.get_all_cities(args.system)
+    if city not in cities_for_system:
+        sys.exit('unsupported city {city_name} for system {system_name}'.
+                 format(city_name=city, system_name=args.system))
+
+    try:
+        # parse out starting time
+        starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
+    except:
+        sys.exit('time format not recognized: ' + filename)
+
+    params['starting_time'] = starting_time
+
+    params['city'] = city
+    params['file_dir'] = file_dir
+
+    del params['debug']
+    del params['starting_filename']
+
+    result = batch_load_data(**params)
+    json.dump(result, fp=sys.stdout, default=process_dump.json_serializer)
+
+
+if __name__ == '__main__':
+    process_commandline()
