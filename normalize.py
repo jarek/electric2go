@@ -219,6 +219,8 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
             # return False if file does not exist or is malformed
             return False
 
+    time_load_start = time.time()
+
     i = 1
     t = starting_time
     prev_t = t
@@ -307,12 +309,23 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         'unfinished_parkings': unfinished_parkings,
         'unstarted_trips': unstarted_trips,
         'metadata': {
+            'system': system,
+            'city': city,
+            'file_dir': file_dir,
             'starting_time': starting_time,
             'ending_time': ending_time,
             'time_step': time_step*60,
             'missing': missing_files
         }
     }
+
+    if DEBUG:
+        time_load_total = (time.time() - time_load_start)
+        data_duration = (ending_time - starting_time).total_seconds()
+        time_load_minute = time_load_total / (data_duration/60)
+        print('\ntotal data load loop: {:f} hours of data, {:f} s, {:f} ms per 1 minute of data, {:f} s per 1 day of data'.format(
+            data_duration/3600, time_load_total, time_load_minute * 1000, time_load_minute * 1440),
+            file=sys.stderr)
 
     return result
 

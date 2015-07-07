@@ -20,6 +20,18 @@ def json_serializer(obj):
     return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
 
+def json_deserializer(obj):
+    for (key, value) in obj.items():
+        if isinstance(value, basestring):
+            try:
+                # this is the format that isoformat outputs
+                obj[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+            except:
+                pass
+
+    return obj
+
+
 def dump_trips(all_trips, filename, tz_offset):
     if tz_offset != 0:
         # adjust timezone if needed

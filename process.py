@@ -46,6 +46,7 @@ def filter_trips_list(all_trips_by_vin, find_by):
 
     return all_trips_by_vin[vin]
 
+
 def build_data_frames(result_dict):
     # temp function to facilitate switchover and testing to new data format
 
@@ -92,15 +93,15 @@ def build_data_frames(result_dict):
         index += 1
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
-def batch_process(system, city, starting_time, dry = False,
-    show_move_lines = True, max_files = False, max_skip = 0, file_dir = '',
-    time_step = cars.DATA_COLLECTION_INTERVAL_MINUTES,
-    show_speeds = False, symbol = '.',
-    distance = False, tz_offset = 0, web = False, stats = False,
-    filter_trips = False, trace = False, dump_trips = False,
-    all_positions_image = False, all_trips_lines_image = False,
-    all_trips_points_image = False,
-    **extra_args):
+
+def batch_process(input_file=False, dry=False, web=False, tz_offset=0,
+                  show_move_lines=True, show_speeds=False, symbol='.', distance=False,
+                  stats=False, filter_trips=False, trace=False, dump_trips=False,
+                  all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
+    """
+    :type input_file: str
+    :return: does not return anything
+    """
 
     global DEBUG
 
@@ -108,13 +109,17 @@ def batch_process(system, city, starting_time, dry = False,
 
     # read in all data
     time_load_start = time.time()
-    normalize.DEBUG = DEBUG
-    result_dict = normalize.batch_load_data(system, city, file_dir, starting_time,
-                                            time_step, max_files, max_skip)
 
-    # write out for testing. TODO: remove once a proper write/dump function is present
-    with open(datetime.now().strftime('%Y%m%d-%H%M%S') + '-alldata.json', 'w') as f:
-        json.dump(result_dict, f, default=process_dump.json_serializer, indent=2)
+    if input_file:
+        with open(input_file, 'r') as f:
+            result_dict = json.load(fp=f, object_hook=process_dump.json_deserializer)
+    else:
+        result_dict = json.load(fp=sys.stdin, object_hook=process_dump.json_deserializer)
+
+    system = result_dict['metadata']['system']
+    city = result_dict['metadata']['city']
+    starting_time = result_dict['metadata']['starting_time']
+    file_dir = result_dict['metadata']['file_dir']
 
     # TEMP: rewrite variables based on result_dict
     # TODO: move the functions that use these variables to use result_dict
@@ -149,6 +154,8 @@ def batch_process(system, city, starting_time, dry = False,
             file=sys.stderr)
 
     # set up params for iteratively-named images
+    # TODO: file_dir won't be available when normalize.py can process archives,
+    # migrate this function to use current directory
     starting_file_name = normalize.get_filepath(city, starting_time, file_dir)
     animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
         '-' + os.path.basename(starting_file_name)
@@ -254,25 +261,15 @@ def batch_process(system, city, starting_time, dry = False,
         print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
         print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
+
 def process_commandline():
     global DEBUG
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true',
         help='print extra debug and timing messages to stderr')
-    parser.add_argument('system', type=str,
-        help='system to be used (e.g. car2go, drivenow, ...)')
-    parser.add_argument('starting_filename', type=str,
-        help='name of first file to process')
-    parser.add_argument('-max', '--max-files', type=int, default=False,
-        help='limit maximum amount of files to process')
-    parser.add_argument('-skip', '--max-skip', type=int, default=3,
-        help='amount of missing or malformed sequential data files to try to \
-            work around (default 3; specify 0 to work only on data provided)')
-    parser.add_argument('-step', '--time-step', type=int,
-        default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
-        help='analyze data for every TIME_STEP minutes (default %i)' %
-            cars.DATA_COLLECTION_INTERVAL_MINUTES)
+    parser.add_argument('-i', '--input-file', type=str, default=False,
+                        help='load data from file INPUT rather than stdin')
     parser.add_argument('-tz', '--tz-offset', type=int, default=0,
         help='offset times by TZ_OFFSET hours')
     parser.add_argument('-dry', action='store_true',
@@ -311,31 +308,10 @@ def process_commandline():
     params = vars(args)
 
     DEBUG = args.debug
-    filename = args.starting_filename
 
-    city,starting_time = filename.rsplit('_', 1)
-
-    # strip off directory, if any.
-    file_dir,city = os.path.split(city.lower())
-
-    if not os.path.exists(filename):
-        sys.exit('file not found: ' + filename)
-
-    cities_for_system = cars.get_all_cities(args.system)
-    if not city in cities_for_system:
-        sys.exit('unsupported city {city_name} for system {system_name}'.format(city_name=city, system_name=args.system))
-
-    try:
-        # parse out starting time
-        starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
-    except:
-        sys.exit('time format not recognized: ' + filename)
-
-    params['starting_time'] = starting_time
     params['show_move_lines'] = not args.no_lines
-
-    params['city'] = city
-    params['file_dir'] = file_dir
+    del params['no_lines']
+    del params['debug']
 
     batch_process(**params)
 
