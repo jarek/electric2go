@@ -2,7 +2,6 @@
 # coding=utf-8
 
 import datetime
-import json
 
 
 def trips_offset_tz(trips, tz_offset):
@@ -21,6 +20,7 @@ def json_serializer(obj):
 
 
 def json_deserializer(obj):
+    # parse datetimes from JSON we wrote
     for (key, value) in obj.items():
         if isinstance(value, basestring):
             try:
@@ -30,12 +30,3 @@ def json_deserializer(obj):
                 pass
 
     return obj
-
-
-def dump_trips(all_trips, filename, tz_offset):
-    if tz_offset != 0:
-        # adjust timezone if needed
-        all_trips = trips_offset_tz(all_trips, tz_offset)
-
-    with open(filename, 'w') as f:
-        json.dump(all_trips, f, default=json_serializer, indent=2)

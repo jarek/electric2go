@@ -8,7 +8,6 @@ import stat
 import argparse
 import simplejson as json
 from datetime import datetime, timedelta
-from random import choice
 import time
 
 import normalize
@@ -17,34 +16,6 @@ from analysis import stats as process_stats, graph as process_graph, dump as pro
 
 
 DEBUG = False
-
-
-def filter_trips_list(all_trips_by_vin, find_by):
-    """
-    Used for filtering that can only be done once the complete list is found,
-    e.g. picking a car with most trips or most duration.
-    :return: a trips list for the requested car
-    """
-
-    vin = find_by  # allow finding by passing in VIN verbatim
-
-    if find_by == 'random':
-        vin = choice(list(all_trips_by_vin.keys()))
-    elif find_by == 'most_trips':
-        # pick the vehicle with most trips. in case of tie, pick first one
-        vin = max(all_trips_by_vin,
-                  key=lambda v: len(all_trips_by_vin[v]))
-    elif find_by == 'most_distance':
-        vin = max(all_trips_by_vin,
-                  key=lambda v: sum(t['distance'] for t in all_trips_by_vin[v]))
-    elif find_by == 'most_duration':
-        vin = max(all_trips_by_vin,
-                  key=lambda v: sum(t['duration'] for t in all_trips_by_vin[v]))
-
-    if vin not in all_trips_by_vin:
-        raise KeyError("VIN %s not found in all_trips_by_vin" % vin)
-
-    return all_trips_by_vin[vin]
 
 
 def build_data_frames(result_dict):
@@ -94,12 +65,10 @@ def build_data_frames(result_dict):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-def batch_process(input_file=False, dry=False, web=False, tz_offset=0,
+def batch_process(dry=False, web=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
-                  stats=False, filter_trips=False, trace=False, dump_trips=False,
                   all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
     """
-    :type input_file: str
     :return: does not return anything
     """
 
@@ -110,40 +79,12 @@ def batch_process(input_file=False, dry=False, web=False, tz_offset=0,
     # read in all data
     time_load_start = time.time()
 
-    if input_file:
-        with open(input_file, 'r') as f:
-            result_dict = json.load(fp=f, object_hook=process_dump.json_deserializer)
-    else:
-        result_dict = json.load(fp=sys.stdin, object_hook=process_dump.json_deserializer)
+    result_dict = json.load(fp=sys.stdin, object_hook=process_dump.json_deserializer)
 
     system = result_dict['metadata']['system']
     city = result_dict['metadata']['city']
     starting_time = result_dict['metadata']['starting_time']
     file_dir = result_dict['metadata']['file_dir']
-
-    # TEMP: rewrite variables based on result_dict
-    # TODO: move the functions that use these variables to use result_dict
-
-    all_trips = []
-    for vin in result_dict['finished_trips']:
-        all_trips.extend(result_dict['finished_trips'][vin])
-
-    # trips_by_vin is result_dict['finished_trips'] except for adding of cars that never made a full trip
-    trips_by_vin = result_dict['finished_trips']
-    for vin in result_dict['unfinished_trips']:
-        if vin not in trips_by_vin:
-            trips_by_vin[vin] = []
-    for vin in result_dict['unfinished_parkings']:
-        if vin not in trips_by_vin:
-            trips_by_vin[vin] = []
-    for vin in result_dict['finished_parkings']:
-        if vin not in trips_by_vin:
-            trips_by_vin[vin] = []
-    for vin in result_dict['unstarted_trips']:
-        if vin not in trips_by_vin:
-            trips_by_vin[vin] = []
-
-    # end of TEMP override
 
     if DEBUG:
         time_load_total = (time.time() - time_load_start)
@@ -233,17 +174,7 @@ def batch_process(input_file=False, dry=False, web=False, tz_offset=0,
         print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
         # if i wanted to invoke this, just do os.system('avconv...')
 
-    # TODO: allow filtering the data (both trips and positions) by timeframe, latlng, etc
-
-    if filter_trips:
-        all_trips = filter_trips_list(trips_by_vin, filter_trips)
-
-    if dump_trips:
-        filename = dump_trips
-        process_dump.dump_trips(all_trips, filename, tz_offset)
-
-    if trace and filter_trips:
-        process_stats.trace_vehicle(all_trips, filter_trips)
+    all_trips = [trip for vin in result_dict['finished_trips'] for trip in result_dict['finished_trips'][vin]]
 
     if stats:
         process_stats.stats(result_dict)
@@ -268,8 +199,6 @@ def process_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true',
         help='print extra debug and timing messages to stderr')
-    parser.add_argument('-i', '--input-file', type=str, default=False,
-                        help='load data from file INPUT rather than stdin')
     parser.add_argument('-tz', '--tz-offset', type=int, default=0,
         help='offset times by TZ_OFFSET hours')
     parser.add_argument('-dry', action='store_true',
@@ -285,17 +214,8 @@ def process_commandline():
     parser.add_argument('-symbol', type=str, default='.',
         help='matplotlib symbol to indicate vehicles on the graph \
             (default \'.\', larger \'o\')')
-    parser.add_argument('-f', '--filter_trips', type=str, default=False,
-        help='filter list of all trips by vehicle; \
-            accepts license plates, VINs, "random", "most_trips", "most_distance", and "most_duration". \
-            affects output of STATS, TRACE, DUMP_TRIPS, and ALL_*_IMAGE params')
     parser.add_argument('-s', '--stats', action='store_true',
         help='generate and print some basic statistics about carshare use')
-    parser.add_argument('-t', '--trace', action='store_true',
-        help='print out all trips of a vehicle found in the dataset; \
-            requires that FILTER_TRIPS is set')
-    parser.add_argument('-dt', '--dump-trips', type=str, default=False,
-        help='dump JSON of all trips to filename passed as param')
     parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
         help='create image of all vehicle positions in the dataset \
             and save to ALL_POSITIONS_IMAGE')

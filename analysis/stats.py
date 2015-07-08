@@ -38,39 +38,11 @@ def write_csv_to_file(category, items):
         write_csv(f, items)
 
 
-def trace_vehicle(trips, criterion):
-    def trip_dict(trip):
-        result = OrderedDict()
-
-        result['vin'] = trip['vin']
-        result['position start lat'] = trip['from'][0]
-        result['position start lng'] = trip['from'][1]
-        result['position end lat'] = trip['to'][0]
-        result['position end lng'] = trip['to'][1]
-        result['time start'] = trip['starting_time']
-        result['time end'] = trip['ending_time']
-        result['fuel start'] = trip['starting_fuel']
-        result['fuel end'] = trip['ending_fuel']
-        result['distance'] = trip['distance']
-        result['duration'] = trip['duration'] / 60
-        result['fuel use'] = trip['fuel_use']
-
-        # TODO: starting condition, ending condition. will require changes in process.py
-
-        return result
-
-    formatted_trips = map(trip_dict, trips)
-    write_csv_to_file(category='trace-{}'.format(criterion),
-                      items=formatted_trips)
-
-
 def stats_dict(data_dict):
     starting_time = data_dict['metadata']['starting_time']
     ending_time = data_dict['metadata']['ending_time']
 
-    all_trips = []
-    for vin in data_dict['finished_trips']:
-        all_trips.extend(data_dict['finished_trips'][vin])
+    all_trips = [trip for vin in data_dict['finished_trips'] for trip in data_dict['finished_trips'][vin]]
 
     all_known_vins = set()
     all_known_vins.update(data_dict['unfinished_trips'].keys())
