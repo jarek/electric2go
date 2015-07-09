@@ -65,7 +65,7 @@ def build_data_frames(result_dict):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-def batch_process(dry=False, web=False, tz_offset=0, stats=False,
+def batch_process(video=False, web=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
                   all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
     """
@@ -105,7 +105,7 @@ def batch_process(dry=False, web=False, tz_offset=0, stats=False,
     iter_filenames = []
 
     # generate images
-    if not dry:
+    if video:
         # TODO: could be parallelized, except for iter_filenames order and uses of timer and process_graph.timer
         for data in build_data_frames(result_dict):
             # reset timer to only keep information about one file at a time
@@ -198,39 +198,36 @@ def process_commandline():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-debug', action='store_true',
-        help='print extra debug and timing messages to stderr')
+                        help='print extra debug and timing messages to stderr')
     parser.add_argument('-tz', '--tz-offset', type=int, default=0,
-        help='offset times by TZ_OFFSET hours')
-    parser.add_argument('-dry', action='store_true',
-        help='dry run: do not generate any images')
+                        help='offset times by TZ_OFFSET hours')
+    parser.add_argument('-v', '--video', action='store_true',
+                        help='generate minute-by-minute images for animating into a video')
     parser.add_argument('-web', action='store_true',
-        help='create pngcrush script and JS filelist for HTML animation page use')
-    parser.add_argument('-nolines', '--no-lines', action='store_true',
-        help='do not show lines indicating vehicles\' moves')
+                        help='create pngcrush script and JS filelist for HTML animation page use; '
+                             'requires VIDEO')
+    parser.add_argument('-lines', '--show-move-lines', action='store_true',
+                        help='show lines indicating vehicles\' trips')
     parser.add_argument('-d', '--distance', type=float, default=False,
-        help='mark distance of DISTANCE meters from nearest car on map')
+                        help='mark distance of DISTANCE meters from nearest car on map')
     parser.add_argument('-speeds', '--show_speeds', action='store_true',
-        help='indicate vehicles\' speeds in addition to locations')
+                        help='indicate vehicles\' speeds in addition to locations')
     parser.add_argument('-symbol', type=str, default='.',
-        help='matplotlib symbol to indicate vehicles on the graph \
-            (default \'.\', larger \'o\')')
+                        help='matplotlib symbol to indicate vehicles on the images '
+                             '(default \'.\', larger \'o\')')
     parser.add_argument('-s', '--stats', action='store_true',
-        help='generate and print some basic statistics about carshare use')
+                        help='generate some basic statistics about carshare use')
     parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
-        help='create image of all vehicle positions in the dataset \
-            and save to ALL_POSITIONS_IMAGE')
+                        help='create image of all vehicle positions in the dataset and save to ALL_POSITIONS_IMAGE')
     parser.add_argument('-atl', '--all-trips-lines-image', type=str, default=False,
-        help='create image of all trips in the dataset and save to ALL_TRIPS_LINES_IMAGE')
+                        help='create image of all trips in the dataset and save to ALL_TRIPS_LINES_IMAGE')
     parser.add_argument('-atp', '--all-trips-points-image', type=str, default=False,
-        help='create image of all trips in the dataset and save to ALL_TRIPS_POINTS_IMAGE')
+                        help='create image of all trips in the dataset and save to ALL_TRIPS_POINTS_IMAGE')
 
     args = parser.parse_args()
     params = vars(args)
 
     DEBUG = args.debug
-
-    params['show_move_lines'] = not args.no_lines
-    del params['no_lines']
     del params['debug']
 
     batch_process(**params)
