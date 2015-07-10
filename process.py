@@ -11,7 +11,7 @@ from datetime import timedelta
 import time
 
 import cars
-from analysis import stats as process_stats, graph as process_graph, dump as process_dump
+from analysis import stats as process_stats, graph as process_graph
 
 
 DEBUG = False
@@ -78,7 +78,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     # read in all data
     time_load_start = time.time()
 
-    result_dict = json.load(fp=sys.stdin, object_hook=process_dump.json_deserializer)
+    result_dict = json.load(fp=sys.stdin, object_hook=cars.json_deserializer)
 
     system = result_dict['metadata']['system']
     city = result_dict['metadata']['city']
@@ -92,7 +92,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
             file=sys.stderr)
 
     # set up params for iteratively-named images
-    animation_files_prefix = process_dump.output_file_name(description=city)
+    animation_files_prefix = cars.output_file_name(description=city)
     iter_filenames = []
 
     # generate images
@@ -128,11 +128,11 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
 
         # print animation information if applicable
         if web:
-            filenames_file_name = process_dump.output_file_name('filenames', 'json')
+            filenames_file_name = cars.output_file_name('filenames', 'json')
             with open(filenames_file_name, 'w') as f:
                 json.dump(iter_filenames, f)
 
-            crushed_dir = process_dump.output_file_name('crushed-images')
+            crushed_dir = cars.output_file_name('crushed-images')
             if not os.path.exists(crushed_dir):
                 os.makedirs(crushed_dir)
 
@@ -140,7 +140,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
                               (filename, os.path.join(crushed_dir, os.path.basename(filename)))
                               for filename in iter_filenames]
 
-            command_file_name = process_dump.output_file_name('pngcrush')
+            command_file_name = cars.output_file_name('pngcrush')
             with open(command_file_name, 'w') as f:
                 f.write('\n'.join(crush_commands))
             os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)

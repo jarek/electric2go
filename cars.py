@@ -3,6 +3,7 @@
 
 import os
 import importlib
+import datetime
 import math
 import requests
 import json
@@ -49,6 +50,36 @@ def get_file_name(city_name, t):
 def get_file_path(city_data, t):
     filename = get_file_name(city_data['name'], t)
     return os.path.join(get_data_dir(city_data['system']), filename)
+
+
+def json_serializer(obj):
+    # default doesn't serialize dates... tell it to use isoformat()
+    # syntax from http://blog.codevariety.com/2012/01/06/python-serializing-dates-datetime-datetime-into-json/
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
+
+def json_deserializer(obj):
+    # parse datetimes from JSON we wrote
+    for (key, value) in obj.items():
+        if isinstance(value, basestring):
+            try:
+                # this is the format that isoformat outputs
+                obj[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+            except:
+                pass
+
+    return obj
+
+
+def output_file_name(description, extension=''):
+    file_name = '{date}_{desc}'.format(
+        date=datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+        desc=description)
+
+    if extension:
+        file_name = '{name}.{ext}'.format(name=file_name, ext=extension)
+
+    return file_name
 
 
 def get_all_cars_text(city_obj, force_download=False, session=None):
@@ -154,4 +185,3 @@ def dist(ll1, ll2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     d = R * c  # distance in km
     return d
-

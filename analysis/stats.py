@@ -5,7 +5,7 @@ from collections import Counter, OrderedDict
 import unicodecsv
 import numpy as np
 
-import dump
+import cars
 
 
 def write_csv(f, items):
@@ -28,7 +28,7 @@ def write_csv(f, items):
 
 
 def write_csv_to_file(category, items):
-    file_name = dump.output_file_name(category, 'csv')
+    file_name = cars.output_file_name(category, 'csv')
     with open(file_name, 'w') as f:
         write_csv(f, items)
 

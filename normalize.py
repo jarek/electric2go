@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 import time
 
 import cars
-from analysis import dump as process_dump
 
 
 DEBUG = False
@@ -383,7 +382,7 @@ def process_commandline():
     del params['starting_filename']
 
     result = batch_load_data(**params)
-    json.dump(result, fp=sys.stdout, default=process_dump.json_serializer)
+    json.dump(result, fp=sys.stdout, default=cars.json_serializer)
 
 
 if __name__ == '__main__':
