@@ -19,8 +19,7 @@ DEBUG = False
 
 
 def get_filepath(city, t, file_dir):
-    city_obj = {'name': city}
-    filename = cars.get_file_name(city_obj, t)
+    filename = cars.get_file_name(city, t)
 
     return os.path.join(file_dir, filename)
 

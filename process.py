@@ -7,10 +7,9 @@ import sys
 import stat
 import argparse
 import simplejson as json
-from datetime import datetime, timedelta
+from datetime import timedelta
 import time
 
-import normalize
 import cars
 from analysis import stats as process_stats, graph as process_graph, dump as process_dump
 
@@ -83,7 +82,6 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
 
     system = result_dict['metadata']['system']
     city = result_dict['metadata']['city']
-    starting_time = result_dict['metadata']['starting_time']
 
     if DEBUG:
         time_load_total = (time.time() - time_load_start)
@@ -94,8 +92,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
             file=sys.stderr)
 
     # set up params for iteratively-named images
-    file_for_starting_time = normalize.get_filepath(city, starting_time, '')
-    animation_files_prefix = process_dump.output_file_name(file_for_starting_time)
+    animation_files_prefix = process_dump.output_file_name(description=city)
     iter_filenames = []
 
     # generate images

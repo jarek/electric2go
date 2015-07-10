@@ -41,13 +41,13 @@ def get_current_filename(city_data):
     return os.path.join(data_dir, 'current_%s' % city_data['name'])
 
 
-def get_file_name(city_data, t):
+def get_file_name(city_name, t):
     filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
-    return filename_format % (city_data['name'], t.year, t.month, t.day, t.hour, t.minute)
+    return filename_format % (city_name, t.year, t.month, t.day, t.hour, t.minute)
 
 
 def get_file_path(city_data, t):
-    filename = get_file_name(city_data, t)
+    filename = get_file_name(city_data['name'], t)
     return os.path.join(get_data_dir(city_data['system']), filename)
 
 
