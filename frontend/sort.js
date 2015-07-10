@@ -74,11 +74,13 @@ function order_cars(position) {
             var dist = cars[i][0]; // the distance
             var in_minutes = "";
             var para = cars[i][1]; // the DOM object with car info
+            var dist_span = para.querySelectorAll(".distance")[0];
 
             if (dist <= 2.4) {
                 // for less than 30 min walk, show approx walk duration
                 in_minutes = Math.floor(dist * 12.5);
-                in_minutes = ", about " + in_minutes + " min walk";
+                in_minutes = dist_span.getAttribute("data-template-minutes")
+                    .replace("{min}", in_minutes);
             }
 
             if (cars.length > 1) {
@@ -110,11 +112,10 @@ function order_cars(position) {
             }
 
             // add distance information for each car
-            var dist_span = para.querySelectorAll(".distance")[0];
             var dist_str = dist_span.getAttribute("data-template");
             // trim distance to one decimal digit
             dist_str = dist_str.replace("{dist}", dist.toFixed(1));
-            dist_str = dist_str.replace("{min}", in_minutes);
+            dist_str = dist_str.replace("{minutes}", in_minutes);
             dist_span.innerHTML = dist_str;
         }
     } catch (err) {

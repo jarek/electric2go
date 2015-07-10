@@ -89,6 +89,12 @@ def fill_in_car(car, city):
 
 
 def format_address(address, city):
+    if city['system'] == 'drivenow' and city['name'] == 'london':
+        # London has an annoying scheme that includes "London" in
+        # all geolocated address which is pretty useless
+        # as all cars are in London.
+        address = address.replace(' London', '')
+
     if not city['number_first_address']:
         return address
 
