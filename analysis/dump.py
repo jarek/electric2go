@@ -4,6 +4,17 @@
 import datetime
 
 
+def output_file_name(description, extension=''):
+    file_name = '{date}_{desc}'.format(
+        date=datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+        desc=description)
+
+    if extension:
+        file_name = '{name}.{ext}'.format(name=file_name, ext=extension)
+
+    return file_name
+
+
 def trips_offset_tz(trips, tz_offset):
     for trip in trips:
         offset = datetime.timedelta(hours=tz_offset)

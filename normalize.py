@@ -311,7 +311,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         'metadata': {
             'system': system,
             'city': city,
-            'file_dir': file_dir,
             'starting_time': starting_time,
             'ending_time': ending_time,
             'time_step': time_step*60,

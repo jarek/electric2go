@@ -84,7 +84,6 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     system = result_dict['metadata']['system']
     city = result_dict['metadata']['city']
     starting_time = result_dict['metadata']['starting_time']
-    file_dir = result_dict['metadata']['file_dir']
 
     if DEBUG:
         time_load_total = (time.time() - time_load_start)
@@ -95,13 +94,8 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
             file=sys.stderr)
 
     # set up params for iteratively-named images
-    # TODO: file_dir won't be available when normalize.py can process archives,
-    # migrate this function to use current directory
-    starting_file_name = normalize.get_filepath(city, starting_time, file_dir)
-    animation_files_filename = datetime.now().strftime('%Y%m%d-%H%M') + \
-        '-' + os.path.basename(starting_file_name)
-    animation_files_prefix = os.path.join(os.path.dirname(starting_file_name),
-        animation_files_filename)
+    file_for_starting_time = normalize.get_filepath(city, starting_time, '')
+    animation_files_prefix = process_dump.output_file_name(file_for_starting_time)
     iter_filenames = []
 
     # generate images
@@ -137,12 +131,11 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
 
         # print animation information if applicable
         if web:
-            crush_filebasename = animation_files_prefix
-
-            with open(crush_filebasename + '-filenames', 'w') as f:
+            filenames_file_name = process_dump.output_file_name('filenames', 'json')
+            with open(filenames_file_name, 'w') as f:
                 json.dump(iter_filenames, f)
 
-            crushed_dir = animation_files_prefix + '-crushed'
+            crushed_dir = process_dump.output_file_name('crushed-images')
             if not os.path.exists(crushed_dir):
                 os.makedirs(crushed_dir)
 
@@ -150,7 +143,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
                               (filename, os.path.join(crushed_dir, os.path.basename(filename)))
                               for filename in iter_filenames]
 
-            command_file_name = crush_filebasename + '-pngcrush'
+            command_file_name = process_dump.output_file_name('pngcrush')
             with open(command_file_name, 'w') as f:
                 f.write('\n'.join(crush_commands))
             os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)

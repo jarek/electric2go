@@ -3,14 +3,9 @@
 
 from collections import Counter, OrderedDict
 import unicodecsv
-from datetime import datetime
 import numpy as np
 
-
-def csv_file_name(category):
-    return '{date}_{category}.csv'.format(
-        date=datetime.now().strftime('%Y%m%d-%H%M%S'),
-        category=category)
+import dump
 
 
 def write_csv(f, items):
@@ -33,7 +28,7 @@ def write_csv(f, items):
 
 
 def write_csv_to_file(category, items):
-    file_name = csv_file_name(category)
+    file_name = dump.output_file_name(category, 'csv')
     with open(file_name, 'w') as f:
         write_csv(f, items)
 
