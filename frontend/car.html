@@ -31,7 +31,7 @@
 
     <a href="https://maps.google.ca/maps?q={{ car['address_or_coords']|urlencode }}&amp;ll={{ car.coords }}&amp;z=16&amp;t=h"
             title="click for Google map">
-        <img src="http://maps.googleapis.com/maps/api/staticmap?size=320x240&amp;zoom=15&amp;markers=size:small|{{ car.coords }}&amp;markers=size:tiny|{{ car['other_cars_ll']|join('|') }}&amp;center={{ car.coords }}&amp;visual_refresh=true&amp;sensor=false"
+        <img src="http://maps.googleapis.com/maps/api/staticmap?size=320x240&amp;zoom=15&amp;markers=size:small|{{ car.coords }}&amp;markers=size:tiny|{{ car['other_cars_ll']|join('|') }}&amp;center={{ car.coords }}{% if google_api_key %}&amp;key={{ google_api_key }}{% endif %}"
              alt="map of {{ car['address_or_coords'] }}" width="320" height="240" />
     </a>
 </section>

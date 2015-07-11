@@ -23,6 +23,16 @@ MAP_SIZE_IN_DEGREES = 0.02
 timer = []
 
 
+def google_api_key():
+    try:
+        with open('google_api_key', 'r') as f:
+            key = f.read().strip()
+    except:
+        key = ''
+
+    return key
+
+
 def format_latlng(car):
     return '%s,%s' % (car['lat'], car['lng'])
 
@@ -125,7 +135,8 @@ def print_all_html():
                                    cities=all_cities,
                                    all_cars=car_infos,
                                    cache_age=cache_age,
-                                   cache_next_refresh=cache_next_refresh)
+                                   cache_next_refresh=cache_next_refresh,
+                                   google_api_key=google_api_key())
 
     print(full_html.encode('utf-8'))
 
