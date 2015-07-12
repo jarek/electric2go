@@ -1,13 +1,12 @@
 <nav>
-    <p class="intro">cities with a few electric carshare vehicles
-    <p>{% for city in cities %}
+    <p>cities with a few electric carshare vehicles:
+    <ul>
+    {% for city in cities %}
         {% if city.name == displayed_city.name -%}
-            <strong>{{ city.display }}</strong>
+            <li class="active">{{ city.display }}</li>
         {%- else -%}
-            <a href="?system={{ city.system }}&amp;city={{ city.name }}">{{ city.display }}</a>
+            <li><a href="?system={{ city.system }}&amp;city={{ city.name }}">{{ city.display }}</a></li>
         {%- endif %}
-        {% if not loop.last %}
-            &middot;
-        {% endif %}
     {% endfor %}
+    </ul>
 </nav>

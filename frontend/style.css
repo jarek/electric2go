@@ -1,7 +1,7 @@
 /*notmuchhere*/
 
 html {
-    font-family: Helvetica, Verdana, sans-serif;
+    font-family: Helvetica Neue, Helvetica, Verdana, Arial, sans-serif;
     font-size: 0.9em;
 }
 
@@ -9,8 +9,7 @@ body {
     max-width: 640px;
     margin: auto;
     background: #e8e8e8;
-
-    text-align: center;
+    color: black;
 }
 
 h1, h2, h3 {
@@ -21,7 +20,9 @@ h1, h2, h3 {
 }
 
 h2 {
-    font-size: 1.8em;
+    font-size: 1.4em;
+
+    text-align: center;
 }
 
 h3 {
@@ -41,22 +42,39 @@ footer {
     font-size: 0.8em;
     color: #888;
     margin: 10px 0;
+
+    text-align: center;
 }
 
-.intro {
-    color: #888;
-    margin-bottom: 0.2em;
+nav {
+    background: #4CAF50;
 }
 
-nav, section {
-    background: #FCFCFC none repeat scroll 0% 0%;
-    box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
-    border-radius: 1px;
-    padding: 5px;
+nav li.active {
+    background: #81C784;
+}
+
+nav p, nav ul, nav li {
+    margin: 0;
+    padding: 0;
+
+    display: inline-block;
+}
+
+nav p, nav li {
+    padding: 20px 10px;
+}
+
+nav a, nav a:visited {
+    color: black;
+    text-decoration: none;
 }
 
 section {
-    text-align: left;
+    background: #FCFCFC none repeat scroll 0% 0%;
+    box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+    border-radius: 2px;
+
     margin: 1em 0;
     padding: 10px;
     height: 220px; /* plus 2*10px padding */
