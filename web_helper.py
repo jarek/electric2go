@@ -33,7 +33,7 @@ def get_arg(param_number):
     return sys.argv[param_number].lower() if len(sys.argv) > param_number else False
 
 
-def get_system_and_city():
+def get_system_and_city(allow_any_city=True):
     system = get_param('system') or get_arg(1)
     city = get_param('city') or get_arg(2)
 
@@ -41,14 +41,12 @@ def get_system_and_city():
         all_cities = cars.get_all_cities(system)
         if city in all_cities:
             city_data = all_cities[city]
-            city_data.update(system=system)
-            return city_data
+            if allow_any_city or city_data['electric'] == 'some':
+                return city_data
 
     # if city or system were incorrect, return default
     all_cities = cars.get_all_cities(DEFAULT_SYSTEM)
-    city_data = all_cities[DEFAULT_CITY]
-    city_data.update(system=DEFAULT_SYSTEM)
-    return city_data
+    return all_cities[DEFAULT_CITY]
 
 
 def get_parser(city):

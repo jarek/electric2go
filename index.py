@@ -115,7 +115,7 @@ def print_all_html():
     env = Environment(loader=PackageLoader('frontend', '.'), trim_blocks=True, lstrip_blocks=True)
     env.filters['count'] = pluralize
 
-    requested_city = web_helper.get_system_and_city()
+    requested_city = web_helper.get_system_and_city(allow_any_city=False)
     electric_cars, cache = web_helper.get_electric_cars(requested_city)
 
     # get list of cities
