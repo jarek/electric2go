@@ -77,6 +77,7 @@ def get_car_info(car, all_cars, city):
         'license_plate': car['license_plate'],
         'charge': car['fuel'],
         'range': car['range'],
+        'model': car['model'],
         'coords': coords,
         'vin': car['vin'],
         'address_or_coords': address_for_map,
@@ -125,6 +126,8 @@ def print_all_html():
     # get car details
     car_infos = [get_car_info(car, electric_cars, requested_city) for car in electric_cars]
 
+    car_models = set(car['model'] for car in car_infos)
+
     # supplementary information
     cache_age = (time.time() - cache) if cache else cache
     cache_next_refresh = cars.CACHE_PERIOD - cache_age
@@ -134,6 +137,7 @@ def print_all_html():
     full_html = tmpl_layout.render(displayed_city=requested_city,
                                    cities=all_cities,
                                    all_cars=car_infos,
+                                   all_car_models=car_models,
                                    cache_age=cache_age,
                                    cache_next_refresh=cache_next_refresh,
                                    google_api_key=google_api_key())
