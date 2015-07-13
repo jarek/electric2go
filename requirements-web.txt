@@ -2,7 +2,6 @@
 # process.py has more but it is not needed for web pages
 Jinja2==2.7.3
 MarkupSafe==0.23
-argparse==1.2.1
 distribute==0.6.24
 requests>=2.4.1
 wsgiref==0.1.2
