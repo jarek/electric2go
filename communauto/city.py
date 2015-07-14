@@ -1,11 +1,15 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import unicode_literals
+
 from . import API_AVAILABLE_VEHICLES_URL, JSONP_CALLBACK_NAME
 
 
 CITIES = {
     'montreal': {
+        'display': 'Montréal',
+        'electric': 'some'
     }
 }
 

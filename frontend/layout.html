@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>electric carshare vehicles in {{ displayed_city.display }}</title>
+<!-- Hello! If you're interested, the source code for this page is
+available at https://github.com/jarek/electric2go -->
+<meta name="viewport" content="width=640">
+<style type="text/css" media="screen,projection">
+{% include('style.css') %}
+</style>
+<body>
+{% include "cities.html" %}
+
+<section class="intro">
+<p>The {{ displayed_city.system.title() }} system in {{ displayed_city.display }}
+    operates {{ all_car_models|join(' and ') }} electric cars as part of a mixed fleet.</p>
+<p>{{all_cars|length|count("electric car")}} currently available.</p>
+
+{% if all_cars|length > 1 %}
+{# Don't show map if there's no cars, or there is only one car. #}
+<img src="http://maps.googleapis.com/maps/api/staticmap?size=640x250&amp;markers=size:small|{{ all_cars|map(attribute='coords')|join('|') }}{% if google_api_key %}&amp;key={{ google_api_key }}{% endif %}"
+     alt="map of all available cars" width="640" height="250" id="multimap" />
+{% endif %}
+</section>
+
+{% for car in all_cars %}
+    {% include "car.html" %}
+{% endfor %}
+
+<footer>
+    {% if cache_age %}
+    Using cached data. Data age: {{ cache_age|count("second") }}, next refresh in {{ cache_next_refresh|count("second") }}.
+    {% endif %}
+    {% if cache_age and displayed_city.system == 'car2go' %}
+    <br />
+    {% endif %}
+    {% if displayed_city.system == 'car2go' %}
+    This product uses the car2go API but is not endorsed or certified by car2go.
+    {% endif %}
+</footer>
+
+<script type="text/javascript">
+{% include('sort.js') %}
+</script>
+
+{{ block_endmatter }}
+
+</body>

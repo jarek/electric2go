@@ -1,0 +1,37 @@
+<section class="car sort" data-loc="{{ car.coords }}">
+    <h3>{{ car.title }}</h3>
+    <p><!--vin: {{ car.vin }}-->
+    <span class="distance" data-template="{dist} km away{minutes}<br/>"
+          data-template-minutes=", about {min} min walk"></span>
+
+    {% if car.range == 0 -%}
+        <span style="color: red">Not driveable</span>
+    {%- else -%}
+        Range: ~{{ car.range }} km
+    {%- endif %}
+    <br/>Charge: {{ car.charge|int }}%
+    {%- if charging -%}
+        , charging
+    {%- endif -%}
+    <br/>
+
+    Location: <a href="geo:{{ car.coords }}?q={{ car.coords }}({{ car['address_or_coords']|urlencode }})">{{ car.coords }}</a>
+    <br/>
+    {% if car.license_plate != car.title -%}
+        Plate: {{ car.license_plate }}<br/>
+    {%- endif -%}
+    {%- if car.cleanliness_interior -%}
+        Interior condition: {{ car.cleanliness_interior|replace('_', ' ')|lower }}<br/>
+    {%- endif -%}
+    {%- if car.cleanliness_exterior -%}
+        Exterior condition: {{ car.cleanliness_exterior|replace('_', ' ')|lower }}<br/>
+    {%- endif %}
+
+    </p>
+
+    <a href="https://maps.google.ca/maps?q={{ car['address_or_coords']|urlencode }}&amp;ll={{ car.coords }}&amp;z=16&amp;t=h"
+            title="click for Google map">
+        <img src="http://maps.googleapis.com/maps/api/staticmap?size=320x240&amp;zoom=15&amp;markers=size:small|{{ car.coords }}&amp;markers=size:tiny|{{ car['other_cars_ll']|join('|') }}&amp;center={{ car.coords }}{% if google_api_key %}&amp;key={{ google_api_key }}{% endif %}"
+             alt="map of {{ car['address_or_coords'] }}" width="320" height="240" />
+    </a>
+</section>

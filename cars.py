@@ -6,7 +6,6 @@ import importlib
 import datetime
 import math
 import requests
-import json
 import time
 import city_helper
 
@@ -118,31 +117,6 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
         json_text = json_text.encode('utf-8')
 
     return json_text, cache, session
-
-
-def get_electric_cars(city):
-    json_text, cache, _ = get_all_cars_text(city)
-
-    time1 = time.time()
-
-    cars = json.loads(json_text.decode('utf-8')).get('placemarks')
-
-    time2 = time.time()
-    timer.append(['json size, kB', len(json_text)/1000.0])
-    timer.append(['json load, ms', (time2-time1)*1000.0])
-
-    electric_cars = []
-
-    time1 = time.time()
-
-    for car in cars:
-        if car['engineType'] == 'ED':
-            electric_cars.append(car)
-
-    time2 = time.time()
-    timer.append(['list search, ms', (time2-time1)*1000.0])
-
-    return electric_cars, cache
 
 
 def get_all_cities(system):

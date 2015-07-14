@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
+from __future__ import unicode_literals
+
 from . import API_AVAILABLE_VEHICLES_URL, API_AVAILABLE_VEHICLES_HEADERS
 
 
@@ -23,7 +25,8 @@ CITIES = {
         }
     },
     'london': {
-        'loc_key': 40758
+        'loc_key': 40758,
+        'electric': 'some'
     },
     'muenchen': {
         'loc_key': 4604,
@@ -34,7 +37,8 @@ CITIES = {
     },
     'sanfrancisco': {
         'loc_key': 4259,
-        'display': 'San Francisco'
+        'display': 'San Francisco',
+        'electric': 'some'
     },
     'wien': {
         'loc_key': 40468,
