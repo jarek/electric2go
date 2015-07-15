@@ -17,7 +17,7 @@ from . import API_URL, OAUTH_KEY
 
 CITIES = {
     'amsterdam': {'electric': 'all'},
-    'austin': {'electric': 'some', 'number_first_address': True,
+    'austin': {'number_first_address': True,
         'BOUNDS': {
             'NORTH': 30.368, # exact value 30.367937, or 30.400427 incl The Domain
             'SOUTH': 30.212, # exact value 30.212427
@@ -285,7 +285,7 @@ CITIES = {
             ]
         }
     },
-    'portland': {'of_interest': True, 'electric': 'some', 
+    'portland': {'of_interest': True,
         'number_first_address': True,
         'BOUNDS': {
             'NORTH': 45.583, # exact value is 45.582718
@@ -389,7 +389,7 @@ CITIES = {
         }
     },
     'ulm': {},
-    'vancouver': {'of_interest': True, 'electric': 'some',
+    'vancouver': {'of_interest': True,
         'number_first_address': True,
         'BOUNDS': {
             # Based on operation areas and parking spots as of January 2015,
