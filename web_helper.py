@@ -69,12 +69,7 @@ def get_electric_cars(city):
     cars.timer.append(['json size, kB', len(json_text)/1000.0])
     cars.timer.append(['json load, ms', (time2-time1)*1000.0])
 
-    time1 = time.time()
-
     electric_cars = [car for car in parsed_cars if car['electric']]
-
-    time2 = time.time()
-    cars.timer.append(['list search, ms', (time2-time1)*1000.0])
 
     return electric_cars, cache
 

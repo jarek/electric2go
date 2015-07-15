@@ -9,8 +9,6 @@ import time
 import cars
 import web_helper
 
-timer = []
-
 
 def fill_in_distance(car, query_ll):
     car['distance'] = cars.dist((car['lat'], car['lng']), query_ll)
@@ -52,10 +50,8 @@ def json_respond():
     else:
         result['cache'] = False
 
-    timer.append(['total, ms', (time.time()-ttime1)*1000.0])
-
     if web_helper.get_param('debug'):
-        cars.timer.extend(timer)
+        cars.timer.append(['total, ms', (time.time()-ttime1)*1000.0])
         result['timer'] = cars.timer
 
     print(json.dumps(result).encode('utf-8'))
