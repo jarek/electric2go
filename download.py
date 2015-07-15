@@ -6,7 +6,6 @@ import datetime
 import sys
 
 import cars
-import index
 
 
 def save_one_city(city, t, session=None):
@@ -58,8 +57,10 @@ def process_commandline():
 
     t, failures = save(requested_system, requested_city)
 
-    info = '\n'.join(index.get_timer_info(cars.timer))
-    print('{timestamp} {info}'.format(timestamp=str(t), info=info))
+    end_time = datetime.datetime.utcnow()
+
+    print('{timestamp} downloading {system} {city}, finished {end}'.format(
+        timestamp=str(t), system=requested_system, city=requested_city, end=end_time))
 
     for failed in failures:
         message = '!!! could not download or save information for system {system} city {city}'
