@@ -86,25 +86,31 @@ https://developers.google.com/maps/documentation/staticmaps/#api_key for more.
 Playing with data
 -----------------
 
-process.py can be used to generate location maps of carshare vehicles at a given
-time. These maps can be animated into a video that shows car movement over time.
-Sample output: http://www.youtube.com/watch?v=5nveWwk3VSg
+normalize.py converts a series of files for any system to a single JSON file
+of consistent format. This is printed to stdout and can either be piped
+directly to another command or directed to a file for later use and reuse. 
+
+process.py reads in JSON from stdin and processes it as instructed by
+command-line params. process.py -h describes the arguments it supports.
+
+The first application was generating location maps of carshare vehicles at
+a given time. time. These maps can be animated into a video that shows
+car movement over time. Sample output: http://www.youtube.com/watch?v=5nveWwk3VSg
 
 There is also functionality to collect car positions and trips over a set period
 then graph them all or calculate statistics like trip distance or duration.
+Keep in mind that the statistics are only as good as the data coming in.
+For instance, reserved cars disappear off the available vehicles list, 
+so any time reserved will be counted as trip time.
 
-Some filtering of trips/positions analyzed is available and more is coming.
-
-process.py -h describes the arguments it supports.
+The JSON data piping setup allows easy filtering of data to use in process.py.
+For instance you could get statistics for a week of data for only
+the morning rush hour. To do this, pipe to a filtering script between
+invocations of normalize.py and process.py.
 
 Data is collected with download.py. Cities indicated as 'of\_interest': 'some' 
 in CITIES dictionary in city.py will have their information saved to 
 an appropriately-named file every cars.DATA\_COLLECTION\_INTERVAL\_MINUTES.
-
-There is also some basic statistics (-s) and vehicle tracing (-t).
-Keep in mind that the statistics are only as good as the data coming in.
-For instance, reserved cars disappear off the available vehicles list, 
-so any time reserved will be counted as trip time.
 
 Files involved:
 
@@ -113,14 +119,23 @@ Files involved:
 - crontab: sample crontab entry for invoking download.py
 - {system}/city.py: stores list of known cities and their properties
 - {system}/parse.py: gets trips from collected files
-- process.py: creates maps and visualizations based on the data
+- normalize.py: takes in source files and compiles them into a single datafile
+- process.py: creates maps, visualizations, and statistics from a datafile
 - backgrounds/\* - city maps from openstreetmap used as video backgrounds
 
 Similar projects
 ----------------
 
-- https://github.com/mattsacks/disposable-cars/
-- http://www.comparecarshares.com/
+- https://github.com/mattsacks/disposable-cars/ is a visualization of
+car2go trips in Portland
+- http://www.comparecarshares.com/ incorporates car2go data to calculate 
+how competitive the cost is compared with driving, cycling, 
+and classic carshare systems in Calgary, Vancouver, and Toronto
+- http://labs.densitydesign.org/carsharing/ is an analysis of Enjoy service
+in Milan, it has a making-of write-up at
+http://www.densitydesign.org/2014/07/the-making-of-the-seven-days-of-carsharing-project/
+- http://mappable.info/one-week-of-carsharing was an analysis of
+car2go service in a number of cities, taken down by request of car2go
 
 Legal stuff
 -----------
