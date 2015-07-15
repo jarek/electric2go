@@ -17,7 +17,9 @@ from . import API_URL, OAUTH_KEY
 
 CITIES = {
     'amsterdam': {'electric': 'all'},
-    'austin': {'number_first_address': True,
+    'austin': {
+        'of_interest': True,
+        'number_first_address': True,
         'BOUNDS': {
             'NORTH': 30.368, # exact value 30.367937, or 30.400427 incl The Domain
             'SOUTH': 30.212, # exact value 30.212427
@@ -55,6 +57,7 @@ CITIES = {
         },
     },
     'berlin': {
+        'of_interest': True,
         'BOUNDS': {
             # rudimentary values for testing is_latlng_in_bounds function
             'NORTH': 53,
@@ -183,7 +186,9 @@ CITIES = {
         }
     },
     'duesseldorf': {'display': 'Düsseldorf'},
+    'firenze': {'of_interest': True},
     'hamburg': {},
+    'kobenhavn': {'of_interest': True},
     'koeln': {'display': 'Köln'},
     'london': {'number_first_address': True},
     'miami': {'number_first_address': True},
@@ -352,7 +357,9 @@ CITIES = {
             ]
         },
     },
-    'stuttgart': {'electric': 'all'}, 
+    'stockholm': {'of_interest': True},
+    'stuttgart': {'electric': 'all'},
+    'torino': {'of_interest': True},
     'toronto': {'of_interest': True, 'number_first_address': True,
         'BOUNDS': {
             'NORTH': 43.72736,
