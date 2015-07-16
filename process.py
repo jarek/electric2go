@@ -64,6 +64,41 @@ def build_data_frames(result_dict):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
+def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
+                          show_move_lines, show_speeds, distance, tz_offset):
+    # TODO: migrate away from using the global timer objects
+    # and printing timer messages directly
+    # TODO: also verify process_graph functions are safe to parallelize
+
+    # reset timer to only keep information about one file at a time
+    timer = []
+    process_graph.timer = []
+
+    index, turn, current_positions, current_trips = data
+
+    if not show_move_lines:
+        current_trips = []
+
+    image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
+
+    time_graph_start = time.time()
+
+    process_graph.make_graph(system, city, current_positions, current_trips,
+                             image_filename, turn,
+                             show_speeds, distance, symbol, tz_offset)
+
+    time_graph = (time.time() - time_graph_start) * 1000.0
+    timer.append((str(turn) + ': make_graph, ms', time_graph))
+
+    print(turn, 'generated graph in %d ms' % time_graph, file=sys.stderr)
+
+    if DEBUG:
+        print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
+        print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
+
+    return image_filename
+
+
 def batch_process(video=False, web=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
                   all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
@@ -93,38 +128,17 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
 
     # set up params for iteratively-named images
     animation_files_prefix = cars.output_file_name(description=city)
-    iter_filenames = []
 
     # generate images
     if video:
-        # TODO: could be parallelized, except for iter_filenames order and uses of timer and process_graph.timer
-        for data in build_data_frames(result_dict):
-            # reset timer to only keep information about one file at a time
-            timer = []
-            process_graph.timer = []
-
-            index, turn, current_positions, current_trips = data
-
-            if not show_move_lines:
-                current_trips = []
-
-            image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
-            iter_filenames.append(image_filename)
-
-            time_graph_start = time.time()
-
-            process_graph.make_graph(system, city, current_positions, current_trips,
-                                     image_filename, turn,
-                                     show_speeds, distance, symbol, tz_offset)
-
-            time_graph = (time.time() - time_graph_start) * 1000.0
-            timer.append((str(turn) + ': make_graph, ms', time_graph))
-
-            print(turn, 'generated graph in %d ms' % time_graph, file=sys.stderr)
-
-            if DEBUG:
-                print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
-                print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
+        # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
+        # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
+        # TODO: clean up timers/prints in make_graph_from_frame so it can be parallelized safely
+        iter_filenames = [
+            make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
+                                  show_move_lines, show_speeds, distance, tz_offset)
+            for data in build_data_frames(result_dict)
+        ]
 
         # print animation information if applicable
         if web:
