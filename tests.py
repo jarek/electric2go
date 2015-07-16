@@ -83,7 +83,7 @@ class StatsTest(unittest.TestCase):
                     "city": "columbus",
                     "file_dir": "/home/jarek/car2go-columbus/extracted/",
                     "starting_time": datetime(2015, 4, 28, 8, 0, 0),
-                    "max_files": 2880,
+                    "max_steps": 2880,
                     "max_skip": 0,
                     "time_step": 1
                 },
@@ -122,7 +122,7 @@ class StatsTest(unittest.TestCase):
                     "city": "vancouver",
                     "file_dir": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/",
                     "starting_time": datetime(2015, 5, 16, 11, 0, 0),
-                    "max_files": 2880,
+                    "max_steps": 2880,
                     "max_skip": 0,
                     "time_step": 1
                 },

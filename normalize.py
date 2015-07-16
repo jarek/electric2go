@@ -17,12 +17,6 @@ import cars
 DEBUG = False
 
 
-def get_filepath(city, t, file_dir):
-    filename = cars.get_file_name(city, t)
-
-    return os.path.join(file_dir, filename)
-
-
 def process_data(system, data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
     # get functions for the correct system
     parse_module = cars.get_carshare_system_module(system_name=system, module_name='parse')
@@ -203,12 +197,15 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
     return finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips
 
 
-def batch_load_data(system, city, file_dir, starting_time, time_step, max_files, max_skip):
+def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps, max_skip):
     global DEBUG
 
     timer = []
 
-    def load_file(filepath_to_load):
+    def load_data(city, t, file_dir):
+        filename = cars.get_file_name(city, t)
+        filepath_to_load = os.path.join(file_dir, filename)
+
         try:
             with open(filepath_to_load, 'r') as f:
                 result = json.load(f)
@@ -222,7 +219,6 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     i = 1
     t = starting_time
     prev_t = t
-    filepath = get_filepath(city, starting_time, file_dir)
 
     unfinished_trips = {}
     unfinished_parkings = {}
@@ -231,12 +227,12 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
     finished_trips = defaultdict(list)
     finished_parkings = defaultdict(list)
 
-    missing_files = []
+    missing_data_points = []
 
-    json_data = load_file(filepath)
-    # loop as long as new files exist
-    # if we have a limit specified, loop only until limit is reached
-    while json_data != False and (max_files is False or i <= max_files):
+    json_data = load_data(city, starting_time, file_dir)
+    # Normally, loop as long as new data points exist.
+    # If we have a limit specified (in max_steps), loop only until limit is reached
+    while json_data != False and (max_steps is False or i <= max_steps):
         time_process_start = time.time()
 
         new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
@@ -252,16 +248,16 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
         for vin in new_finished_trips:
             finished_trips[vin].append(new_finished_trips[vin])
 
-        timer.append((filepath + ': batch_load_data process_data, ms',
-             (time.time()-time_process_start)*1000.0))
+        timer.append(('{city} {t}: batch_load_data process_data, ms'.format(city=city, t=t),
+                      (time.time()-time_process_start)*1000.0))
 
-        # find next file according to provided time_step (or default,
+        # find next data point according to provided time_step (or default,
         # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
 
-        prev_t = t  # prev_t is now last file that was successfully loaded
+        prev_t = t  # prev_t is now last data point that was successfully loaded
 
         # detect and attempt to counteract missing or malformed
-        # data files, unless instructed otherwise by max_skip = 0
+        # data point files, unless instructed otherwise by max_skip = 0
         # TODO: while loop in a while loop... can probably be done cleaner
         skipped = -1
         potentially_missing = []
@@ -271,31 +267,32 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
 
             i += 1
             t += timedelta(minutes=time_step)
-            filepath = get_filepath(city, t, file_dir)
-            json_data = load_file(filepath)
+            json_data = load_data(city, t, file_dir)
 
             if not json_data:
-                # file found was not valid, try to skip past it
-                print('file %s is missing or malformed' % filepath, file=sys.stderr)
-                potentially_missing.append(filepath)
+                # data point file was not found or not valid, try to skip past it
+
+                print('file for {city} {t} is missing or malformed'.format(city=city, t=t),
+                      file=sys.stderr)
+                potentially_missing.append(t)
 
                 skipped = skipped + 1 if skipped > 0 else 1  # handle the initial -1
             else:
-                # we've found a valid file, indicate we can end loop
+                # we've found a valid data point, indicate we can end loop
                 skipped = max_skip
 
-        # if we got out of the loop after finding a file that works,
-        # save files that we skipped
+        # if we got out of the loop after finding a data point that works,
+        # save data points that we skipped
         if json_data:
-            missing_files.extend(potentially_missing)
+            missing_data_points.extend(potentially_missing)
 
-        timer.append((filepath + ': batch_load_data total load loop, ms',
-             (time.time()-time_process_start)*1000.0))
+        timer.append(('{city} {t}: batch_load_data total load loop, ms'.format(city=city, t=t),
+                      (time.time()-time_process_start)*1000.0))
 
         if DEBUG:
             print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
-        # reset timer to only keep information about one file at a time
+        # reset timer to only keep information about one data point at a time
         timer = []
 
     ending_time = prev_t  # complements starting_time from function params
@@ -312,7 +309,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_files,
             'starting_time': starting_time,
             'ending_time': ending_time,
             'time_step': time_step*60,
-            'missing': missing_files
+            'missing': missing_data_points
         }
     }
 
@@ -337,16 +334,16 @@ def process_commandline():
                         help='system to be used (e.g. car2go, drivenow, ...)')
     parser.add_argument('starting_filename', type=str,
                         help='name of first file to process')
-    parser.add_argument('-max', '--max-files', type=int, default=False,
-                        help='limit maximum amount of files to process')
-    parser.add_argument('-skip', '--max-skip', type=int, default=3,
-                        help='amount of missing or malformed sequential '
-                             'data files to try to work around (default 3;'
-                             'specify 0 to work only on data provided)')
     parser.add_argument('-step', '--time-step', type=int,
                         default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
-                        help='analyze data for every TIME_STEP minutes (default %i)' %
+                        help='each step is TIME_STEP minutes (default %i)' %
                              cars.DATA_COLLECTION_INTERVAL_MINUTES)
+    parser.add_argument('-max', '--max-steps', type=int, default=False,
+                        help='limit maximum amount of TIME_STEPs to process')
+    parser.add_argument('-skip', '--max-skip', type=int, default=3,
+                        help='amount of missing or malformed sequential '
+                             'steps to try to work around (default 3; '
+                             'specify 0 to work only on data provided)')
 
     args = parser.parse_args()
     params = vars(args)
