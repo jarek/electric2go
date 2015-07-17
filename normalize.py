@@ -354,8 +354,9 @@ def process_commandline():
                         default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
                         help='each step is TIME_STEP minutes (default %i)' %
                              cars.DATA_COLLECTION_INTERVAL_MINUTES)
-    parser.add_argument('-max', '--max-steps', type=int, default=False,
-                        help='limit maximum amount of TIME_STEPs to process')
+    parser.add_argument('-max', '--max-steps', type=int, default=44647,
+                        help='limit maximum amount of TIME_STEPs to process '
+                             '(default 44647 = 1440 * 31)')
     parser.add_argument('-skip', '--max-skip', type=int, default=3,
                         help='amount of missing or malformed sequential '
                              'steps to try to work around (default 3; '
