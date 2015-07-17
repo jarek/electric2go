@@ -216,9 +216,15 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps,
 
     time_load_start = time.time()
 
-    i = 1
-    t = starting_time
-    prev_t = t
+    # load_next_data increments t before loading in data, so subtract
+    # 1 * time_step to get the first data file in first iteration
+    t = starting_time - timedelta(minutes=time_step)
+
+    # in the very first iteration, value of prev_t is not used, so use None
+    prev_t = None
+
+    skipped = 0
+    max_t = starting_time + timedelta(minutes=time_step * (max_steps - 1))
 
     unfinished_trips = {}
     unfinished_parkings = {}
@@ -228,63 +234,69 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps,
     finished_parkings = defaultdict(list)
 
     missing_data_points = []
+    previously_skipped = []
 
-    json_data = load_data(city, starting_time, file_dir)
-    # Normally, loop as long as new data points exist.
+    # Normally, loop as long as new data points exist and we haven't skipped
+    # too many bad data points.
     # If we have a limit specified (in max_steps), loop only until limit is reached
-    while json_data != False and (max_steps is False or i <= max_steps):
+    while t < max_t and skipped <= max_skip:
         time_process_start = time.time()
 
-        new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
-            process_data(system, t, prev_t, json_data, unfinished_trips, unfinished_parkings)
+        # get next data point according to provided time_step
+        t += timedelta(minutes=time_step)
 
-        # update data dictionaries
+        data = load_data(city, t, file_dir)
 
-        unstarted_trips.update(unstarted_trips_this_round)
+        if data:
+            new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
+                process_data(system, t, prev_t, data, unfinished_trips, unfinished_parkings)
 
-        for vin in new_finished_parkings:
-            finished_parkings[vin].append(new_finished_parkings[vin])
+            # update data dictionaries
+            unstarted_trips.update(unstarted_trips_this_round)
+            for vin in new_finished_parkings:
+                finished_parkings[vin].append(new_finished_parkings[vin])
+            for vin in new_finished_trips:
+                finished_trips[vin].append(new_finished_trips[vin])
 
-        for vin in new_finished_trips:
-            finished_trips[vin].append(new_finished_trips[vin])
+            timer.append(('{city} {t}: batch_load_data process_data, ms'.format(city=city, t=t),
+                          (time.time()-time_process_start)*1000.0))
 
-        timer.append(('{city} {t}: batch_load_data process_data, ms'.format(city=city, t=t),
-                      (time.time()-time_process_start)*1000.0))
+            prev_t = t
+            """ prev_t is now last data point that was successfully loaded.
+            This means that the first good frame after some bad frames
+            (that were skipped) will have process_data with t and prev_t
+            separated by more than 1 time_step.
+            For example, consider the following dataset:
+                data
+                data <- trip starts
+                data
+                data
+                data
+                missing
+                missing
+                data <- trip seen to end
+                data
+            We could assume trip took 6 time_steps, or 4 time_steps - either
+            is defensible.
+            I've decided on interpretation resulting in 6 in the past, so I'll
+            stick with that. """
 
-        # find next data point according to provided time_step (or default,
-        # which is the cars.DATA_COLLECTION_INTERVAL_MINUTES const)
+            if skipped > 0:
+                # if we got to a good point after skipping some bad points,
+                # save data points that we skipped
+                missing_data_points.extend(previously_skipped)
 
-        prev_t = t  # prev_t is now last data point that was successfully loaded
+                # reset out the counters for possible future skip episodes
+                skipped = 0
+                previously_skipped = []
 
-        # detect and attempt to counteract missing or malformed
-        # data point files, unless instructed otherwise by max_skip = 0
-        # TODO: while loop in a while loop... can probably be done cleaner
-        skipped = -1
-        potentially_missing = []
-        while skipped < max_skip and (skipped == -1 or not json_data):
-            # loop for a minimum of one time, then until either json_data is valid
-            # or we've reached the max_skip limit
+        else:
+            # data point file was not found or not valid, try to skip past it
+            skipped += 1
+            previously_skipped.append(t)
 
-            i += 1
-            t += timedelta(minutes=time_step)
-            json_data = load_data(city, t, file_dir)
-
-            if not json_data:
-                # data point file was not found or not valid, try to skip past it
-
-                print('file for {city} {t} is missing or malformed'.format(city=city, t=t),
-                      file=sys.stderr)
-                potentially_missing.append(t)
-
-                skipped = skipped + 1 if skipped > 0 else 1  # handle the initial -1
-            else:
-                # we've found a valid data point, indicate we can end loop
-                skipped = max_skip
-
-        # if we got out of the loop after finding a data point that works,
-        # save data points that we skipped
-        if json_data:
-            missing_data_points.extend(potentially_missing)
+            print('file for {city} {t} is missing or malformed'.format(city=city, t=t),
+                  file=sys.stderr)
 
         timer.append(('{city} {t}: batch_load_data total load loop, ms'.format(city=city, t=t),
                       (time.time()-time_process_start)*1000.0))
@@ -295,7 +307,11 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps,
         # reset timer to only keep information about one data point at a time
         timer = []
 
-    ending_time = prev_t  # complements starting_time from function params
+    # ending_time is the actual ending time of the resulting dataset,
+    # that is, the last valid data point found.
+    # Not necessarily the same as max_time - files could have ran out before
+    # we got to max_time.
+    ending_time = prev_t
 
     result = {
         'finished_trips': finished_trips,
