@@ -10,6 +10,7 @@ import simplejson as json
 from collections import defaultdict
 from datetime import datetime, timedelta
 import time
+import tarfile
 
 import cars
 
@@ -197,12 +198,10 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
     return finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips
 
 
-def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps, max_skip):
+def batch_load_data(system, city, location, starting_time, time_step, max_steps, max_skip):
     global DEBUG
 
-    timer = []
-
-    def load_data(city, t, file_dir):
+    def load_data_from_file(city, t, file_dir):
         filename = cars.get_file_name(city, t)
         filepath_to_load = os.path.join(file_dir, filename)
 
@@ -210,10 +209,45 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps,
             with open(filepath_to_load, 'r') as f:
                 result = json.load(f)
             return result
-        except:
+        except (IOError, ValueError):
             # return False if file does not exist or is malformed
             return False
 
+    def load_data_from_tar(city, t, archive):
+        filename = cars.get_file_name(city, t)
+
+        try:
+            # extractfile doesn't support "with" syntax :(
+            f = archive.extractfile(location_prefix + filename)
+
+            try:
+                result = json.load(f)
+            except ValueError:
+                # return False if file is not valid JSON
+                result = False
+
+            f.close()
+
+            return result
+        except KeyError:
+            # return False if file is not in the archive
+            return False
+
+    # vary function based on file_dir / location. if location is an archive file,
+    # preload the archive and have the function read files from there
+    location_prefix = ''
+    if os.path.isfile(location) and tarfile.is_tarfile(location):
+        location = tarfile.open(location)
+
+        # handle file name prefixes like "./vancouver_2015-06-19--00-00"
+        first_file = location.next()
+        location_prefix = first_file.name.split(city)[0]
+
+        load_data_point = load_data_from_tar
+    else:
+        load_data_point = load_data_from_file
+
+    timer = []
     time_load_start = time.time()
 
     # load_next_data increments t before loading in data, so subtract
@@ -245,7 +279,7 @@ def batch_load_data(system, city, file_dir, starting_time, time_step, max_steps,
         # get next data point according to provided time_step
         t += timedelta(minutes=time_step)
 
-        data = load_data(city, t, file_dir)
+        data = load_data_point(city, t, location)
 
         if data:
             new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
@@ -349,7 +383,10 @@ def process_commandline():
     parser.add_argument('system', type=str,
                         help='system to be used (e.g. car2go, drivenow, ...)')
     parser.add_argument('starting_filename', type=str,
-                        help='name of first file to process')
+                        help='name of archive of files or the first file')
+    parser.add_argument('-st', '--starting-time', type=str,
+                        help='if using an archive, optional first data point '
+                             'to process; format YYYY-mm-DD--HH-MM')
     parser.add_argument('-step', '--time-step', type=int,
                         default=cars.DATA_COLLECTION_INTERVAL_MINUTES,
                         help='each step is TIME_STEP minutes (default %i)' %
@@ -368,29 +405,45 @@ def process_commandline():
     DEBUG = args.debug
     filename = args.starting_filename
 
-    city, starting_time = filename.rsplit('_', 1)
-
-    # strip off directory, if any.
-    file_dir, city = os.path.split(city.lower())
-
     if not os.path.exists(filename):
         sys.exit('file not found: ' + filename)
+
+    # Handle the following cases:
+    # - filename being like "car2go-archives/wien_2015-06-19.tgz" <- archive
+    # - filename being like "car2go-archives/wien_2015-06-19--04-00" <- first of many files
+
+    city, leftover = filename.rsplit('_', 1)
+
+    if not params['starting_time']:
+        # don't use splitext so we correctly handle filenames like wien_2015-06-19.tar.gz
+        parts = leftover.split('.', 1)
+
+        if len(parts) == 2 and not parts[0].endswith('--00-00'):
+            # replace file extension with 00:00 if needed
+            leftover = leftover.replace('.' + parts[1], '--00-00')
+
+        params['starting_time'] = leftover
+
+    try:
+        # parse out starting time
+        params['starting_time'] = datetime.strptime(params['starting_time'],
+                                                    '%Y-%m-%d--%H-%M')
+    except ValueError:
+        sys.exit('time format not recognized: ' + params['starting_time'])
+
+    if tarfile.is_tarfile(filename):
+        location = filename
+        city = os.path.split(city.lower())[1]
+    else:
+        location, city = os.path.split(city.lower())
 
     cities_for_system = cars.get_all_cities(args.system)
     if city not in cities_for_system:
         sys.exit('unsupported city {city_name} for system {system_name}'.
                  format(city_name=city, system_name=args.system))
 
-    try:
-        # parse out starting time
-        starting_time = datetime.strptime(starting_time, '%Y-%m-%d--%H-%M')
-    except:
-        sys.exit('time format not recognized: ' + filename)
-
-    params['starting_time'] = starting_time
-
     params['city'] = city
-    params['file_dir'] = file_dir
+    params['location'] = location
 
     del params['debug']
     del params['starting_filename']

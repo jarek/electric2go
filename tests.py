@@ -81,7 +81,7 @@ class StatsTest(unittest.TestCase):
                 "params": {
                     "system": "car2go",
                     "city": "columbus",
-                    "file_dir": "/home/jarek/car2go-columbus/extracted/",
+                    "location": "/home/jarek/car2go-columbus/extracted/",
                     "starting_time": datetime(2015, 4, 28, 8, 0, 0),
                     "max_steps": 2880,
                     "max_skip": 0,
@@ -120,7 +120,7 @@ class StatsTest(unittest.TestCase):
                 "params": {
                     "system": "evo",
                     "city": "vancouver",
-                    "file_dir": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/",
+                    "location": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/",
                     "starting_time": datetime(2015, 5, 16, 11, 0, 0),
                     "max_steps": 2880,
                     "max_skip": 0,
@@ -161,6 +161,104 @@ class StatsTest(unittest.TestCase):
                         "len_cars": 226,
                         "len_trips": 0,
                     }
+                }
+            },
+            "vancouver_archive": {
+                # all expected data should be the same as in vancouver_files
+                "params": {
+                    "system": "evo",
+                    "city": "vancouver",
+                    "location": "/home/jarek/evo-vancouver/vancouver_2015-06-19.tgz",
+                    "starting_time": datetime(2015, 6, 19, 0, 0, 0),
+                    "max_skip": 1,
+                    "max_steps": 44647,
+                    "time_step": 1
+                },
+                "expected_stats": {
+                    "total vehicles": 238,
+                    "total trips": 1333,
+                    "starting time": datetime(2015, 6, 19, 0, 0, 0),
+                    "ending time": datetime(2015, 6, 19, 23, 59, 0),
+                    "time elapsed seconds": 86340,
+                    "utilization ratio": 0.1325850701642714,
+                    "trips per car per day quartile 25": 3.0020847810979845,
+                    "distance per trip quartile 25": 0.15637713310531542,
+                    "duration per trip quartile 75": 37,
+                    "weird trip count": 37
+                },
+                "expected_dataframes": {
+                    0: {
+                        "index": 0,
+                        "turn": "2015-06-19T00:00:00",
+                        "len_trips": 0,
+                        "len_cars": 162
+                    },
+                    -1: {
+                        "index": 1439,
+                        "turn": "2015-06-19T23:59:00",
+                        "len_cars": 165
+                    }
+                },
+                "expected_metadata": {
+                    "city": "vancouver",
+                    "system": "evo",
+                    "starting_time": datetime(2015, 6, 19, 0, 0, 0),
+                    "ending_time": datetime(2015, 6, 19, 23, 59, 0),
+                    "missing": [
+                        datetime(2015, 6, 19, 6, 46, 0),
+                        datetime(2015, 6, 19, 7, 9, 0),
+                        datetime(2015, 6, 19, 17, 33, 0)
+                    ],
+                    "time_step": 60
+                }
+            },
+            "vancouver_files": {
+                # all expected data should be the same as in vancouver_archive
+                "params": {
+                    "system": "evo",
+                    "city": "vancouver",
+                    "location": "/home/jarek/evo-vancouver/vancouver_2015-06-19/",
+                    "starting_time": datetime(2015, 6, 19, 0, 0, 0),
+                    "max_skip": 1,
+                    "max_steps": 44647,
+                    "time_step": 1
+                },
+                "expected_stats": {
+                    "total vehicles": 238,
+                    "total trips": 1333,
+                    "starting time": datetime(2015, 6, 19, 0, 0, 0),
+                    "ending time": datetime(2015, 6, 19, 23, 59, 0),
+                    "time elapsed seconds": 86340,
+                    "utilization ratio": 0.1325850701642714,
+                    "trips per car per day quartile 25": 3.0020847810979845,
+                    "distance per trip quartile 25": 0.15637713310531542,
+                    "duration per trip quartile 75": 37,
+                    "weird trip count": 37
+                },
+                "expected_dataframes": {
+                    0: {
+                        "index": 0,
+                        "turn": "2015-06-19T00:00:00",
+                        "len_trips": 0,
+                        "len_cars": 162
+                    },
+                    -1: {
+                        "index": 1439,
+                        "turn": "2015-06-19T23:59:00",
+                        "len_cars": 165
+                    }
+                },
+                "expected_metadata": {
+                    "city": "vancouver",
+                    "system": "evo",
+                    "starting_time": datetime(2015, 6, 19, 0, 0, 0),
+                    "ending_time": datetime(2015, 6, 19, 23, 59, 0),
+                    "missing": [
+                        datetime(2015, 6, 19, 6, 46, 0),
+                        datetime(2015, 6, 19, 7, 9, 0),
+                        datetime(2015, 6, 19, 17, 33, 0)
+                    ],
+                    "time_step": 60
                 }
             }
     }
@@ -220,6 +318,19 @@ class StatsTest(unittest.TestCase):
                                      "{name} {frame} len_trips: expected {exp}, got {got}".format(
                                          name=dataset_name, frame=i,
                                          exp=exp_frame['len_trips'], got=len(data_frames[i][3])))
+
+    def test_metadata_for_sample_datasets(self):
+        for dataset_name in self.datasets:
+            if 'expected_metadata' in self.datasets[dataset_name]:
+                exp_metadata = self.datasets[dataset_name]["expected_metadata"]
+
+                got_metadata = self.results[dataset_name]["metadata"]
+
+                for category in exp_metadata:
+                    self.assertEqual(exp_metadata[category], got_metadata[category],
+                                     "{name} {cat}: expected {exp}, got {got}".format(
+                                         name=dataset_name, cat=category,
+                                         exp=exp_metadata[category], got=got_metadata[category]))
 
 
 class HelperFunctionsTest(unittest.TestCase):
