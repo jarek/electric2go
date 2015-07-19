@@ -398,11 +398,14 @@ def process_commandline():
                         help='amount of missing or malformed sequential '
                              'steps to try to work around (default 3; '
                              'specify 0 to work only on data provided)')
+    parser.add_argument('-i', '--indent', type=int, default=None,
+                        help='indent for output JSON (default none)')
 
     args = parser.parse_args()
     params = vars(args)
 
     DEBUG = args.debug
+    json_indent = args.indent
     filename = args.starting_filename
 
     if not os.path.exists(filename):
@@ -447,9 +450,10 @@ def process_commandline():
 
     del params['debug']
     del params['starting_filename']
+    del params['indent']
 
     result = batch_load_data(**params)
-    json.dump(result, fp=sys.stdout, default=cars.json_serializer)
+    json.dump(result, fp=sys.stdout, default=cars.json_serializer, indent=json_indent)
 
 
 if __name__ == '__main__':
