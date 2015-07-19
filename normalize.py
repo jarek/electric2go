@@ -80,6 +80,7 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
         result['from'] = starting_car_info['coords']
         del result['coords']
         result['starting_time'] = curr_time
+        del result['ending_time']
         result['starting_fuel'] = result['fuel']
         del result['fuel']
 
