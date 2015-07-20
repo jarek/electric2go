@@ -8,6 +8,7 @@ import simplejson as json
 from datetime import timedelta
 
 import cars
+import normalize
 
 
 def merge_two_dicts(one, two):
@@ -67,9 +68,8 @@ def merge_two_dicts(one, two):
                 parking_info = two['finished_parkings'][vin][0]
                 parking_info_start = one['unfinished_parkings'][vin]
 
-                # TODO: code is copied from normalize.py, it should be shared
                 parking_info['starting_time'] = parking_info_start['starting_time']
-                parking_info['duration'] = (parking_info['ending_time'] - parking_info['starting_time']).total_seconds()
+                parking_info = normalize.calculate_parking(parking_info)
 
                 two['finished_parkings'][vin][0] = parking_info
                 one['unfinished_parkings'].pop(vin)  # delete
@@ -86,20 +86,10 @@ def merge_two_dicts(one, two):
             # trip spanning the break, merge the information from unfinished_trips and unstarted_trips
             # then append to finished_trips
 
-            unfinished_trip = one['unfinished_trips'][vin]
-
-            # TODO: code is copied from normalize.py, it should be shared
-            current_trip_distance = cars.dist(unstarted_trip['to'], unfinished_trip['from'])
-            current_trip_duration = (unstarted_trip['ending_time'] - unfinished_trip['starting_time']).total_seconds()
-
-            trip_data = unfinished_trip
+            trip_data = one['unfinished_trips'][vin]
             trip_data.update(unstarted_trip)
 
-            trip_data['distance'] = current_trip_distance
-            trip_data['duration'] = current_trip_duration
-            if current_trip_duration > 0:
-                trip_data['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
-            trip_data['fuel_use'] = unfinished_trip['starting_fuel'] - unstarted_trip['ending_fuel']
+            trip_data = normalize.calculate_trip(trip_data)
 
             if vin in one['finished_trips']:
                 one['finished_trips'][vin].append(trip_data)
