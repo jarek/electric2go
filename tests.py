@@ -11,6 +11,7 @@ from datetime import datetime
 import cars
 import download
 import normalize
+import merge
 import process
 from analysis import graph as process_graph
 from analysis import stats as process_stats
@@ -331,6 +332,46 @@ class StatsTest(unittest.TestCase):
                                      "{name} {cat}: expected {exp}, got {got}".format(
                                          name=dataset_name, cat=category,
                                          exp=exp_metadata[category], got=got_metadata[category]))
+
+
+class MergeTest(unittest.TestCase):
+    # Like StatsTest, also hardcoded to a dataset I have.
+
+    def test_merge(self):
+        filenames = [
+            'columbus_2015-06-01.json',
+            'columbus_2015-06-02.json',
+            'columbus_2015-06-03.json'
+            ]
+        filepaths = ['/home/jarek/car2go-columbus/' + name for name in filenames]
+
+        merged_dict = merge.merge_all_files(filepaths)
+
+        self.assertEqual(merged_dict['metadata']['starting_time'], datetime(2015, 6, 1, 0, 0))
+        self.assertEqual(merged_dict['metadata']['ending_time'], datetime(2015, 6, 3, 23, 59))
+        self.assertEqual(len(merged_dict['metadata']['missing']), 3)
+
+        # some test cars that had non-trivial trip history...
+        test_vin = 'WMEEJ3BA5EK736813'
+        test_vin2 = 'WMEEJ3BAXEK733745'
+        test_vin3 = 'WMEEJ3BA3EK732887'
+
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['ending_time'], datetime(2015, 6, 1, 0, 0))
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['to'], [39.95781, -82.9975])
+        self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['starting_time'], datetime(2015, 6, 3, 18, 13))
+        self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['coords'], [40.05838, -83.00955])
+        self.assertTrue(test_vin not in merged_dict['unfinished_trips'])
+        self.assertEqual(len(merged_dict['finished_parkings'][test_vin]), 12)
+        self.assertEqual(len(merged_dict['finished_trips'][test_vin]), 12)
+
+        self.assertEqual(len(merged_dict['finished_parkings'][test_vin2]),
+                         len(merged_dict['finished_trips'][test_vin2]))
+        self.assertEqual(len(merged_dict['finished_parkings'][test_vin3]),
+                         len(merged_dict['finished_trips'][test_vin3]))
+
+    def test_merge_pipeline(self):
+        # TODO: do a full test run with ls to xargs normalize to ls to xargs merge (to process stats?)
+        pass
 
 
 class HelperFunctionsTest(unittest.TestCase):

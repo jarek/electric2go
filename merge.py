@@ -10,10 +10,7 @@ from datetime import timedelta
 import cars
 
 
-# TODO: tests
-
-
-def merge_dicts(one, two):
+def merge_two_dicts(one, two):
     """
     Merge two result_dicts:
     - second dict's unstarted_trips are merged with first dict's unfinished_parkings and unfinished_trips as appropriate
@@ -134,28 +131,19 @@ def merge_dicts(one, two):
     return one
 
 
-def merge_files(files):
-    # TODO: when testing, ensure those two code blocks are equivalent:
+def merge_all_dicts(dicts):
+    result_dict = None
+    for loaded_dict in dicts:
+        result_dict = merge_two_dicts(result_dict, loaded_dict)
 
+    return result_dict
+
+
+def merge_all_files(files):
     file_objs = (json.load(open(file_to_load), object_hook=cars.json_deserializer)
                  for file_to_load in files)
 
-    result_dict = reduce(merge_dicts, file_objs, None)
-
-    # second code block, less functional but maybe more pythonic?
-
-    """result_dict = None
-    for file_to_load in files:
-        with open(file_to_load) as f:
-            loaded_dict = json.load(f, object_hook=cars.json_deserializer)
-
-        if result_dict:
-            result_dict = merge_dicts(result_dict, loaded_dict)
-        else:
-            # first iteration so no result yet, just assign
-            result_dict = loaded_dict"""
-
-    return result_dict
+    return merge_all_dicts(file_objs)
 
 
 def process_commandline():
@@ -164,7 +152,7 @@ def process_commandline():
                         help='files to merge, must be in order')
     args = parser.parse_args()
 
-    result_dict = merge_files(args.files)
+    result_dict = merge_all_files(args.files)
 
     json.dump(result_dict, fp=sys.stdout, default=cars.json_serializer)
 
