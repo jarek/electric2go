@@ -52,41 +52,35 @@ def merge_two_dicts(one, two):
     for vin in two['unstarted_trips']:
         unstarted_trip = two['unstarted_trips'][vin]
 
-        # TODO: refactor the first two conditions to be the same with a second sub-condition on finished_parkings
-        # to avoid repeating "one['unfinished_parkings'][vin]['coords'][0] == unstarted_trip['to'][0]" stuff
-
-        if (unstarted_trip['ending_time'] == two_starting_time
-                and vin in one['unfinished_parkings']
-                and vin in two['finished_parkings']
-                and two['finished_parkings'][vin][0]['starting_time'] == two_starting_time
+        if (vin in one['unfinished_parkings']
+                and unstarted_trip['ending_time'] == two_starting_time
                 and one['unfinished_parkings'][vin]['coords'][0] == unstarted_trip['to'][0]
                 and one['unfinished_parkings'][vin]['coords'][1] == unstarted_trip['to'][1]):
 
             # most common case, cars that were parked over the break
-            # merge unfinished parking with first one in two['finished_parkings']
 
-            parking_info = two['finished_parkings'][vin][0]
-            parking_info_start = one['unfinished_parkings'][vin]
+            if (vin in two['finished_parkings']
+                    and two['finished_parkings'][vin][0]['starting_time'] == two_starting_time):
 
-            # TODO: code is copied from normalize.py, it should be shared
-            parking_info['starting_time'] = parking_info_start['starting_time']
-            parking_info['duration'] = (parking_info['ending_time'] - parking_info['starting_time']).total_seconds()
+                # merge unfinished parking with first one in two['finished_parkings']
 
-            two['finished_parkings'][vin][0] = parking_info
-            one['unfinished_parkings'].pop(vin)  # delete
+                parking_info = two['finished_parkings'][vin][0]
+                parking_info_start = one['unfinished_parkings'][vin]
 
-        elif (unstarted_trip['ending_time'] == two_starting_time
-                and vin in one['unfinished_parkings']
-                and vin not in two['finished_parkings']
-                and one['unfinished_parkings'][vin]['coords'][0] == unstarted_trip['to'][0]
-                and one['unfinished_parkings'][vin]['coords'][1] == unstarted_trip['to'][1]):
+                # TODO: code is copied from normalize.py, it should be shared
+                parking_info['starting_time'] = parking_info_start['starting_time']
+                parking_info['duration'] = (parking_info['ending_time'] - parking_info['starting_time']).total_seconds()
 
-            # Cars were parked over the break but then didn't move at all the next day.
-            # Keep it as unfinished parking, without deleting it from the list.
-            # Because of code later on that updates one['unfinished_parkings'] with
-            # two['unfinished_parkings'], update the latter, giving it correct starting_time.
+                two['finished_parkings'][vin][0] = parking_info
+                one['unfinished_parkings'].pop(vin)  # delete
 
-            two['unfinished_parkings'][vin] = one['unfinished_parkings'][vin]
+            else:
+                # Cars were parked over the break but then didn't move at all the next day.
+                # Keep it as unfinished parking, without deleting it from the list.
+                # Because of code later on that updates one['unfinished_parkings'] with
+                # two['unfinished_parkings'], update the latter, giving it correct starting_time.
+
+                two['unfinished_parkings'][vin] = one['unfinished_parkings'][vin]
 
         elif vin in one['unfinished_trips']:
             # trip spanning the break, merge the information from unfinished_trips and unstarted_trips
