@@ -18,6 +18,29 @@ import cars
 DEBUG = False
 
 
+def calculate_parking(data):
+    data['duration'] = (data['ending_time'] - data['starting_time']).total_seconds()
+
+    return data
+
+
+def calculate_trip(trip_data):
+    """
+    Calculates a trip's distance, duration, speed, and fuel use.
+    """
+
+    current_trip_distance = cars.dist(trip_data['to'], trip_data['from'])
+    current_trip_duration = (trip_data['ending_time'] - trip_data['starting_time']).total_seconds()
+
+    trip_data['distance'] = current_trip_distance
+    trip_data['duration'] = current_trip_duration
+    if current_trip_duration > 0:
+        trip_data['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
+    trip_data['fuel_use'] = trip_data['starting_fuel'] - trip_data['ending_fuel']
+
+    return trip_data
+
+
 def process_data(system, data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
     # get functions for the correct system
     parse_module = cars.get_carshare_system_module(system_name=system, module_name='parse')
@@ -68,9 +91,8 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
     def end_parking(prev_time, unfinished_parking):
         result = copy.deepcopy(unfinished_parking)
 
-        # save duration
         result['ending_time'] = prev_time
-        result['duration'] = (result['ending_time'] - result['starting_time']).total_seconds()
+        result = calculate_parking(result)
 
         return result
 
@@ -89,18 +111,12 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
     def end_trip(prev_time, ending_car_info, unfinished_trip):
         new_car_data = process_car(ending_car_info)
 
-        current_trip_distance = cars.dist(new_car_data['coords'], unfinished_trip['from'])
-        current_trip_duration = (prev_time - unfinished_trip['starting_time']).total_seconds()
-
         trip_data = unfinished_trip
         trip_data['to'] = new_car_data['coords']
         trip_data['ending_time'] = prev_time
-        trip_data['distance'] = current_trip_distance
-        trip_data['duration'] = current_trip_duration
-        if current_trip_duration > 0:
-            trip_data['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
         trip_data['ending_fuel'] = new_car_data['fuel']
-        trip_data['fuel_use'] = unfinished_trip['starting_fuel'] - new_car_data['fuel']
+
+        trip_data = calculate_trip(trip_data)
 
         trip_data['start'] = {}
         trip_data['end'] = {}
