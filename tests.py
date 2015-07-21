@@ -6,6 +6,8 @@ import unittest
 import os
 import numpy as np
 import simplejson as json
+import unicodecsv
+from subprocess import Popen, PIPE
 from datetime import datetime
 
 import cars
@@ -369,9 +371,55 @@ class MergeTest(unittest.TestCase):
         self.assertEqual(len(merged_dict['finished_parkings'][test_vin3]),
                          len(merged_dict['finished_trips'][test_vin3]))
 
+
+class IntegrationTest(unittest.TestCase):
+    # Like StatsTest, also hardcoded to a dataset I have.
+
     def test_merge_pipeline(self):
-        # TODO: do a full test run with ls to xargs normalize to ls to xargs merge (to process stats?)
-        pass
+        # comprehensive test using command-line interfaces:
+        # - normalize.py three files in a row, directing output to JSON files
+        # - merge.py the three JSON files, directing output to PIPE
+        # - process.py the output of the PIPE to get usage stats
+        # - check a few of the stats values to make sure they're the expected numbers for the dataset
+
+        data_dir = '/home/jarek/car2go-columbus'
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-01.tgz'],
+              cwd=data_dir,
+              stdout=open(os.path.join(data_dir, 'columbus_2015-06-01.json'), 'w')).wait()
+        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-02.tgz'],
+              cwd=data_dir,
+              stdout=open(os.path.join(data_dir, 'columbus_2015-06-02.json'), 'w')).wait()
+        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-03.tgz'],
+              cwd=data_dir,
+              stdout=open(os.path.join(data_dir, 'columbus_2015-06-03.json'), 'w')).wait()
+
+        p1 = Popen([os.path.join(script_dir, 'merge.py'),
+                    'columbus_2015-06-01.json', 'columbus_2015-06-02.json', 'columbus_2015-06-03.json'],
+                   cwd=data_dir,
+                   stdout=PIPE)
+        p2 = Popen([os.path.join(script_dir, 'process.py'), '-s'],
+                   cwd=data_dir,
+                   stdin=p1.stdout,
+                   stdout=PIPE)
+        p1.stdout.close()  # Allow m1 to receive a SIGPIPE if p2 exits.
+
+        stats_file = p2.communicate()[0].strip()
+
+        with open(os.path.join(data_dir, stats_file)) as f:
+            reader = unicodecsv.reader(f)
+            title_row = reader.next()
+            data_row = reader.next()
+
+            def get_data(category):
+                index = title_row.index(category)
+                return data_row[index]
+
+            # they're strings because everything in CSV is a string by default I think
+            self.assertEqual(get_data('utilization ratio'), '0.06061195898297236')
+            self.assertEqual(get_data('trips per car mean'), '8.6779661016949152')
+            self.assertEqual(get_data('distance per trip quartile 75'), '3.3623576221234872')
 
 
 class HelperFunctionsTest(unittest.TestCase):

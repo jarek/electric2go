@@ -181,7 +181,8 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     all_trips = [trip for vin in result_dict['finished_trips'] for trip in result_dict['finished_trips'][vin]]
 
     if stats:
-        process_stats.stats(result_dict)
+        written_file = process_stats.stats(result_dict)
+        print(written_file)  # provide output name for easier reuse
 
     if all_positions_image:
         process_graph.make_positions_graph(system, city, result_dict, all_positions_image, symbol)

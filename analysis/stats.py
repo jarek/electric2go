@@ -31,6 +31,7 @@ def write_csv_to_file(category, items):
     file_name = cars.output_file_name(category, 'csv')
     with open(file_name, 'w') as f:
         write_csv(f, items)
+    return file_name
 
 
 def stats_dict(data_dict):
@@ -53,6 +54,8 @@ def stats_dict(data_dict):
         """
 
         def dataset_count_over(trips, thresholds, sorting_lambda=False):
+            # TODO: sorting_lambda is in practice only used for specifying under vs over
+            # - just move to a boolean vs throwing lambdas around
             """
             :type sorting_lambda: function
             """
@@ -241,4 +244,6 @@ def stats_dict(data_dict):
 def stats(data_dict):
     result = stats_dict(data_dict)
 
-    write_csv_to_file(category='stats', items=[result])
+    written_file = write_csv_to_file(category='stats', items=[result])
+
+    return written_file
