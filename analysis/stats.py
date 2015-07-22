@@ -34,6 +34,22 @@ def write_csv_to_file(category, items):
     return file_name
 
 
+def is_trip_weird(trip):
+    # TODO: these criteria are fairly car2go specific. They need to be tested on other systems.
+
+    # TODO: car2go appears to have a significant peak at 32 and 33 minute durations, likely
+    # from lapsed reservations - try to filter those.
+
+    if trip['duration'] < 4*60 and trip['distance'] <= 0.01 and trip['fuel_use'] > -2:
+        # trips under 4 minutes and under 10 metres are likely to be errors
+        return True
+    elif trip['duration'] == 1*60 and trip['distance'] <= 0.05 and trip['fuel_use'] > -2:
+        # trips exactly 1 minute along and under 50 metres are likely to be errors
+        return True
+
+    return False
+
+
 def stats_dict(data_dict):
     starting_time = data_dict['metadata']['starting_time']
     ending_time = data_dict['metadata']['ending_time']
@@ -53,18 +69,13 @@ def stats_dict(data_dict):
         :type under: list
         """
 
-        def dataset_count_over(trips, thresholds, sorting_lambda=False):
-            # TODO: sorting_lambda is in practice only used for specifying under vs over
-            # - just move to a boolean vs throwing lambdas around
-            """
-            :type sorting_lambda: function
-            """
+        def dataset_count_over(trips, thresholds, is_over=True):
             results = []
             for threshold in thresholds:
-                if not sorting_lambda:
-                    trip_count = sum(1 for x in trips if x > threshold)
+                if is_over:
+                    trip_count = len([x for x in trips if x > threshold])
                 else:
-                    trip_count = sum(1 for x in trips if sorting_lambda(x, threshold))
+                    trip_count = len([x for x in trips if x < threshold])
 
                 results.append((threshold, trip_count))
 
@@ -86,7 +97,7 @@ def stats_dict(data_dict):
         result['most common binned values'] = Counter(collection_binned).most_common(most_common_count)
 
         if days != 1.0:
-            days = days * 1.0  # make sure it's a decimal
+            days *= 1.0  # make sure it's a decimal
             result['mean per day'] = result['mean'] / days
             quartiles_per_day = quartiles(collection, days)
             result['median per day'] = quartiles_per_day[50]
@@ -96,7 +107,7 @@ def stats_dict(data_dict):
             result['thresholds over'] = dataset_count_over(collection, over)
 
         if under and result['count all'] > 0:
-            result['thresholds under'] = dataset_count_over(collection, under, sorting_lambda=lambda x, thr: x < thr)
+            result['thresholds under'] = dataset_count_over(collection, under, is_over=False)
 
         return result
 
@@ -105,7 +116,8 @@ def stats_dict(data_dict):
         Edit the stats dictionary slightly, formatting data to have less dicts/tuples
         and more strings so it is easier to export.
         Also prefix all keys with "name"
-        :param input_data: if 'thresholds over' or 'thresholds under' keys are included, 'count all' key must also be included
+        :param input_data: if 'thresholds over' or 'thresholds under' keys are included,
+        'count all' key must also be included
         """
         result = OrderedDict()
 
@@ -160,12 +172,7 @@ def stats_dict(data_dict):
         # this operates on a best-effort basis, catching some of the most common and obvious problems.
         # Various "weird" trips like that are somewhat less than 1% of a test dataset (Vancouver, Jan 27 - Feb 3)
         # and the conditions below catch roughly 50-80% of them.
-        # TODO: these criteria are fairly car2go specific. They need to be tested on other systems.
-        if trip['duration'] < 4*60 and trip['distance'] <= 0.01 and trip['fuel_use'] > -2:
-            # trips under 4 minutes and under 10 metres are likely to be errors
-            trips_weird.append(trip)
-        elif trip['duration'] == 1*60 and trip['distance'] <= 0.05 and trip['fuel_use'] > -2:
-            # trips exactly 1 minute along and under 50 metres are likely to be errors
+        if is_trip_weird(trip):
             trips_weird.append(trip)
         else:
             trips_good.append(trip)
