@@ -195,11 +195,16 @@ def stats_dict(data_dict):
     time_elapsed_seconds = (ending_time - starting_time).total_seconds()
     time_elapsed_days = time_elapsed_seconds * 1.0 / (24*60*60)
 
+    time_missing_seconds = len(data_dict['metadata']['missing']) * data_dict['metadata']['time_step']
+    time_missing_ratio = time_missing_seconds * 1.0 / time_elapsed_seconds
+
     trips_per_car = list(trip_counts_by_vin.values())
 
     stats = OrderedDict()
     stats['starting time'] = starting_time
     stats['ending time'] = ending_time
+
+    stats['missing data ratio'] = time_missing_ratio
 
     stats['total vehicles'] = len(trip_counts_by_vin)
     stats['total trips'] = len(trips_good)
