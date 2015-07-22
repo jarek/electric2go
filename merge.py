@@ -108,7 +108,7 @@ def merge_two_dicts(one, two):
     one['unfinished_parkings'].update(two['unfinished_parkings'])
     one['unfinished_trips'].update(two['unfinished_trips'])
 
-    one['metadata'] = merge(one['metadata'], two['metadata'], 'missing')
+    one['metadata']['missing'].extend(two['metadata']['missing'])
 
     one['metadata']['ending_time'] = two['metadata']['ending_time']
 
