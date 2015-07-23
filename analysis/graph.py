@@ -6,7 +6,6 @@ from collections import OrderedDict
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-import Image
 
 from cars import get_all_cities
 from city_helper import is_latlng_in_bounds, get_mean_pixel_size
@@ -33,7 +32,7 @@ def map_longitude(city_data, longitudes):
     return ((longitudes - west) / (east - west)) * city_data['MAP_SIZES']['MAP_X']
 
 
-def make_graph_axes(city_data, background=False, log_name=''):
+def make_graph_axes(city_data, background=None, log_name=''):
     """
     Sets up figure area and axes for a city to be graphed.
     :param background: path to an image file to load,
@@ -79,7 +78,7 @@ def make_graph_axes(city_data, background=False, log_name=''):
         # not an image path, ignore
         pass
 
-    if background:
+    if background is not None:
         ax.imshow(background, origin='lower', aspect='auto')
 
     timer.append((log_name + ': make_graph_axes, ms',
@@ -203,7 +202,7 @@ def create_points_trip_start_end(trips, from_colour='b', to_colour='r'):
     ])
 
 
-def graph_wrapper(city_data, plot_function, image_name, background=False):
+def graph_wrapper(city_data, plot_function, image_name, background=None):
     """
     Handles creating the figure, saving it as image, and closing the figure.
     :param plot_function: function accepting f, ax params to actually draw on the figure
@@ -265,7 +264,7 @@ def make_graph(system, city, positions, trips, image_filename, turn,
         positions_without_metadata = [p['coords'] for p in filtered_positions]
         graph_background = make_accessibility_background(city_data, positions_without_metadata, highlight_distance, log_name)
     else:
-        graph_background = False
+        graph_background = None
 
     # mark with either speed, or default colour
     if show_speeds:
@@ -330,7 +329,7 @@ def make_positions_graph(system, city, data_dict, image_name, symbol):
     def plotter(f, ax):
         plot_geopoints(ax, city_data, coloured, symbol)
 
-    graph_wrapper(city_data, plotter, image_name, background=False)
+    graph_wrapper(city_data, plotter, image_name, background=None)
 
     timer.append((image_name + ': make_positions_graph total, ms',
                   (time.time()-time_positions_graph_start)*1000.0))
@@ -347,7 +346,7 @@ def make_trips_graph(system, city, trips, image_name):
         if len(trips) > 0:
             plot_trips(ax, city_data, trips)
 
-    graph_wrapper(city_data, plotter, image_name, background=False)
+    graph_wrapper(city_data, plotter, image_name, background=None)
 
     timer.append((image_name + ': make_trips_graph total, ms',
                   (time.time()-time_trips_graph_start)*1000.0))
@@ -373,7 +372,7 @@ def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
         trip_points = create_points_trip_start_end(trips)
         plot_geopoints(ax, city_data, trip_points, symbol)
 
-    graph_wrapper(city_data, plotter, image_name, background=False)
+    graph_wrapper(city_data, plotter, image_name, background=None)
 
     timer.append((image_name + ': make_trip_origin_destination_graph total, ms',
                   (time.time()-time_trips_graph_start)*1000.0))
@@ -493,9 +492,7 @@ def make_accessibility_background(city_data, positions, distance, log_name):
 
     time_bg_render_start = time.time()
 
-    created_background = Image.fromarray(markers, 'RGBA')
-
     timer.append((log_name + ': make_accessibility_background bg render, ms',
                   (time.time()-time_bg_render_start)*1000.0))
 
-    return created_background
+    return markers
