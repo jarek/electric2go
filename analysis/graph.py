@@ -3,7 +3,6 @@
 
 from datetime import timedelta
 from collections import OrderedDict
-import os
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,20 +22,25 @@ timer = []
 
 # strictly not correct as lat/lng isn't a grid, but close enough at city scales
 def map_latitude(city_data, latitudes):
-    return ((latitudes - city_data['MAP_LIMITS']['SOUTH']) / \
-        (city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH'])) * \
-        city_data['MAP_SIZES']['MAP_Y']
+    south = city_data['MAP_LIMITS']['SOUTH']
+    north = city_data['MAP_LIMITS']['NORTH']
+    return ((latitudes - south) / (north - south)) * city_data['MAP_SIZES']['MAP_Y']
 
 
 def map_longitude(city_data, longitudes):
-    return ((longitudes - city_data['MAP_LIMITS']['WEST']) / \
-        (city_data['MAP_LIMITS']['EAST'] - city_data['MAP_LIMITS']['WEST'])) * \
-        city_data['MAP_SIZES']['MAP_X']
+    west = city_data['MAP_LIMITS']['WEST']
+    east = city_data['MAP_LIMITS']['EAST']
+    return ((longitudes - west) / (east - west)) * city_data['MAP_SIZES']['MAP_X']
 
 
 def make_graph_axes(city_data, background=False, log_name=''):
-    """ Sets up figure area and axes for common properties for a city 
-    to be graphed. The param `log_name` is used for logging only. """
+    """
+    Sets up figure area and axes for a city to be graphed.
+    :param background: path to an image file to load,
+    or a matplotlib.imshow()-compatible value, or False
+    :param log_name: used for logging only
+    :return: tuple(matplotlib_fig, matplotlib_ax)
+    """
 
     # set up figure area
 
@@ -65,14 +69,18 @@ def make_graph_axes(city_data, background=False, log_name=''):
     ax.axes.get_yaxis().set_visible(False)
     ax.set_frame_on(False)
 
-    if isinstance(background, basestring) and os.path.exists(background):
-        # matplotlib's processing makes the image look a bit worse than 
+    try:
+        # support passing in path to an image file.
+        # matplotlib's processing makes the image look a bit worse than
         # the original map - so keeping the generated graph transparent 
         # and overlaying it on source map post-render is a good option too
         background = plt.imread(background)
+    except TypeError:
+        # not an image path, ignore
+        pass
 
     if background:
-        implot = ax.imshow(background, origin = 'lower', aspect = 'auto')
+        ax.imshow(background, origin='lower', aspect='auto')
 
     timer.append((log_name + ': make_graph_axes, ms',
                   (time.time()-time_plotsetup_start)*1000.0))
@@ -242,9 +250,7 @@ def graph_wrapper(city_data, plot_function, image_name, background=False):
 
 def make_graph(system, city, positions, trips, image_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
-    """ Creates and saves matplotlib figure for provided positions and trips.
-    If second_filename is specified, also copies the saved file to 
-    second_filename. """
+    """ Creates and saves matplotlib figure for provided positions and trips. """
 
     global timer
 
@@ -285,7 +291,7 @@ def make_graph(system, city, positions, trips, image_filename, turn,
         fontsizes = city_data['LABELS']['fontsizes']
 
         ax.text(coords[0][0], coords[0][1],
-                city_data['display'], fontsize = fontsizes[0])
+                city_data['display'], fontsize=fontsizes[0])
         # prints something like "December 10, 2014"
         ax.text(coords[1][0], coords[1][1],
                 '{d:%B} {d.day}, {d.year}'.format(d=printed_time),

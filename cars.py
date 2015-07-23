@@ -3,10 +3,12 @@
 
 import os
 import importlib
-import datetime
-import math
-import requests
 import time
+from datetime import datetime
+from math import radians, sin, cos, atan2, sqrt
+
+import requests
+
 import city_helper
 
 
@@ -18,7 +20,7 @@ root_dir = os.path.dirname(os.path.realpath(__file__))
 timer = []
 
 
-def get_URL(url, extra_headers=None, session=None):
+def get_url(url, extra_headers=None, session=None):
     htime1 = time.time()
 
     if session is None:
@@ -60,19 +62,18 @@ def json_serializer(obj):
 def json_deserializer(obj):
     # parse datetimes from JSON we wrote
     for (key, value) in obj.items():
-        if isinstance(value, basestring):
-            try:
-                # this is the format that isoformat outputs
-                obj[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
-            except:
-                pass
+        try:
+            # this is the format that isoformat outputs
+            obj[key] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        except (TypeError, ValueError):
+            pass
 
     return obj
 
 
 def output_file_name(description, extension=''):
     file_name = '{date}_{desc}'.format(
-        date=datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+        date=datetime.now().strftime('%Y%m%d-%H%M%S'),
         desc=description)
 
     if extension:
@@ -96,7 +97,7 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
                 json_text = f.read()
 
     if not json_text:
-        json_text, session = get_URL(city_obj['API_AVAILABLE_VEHICLES_URL'],
+        json_text, session = get_url(city_obj['API_AVAILABLE_VEHICLES_URL'],
                                      city_obj['API_AVAILABLE_VEHICLES_HEADERS'],
                                      session=session)
 
@@ -139,23 +140,31 @@ def get_carshare_system_module(system_name, module_name=''):
 
 
 def dist(ll1, ll2):
+    # Haversine formula implementation to get distance between two points
     # adapted from http://www.movable-type.co.uk/scripts/latlong.html
-    # see also http://stackoverflow.com/questions/27928/how-do-i-calculate-distance-between-two-latitude-longitude-points
+    # see also http://stackoverflow.com/questions/27928/calculate-distance-between-two-ll-points
+    # and http://stackoverflow.com/questions/4913349/haversine-formula-in-python
 
     # the js equivalent of this code is used in sort.js
     # - any changes should be reflected in both
 
-    def deg2rad(deg):
-        return deg * (math.pi/180.0)
+    earth_radius = 6371  # Radius of the earth in km
 
-    R = 6371  # Radius of the earth in km
-    dLat = deg2rad(ll2[0]-ll1[0])
-    dLon = deg2rad(ll2[1]-ll1[1])
+    lat1, lng1 = ll1
+    lat2, lng2 = ll2
 
-    a = math.sin(dLat/2) * math.sin(dLat/2) + \
-        math.cos(deg2rad(ll1[0])) * math.cos(deg2rad(ll2[0])) * \
-        math.sin(dLon/2) * math.sin(dLon/2)
+    lat1_rad = radians(lat1)
+    lat2_rad = radians(lat2)
 
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    d = R * c  # distance in km
-    return d
+    # Using d_lat = lat2_rad - lat1_rad gives marginally different results,
+    # because floating point
+    d_lat = radians(lat2 - lat1)
+    d_lng = radians(lng2 - lng1)
+
+    a = sin(d_lat/2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(d_lng/2)**2
+    # I think in theory the shorter calculation c = 2 * asin(sqrt(a))
+    # is mathematically the same. In practice, floating point precision errors
+    # break my tests on the 14th decimal digit.
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+
+    return earth_radius * c
