@@ -7,6 +7,7 @@ import sys
 import copy
 import argparse
 import simplejson as json
+import codecs
 from collections import defaultdict
 from datetime import datetime, timedelta
 import time
@@ -238,7 +239,8 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             f = archive.extractfile(location_prefix + filename)
 
             try:
-                result = json.load(f)
+                reader = codecs.getreader('utf-8')
+                result = json.load(reader(f))
             except ValueError:
                 # return False if file is not valid JSON
                 result = False

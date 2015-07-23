@@ -40,7 +40,7 @@ class DownloadTest(unittest.TestCase):
             text, cache, _ = cars.get_all_cars_text(city_data, force_download=True)
 
             # could throw exception if JSON is malformed, test if it does
-            info = json.loads(text)
+            info = json.loads(text.decode('utf-8'))
 
             # assert there is something
             self.assertGreater(len(info), 0)
@@ -69,7 +69,7 @@ class DownloadTest(unittest.TestCase):
             # check we've gotten a cached file
             self.assertTrue(cache != False and cache > 0)
 
-            info = json.loads(text)  # check the json can be parsed
+            info = json.loads(text.decode('utf-8'))  # check the json can be parsed
 
             self.assertGreater(len(info), 0)  # check there is something
 
@@ -405,12 +405,12 @@ class IntegrationTest(unittest.TestCase):
                    stdout=PIPE)
         p1.stdout.close()  # Allow m1 to receive a SIGPIPE if p2 exits.
 
-        stats_file = p2.communicate()[0].strip()
+        stats_file = p2.communicate()[0].strip().decode('utf-8')
 
         with open(os.path.join(data_dir, stats_file)) as f:
             reader = unicodecsv.reader(f)
-            title_row = reader.next()
-            data_row = reader.next()
+            title_row = next(reader)
+            data_row = next(reader)
 
             def get_data(category):
                 index = title_row.index(category)
