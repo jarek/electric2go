@@ -53,24 +53,6 @@ def get_file_path(city_data, t):
     return os.path.join(get_data_dir(city_data['system']), filename)
 
 
-def json_serializer(obj):
-    # default doesn't serialize dates... tell it to use isoformat()
-    # syntax from http://blog.codevariety.com/2012/01/06/python-serializing-dates-datetime-datetime-into-json/
-    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
-
-
-def json_deserializer(obj):
-    # parse datetimes from JSON we wrote
-    for (key, value) in obj.items():
-        try:
-            # this is the format that isoformat outputs
-            obj[key] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
-        except (TypeError, ValueError):
-            pass
-
-    return obj
-
-
 def output_file_name(description, extension=''):
     file_name = '{date}_{desc}'.format(
         date=datetime.now().strftime('%Y%m%d-%H%M%S'),

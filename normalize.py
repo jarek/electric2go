@@ -6,13 +6,14 @@ import os
 import sys
 import copy
 import argparse
-import simplejson as json
 import codecs
 from collections import defaultdict
 from datetime import datetime, timedelta
 import time
 import tarfile
 
+from cmdline import json  # will be either simplejson or json
+import cmdline
 import cars
 
 
@@ -472,7 +473,8 @@ def process_commandline():
     del params['indent']
 
     result = batch_load_data(**params)
-    json.dump(result, fp=sys.stdout, default=cars.json_serializer, indent=json_indent)
+
+    cmdline.write_json(result, indent=json_indent)
 
 
 if __name__ == '__main__':

@@ -6,10 +6,11 @@ import os
 import sys
 import stat
 import argparse
-import simplejson as json
+import json
 from datetime import timedelta
 import time
 
+import cmdline
 import cars
 from analysis import stats as process_stats, graph as process_graph
 
@@ -113,7 +114,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     # read in all data
     time_load_start = time.time()
 
-    result_dict = json.load(fp=sys.stdin, object_hook=cars.json_deserializer)
+    result_dict = cmdline.read_json()
 
     system = result_dict['metadata']['system']
     city = result_dict['metadata']['city']

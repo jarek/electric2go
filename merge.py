@@ -2,12 +2,10 @@
 # coding=utf-8
 
 from __future__ import print_function
-import sys
 import argparse
-import simplejson as json
 from datetime import timedelta
 
-import cars
+import cmdline
 import normalize
 
 
@@ -124,7 +122,7 @@ def merge_all_dicts(dicts):
 
 
 def merge_all_files(files):
-    file_objs = (json.load(open(file_to_load), object_hook=cars.json_deserializer)
+    file_objs = (cmdline.read_json(fp=open(file_to_load))
                  for file_to_load in files)
 
     return merge_all_dicts(file_objs)
@@ -138,7 +136,7 @@ def process_commandline():
 
     result_dict = merge_all_files(args.files)
 
-    json.dump(result_dict, fp=sys.stdout, default=cars.json_serializer)
+    cmdline.write_json(result_dict)
 
 
 if __name__ == '__main__':

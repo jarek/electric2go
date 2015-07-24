@@ -1,12 +1,10 @@
 #!/usr/bin/env python2
 # coding=utf-8
 
-import sys
 import argparse
-import simplejson as json
 from random import sample
 
-import cars
+import cmdline
 
 
 def by_vehicle(result_dict, find_by):
@@ -61,7 +59,7 @@ def process_commandline():
 
     args = parser.parse_args()
 
-    input_dict = json.load(fp=sys.stdin, object_hook=cars.json_deserializer)
+    input_dict = cmdline.read_json()
 
     # TODO: add more filters, like filtering by timeframe, latlng, etc
     # though it might be easier to provide a harness and have the filter functions be per-analysis-project
@@ -69,7 +67,7 @@ def process_commandline():
 
     result_dict = by_vehicle(input_dict, args.by_vehicle)
 
-    json.dump(result_dict, fp=sys.stdout, default=cars.json_serializer)
+    cmdline.write_json(result_dict)
 
 
 if __name__ == '__main__':

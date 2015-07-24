@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import unittest
 import os
 import numpy as np
-import simplejson as json
+import json
 import unicodecsv
 from subprocess import Popen, PIPE
 from datetime import datetime
