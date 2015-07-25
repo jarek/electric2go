@@ -1,0 +1,2 @@
+# this is all that is required for download.py
+requests>=2.4.1

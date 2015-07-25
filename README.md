@@ -123,6 +123,18 @@ Files involved:
 - process.py: creates maps, visualizations, and statistics from a datafile
 - backgrounds/\* - city maps from openstreetmap used as video backgrounds
 
+
+Requirements
+------------
+
+Known to work under Python 3.4.2 and 2.7.8.
+Scripts invoked from the command line specify `#!/usr/bin/env python3`.
+
+PyPI dependencies for whole project are in requirements.txt,
+for downloader only (run headless on a server) in requirements-download.txt,
+for web interface in requirements-web.txt.
+
+
 Similar projects
 ----------------
 
