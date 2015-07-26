@@ -258,7 +258,9 @@ def stats(data_dict):
 
     # force floats to repr to avoid differences in precision when stringified
     # between Python 2 and Python 3
-    result = {k: (repr(v) if isinstance(v, float) else v) for k, v in result.items()}
+    for key in result:
+        if isinstance(result[key], float):
+            result[key] = repr(result[key])
 
     written_file = write_csv_to_file(category='stats', items=[result])
 
