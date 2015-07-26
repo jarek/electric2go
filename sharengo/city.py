@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # coding=utf-8
 
 from . import API_AVAILABLE_VEHICLES_URL
