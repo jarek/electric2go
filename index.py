@@ -142,7 +142,13 @@ def print_all_html():
                                    cache_next_refresh=cache_next_refresh,
                                    google_api_key=google_api_key())
 
-    print(full_html.encode('utf-8'))
+    try:
+        # this works straight-up on Python 3
+        print(full_html)
+    except UnicodeEncodeError:
+        # Python 2 needs an explicit encode in some cases,
+        # particularly when using BaseHTTPServer module
+        print(full_html.encode('utf-8'))
 
     # print timer info separately. TODO: rewrite timers to not be horrible
     ttime2 = time.time()

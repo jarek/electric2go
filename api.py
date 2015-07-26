@@ -54,7 +54,7 @@ def json_respond():
         cars.timer.append(['total, ms', (time.time()-ttime1)*1000.0])
         result['timer'] = cars.timer
 
-    print(json.dumps(result).encode('utf-8'))
+    print(json.dumps(result))
 
 
 if __name__ == '__main__':
