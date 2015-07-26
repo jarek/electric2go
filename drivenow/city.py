@@ -7,7 +7,8 @@ from . import API_AVAILABLE_VEHICLES_URL, API_AVAILABLE_VEHICLES_HEADERS
 
 CITIES = {
     'berlin': {
-        'loc_key': 6099
+        'loc_key': 6099,
+        'electric': 'some'
     },
     'duesseldorf': {
         'loc_key': 1293,
