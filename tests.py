@@ -6,7 +6,7 @@ import unittest
 import os
 import numpy as np
 import json
-import unicodecsv
+import csv
 from subprocess import Popen, PIPE
 from datetime import datetime
 
@@ -408,7 +408,7 @@ class IntegrationTest(unittest.TestCase):
         stats_file = p2.communicate()[0].strip().decode('utf-8')
 
         with open(os.path.join(data_dir, stats_file)) as f:
-            reader = unicodecsv.reader(f)
+            reader = csv.reader(f)
             title_row = next(reader)
             data_row = next(reader)
 

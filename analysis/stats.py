@@ -2,7 +2,7 @@
 # coding=utf-8
 
 from collections import Counter, OrderedDict
-import unicodecsv
+import csv
 import numpy as np
 
 import cars
@@ -18,7 +18,7 @@ def write_csv(f, items):
         return f
 
     fieldnames = items[0].keys()  # this works as expected because we use OrderedDicts
-    writer = unicodecsv.DictWriter(f, fieldnames)
+    writer = csv.DictWriter(f, fieldnames)
 
     writer.writeheader()
     for item in items:
@@ -255,6 +255,10 @@ def stats_dict(data_dict):
 
 def stats(data_dict):
     result = stats_dict(data_dict)
+
+    # force floats to repr to avoid differences in precision when stringified
+    # between Python 2 and Python 3
+    result = {k: (repr(v) if isinstance(v, float) else v) for k, v in result.items()}
 
     written_file = write_csv_to_file(category='stats', items=[result])
 
