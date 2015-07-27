@@ -24,6 +24,9 @@ def fill_in_information(system, all_cities):
         if 'API_AVAILABLE_VEHICLES_HEADERS' not in city_data:
             city_data['API_AVAILABLE_VEHICLES_HEADERS'] = None
 
+        if 'API_KNOCK_HEAD_URL' not in city_data:
+            city_data['API_KNOCK_HEAD_URL'] = None
+
     return all_cities
 
 

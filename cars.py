@@ -19,7 +19,21 @@ root_dir = os.path.dirname(os.path.realpath(__file__))
 timer = []
 
 
-def get_url(url, extra_headers=None, session=None):
+def head_url(url, session, extra_headers):
+    htime1 = time.time()
+
+    if session is None:
+        session = requests.Session()
+
+    session.head(url, headers=extra_headers)
+
+    htime2 = time.time()
+    timer.append(['http head, ms', (htime2-htime1)*1000.0])
+
+    return session
+
+
+def get_url(url, session, extra_headers):
     htime1 = time.time()
 
     if session is None:
@@ -78,9 +92,15 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
                 json_text = f.read()
 
     if not json_text:
+        if city_obj['API_KNOCK_HEAD_URL']:
+            # some APIs require we hit another URL first to prepare session
+            session = head_url(city_obj['API_KNOCK_HEAD_URL'],
+                               session,
+                               city_obj['API_AVAILABLE_VEHICLES_HEADERS'])
+
         json_text, session = get_url(city_obj['API_AVAILABLE_VEHICLES_URL'],
-                                     city_obj['API_AVAILABLE_VEHICLES_HEADERS'],
-                                     session=session)
+                                     session,
+                                     city_obj['API_AVAILABLE_VEHICLES_HEADERS'])
 
     # handle JSONP if necessary
     if 'JSONP_CALLBACK_NAME' in city_obj:
