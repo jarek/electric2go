@@ -36,7 +36,7 @@ def make_graph_axes(city_data, background=None, log_name=''):
     """
     Sets up figure area and axes for a city to be graphed.
     :param background: path to an image file to load,
-    or a matplotlib.imshow()-compatible value, or False
+    or a matplotlib.imshow()-compatible value, or None
     :param log_name: used for logging only
     :return: tuple(matplotlib_fig, matplotlib_ax)
     """
@@ -53,6 +53,8 @@ def make_graph_axes(city_data, background=None, log_name=''):
     dpi_adj_x = 0.775
     dpi_adj_y = 0.8
 
+    # TODO: verify the timings for the comments below, if the 20-50 ms is
+    # now insignificant (e.g. save is 500 ms every time...)
     # TODO: the two below take ~20 ms. try to reuse
     f = plt.figure(dpi=dpi)
     f.set_size_inches(city_data['MAP_SIZES']['MAP_X']/dpi_adj_x/dpi,
@@ -359,13 +361,12 @@ def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
 
     city_data = get_all_cities(system)[city]
 
-    # TODO: use a heatmap or something similar,
-    # instead of just drawing points, to avoid problem/unexpected results
+    # TODO: use hexbin instead of just drawing points, to avoid problem/unexpected results
     # caused when a trip ends in a given point then the vehicle is picked up again
     # and a second trip starts in the same point (described in a comment in
     # create_points_trip_start_end()).
     # Maybe try to assign value of +1 to trips starting at a point,
-    # -1 to trips ending, then sum up and do hexbin or heatmap of some sort
+    # -1 to trips ending, then do hexbin on sum or mean of the values
     # to find spots where vehicles mostly arrive, mostly depart, or are balanced
 
     def plotter(f, ax):

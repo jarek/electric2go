@@ -69,7 +69,9 @@ def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
                           show_move_lines, show_speeds, distance, tz_offset):
     # TODO: migrate away from using the global timer objects
     # and printing timer messages directly
-    # TODO: also verify process_graph functions are safe to parallelize
+    # It appears process_graph functions will be safe to parallelize, they
+    # all ultimately go to matplotlib which is parallel-safe
+    # according to http://stackoverflow.com/a/4662511/1265923
 
     # reset timer to only keep information about one file at a time
     timer = []

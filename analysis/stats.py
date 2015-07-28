@@ -39,6 +39,8 @@ def is_trip_weird(trip):
 
     # TODO: car2go appears to have a significant peak at 32 and 33 minute durations, likely
     # from lapsed reservations - try to filter those.
+    # Check directly - and try to guess if it's a lapsed reservation (fuel use?
+    # but check similar duration trips to see if their fuel use isn't usually 0 either)
 
     if trip['duration'] < 4*60 and trip['distance'] <= 0.01 and trip['fuel_use'] > -2:
         # trips under 4 minutes and under 10 metres are likely to be errors

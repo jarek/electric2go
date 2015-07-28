@@ -187,10 +187,6 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
             finished_trips[vin] = end_trip(data_time, car, unfinished_trips[vin])
             del unfinished_trips[vin]
 
-            # TODO: try to filter lapsed reservations - 30 minutes exactly is now the most common trip duration when binned to closest 5 minutes
-            # - check directly - and try to guess if it's a lapsed reservation (fuel use? but check 29, 31 minute trips to
-            # see if their fuel use isn't usually 0 either)
-
             unfinished_parkings[vin] = start_parking(data_time, car)
 
         elif vin in unfinished_parkings and (lat != unfinished_parkings[vin]['coords'][0] or lng != unfinished_parkings[vin]['coords'][1]):
