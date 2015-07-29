@@ -2,6 +2,8 @@
 # coding=utf-8
 
 from collections import Counter, OrderedDict
+from datetime import timedelta
+from copy import deepcopy
 import csv
 import numpy as np
 
@@ -255,15 +257,124 @@ def stats_dict(data_dict):
     return stats
 
 
-def stats(data_dict):
-    result = stats_dict(data_dict)
+def stats_slice(data_dict, from_time, to_time):
+    result_dict = {
+        'finished_trips': {},
+        'finished_parkings': {},
+        'unfinished_trips': {},
+        'unfinished_parkings': {},
+        'unstarted_trips': {},
+        'metadata': deepcopy(data_dict['metadata'])
+    }
 
+    for vin in data_dict['finished_trips']:
+        # first do the rough filtering
+        result_dict['finished_trips'][vin] = [trip for trip in data_dict['finished_trips'][vin]
+                                              if (trip['starting_time'] >= from_time
+                                                  and trip['ending_time'] <= to_time)
+                                              or (trip['starting_time'] < from_time < trip['ending_time'])
+                                              or (trip['starting_time'] < to_time < trip['ending_time'])]
+
+        # then trim off ends of trips that straddle dataset borders (either from_time
+        # or to_time).
+        # this will hit on accuracy of trip duration statistics, but improve
+        # accuracy of utilization ratio calculation.
+        # need to only look at first_trip and last_trip in the newly filtered list
+        # because by definition only one trip each will straddle from_time and to_time.
+        if len(result_dict['finished_trips'][vin]):
+            first_trip = result_dict['finished_trips'][vin][0]
+            if first_trip['starting_time'] < from_time:
+                first_trip['starting_time'] = from_time
+                first_trip['duration'] = (first_trip['ending_time'] - from_time).total_seconds()
+                # not recalculating speed since it'll be pretty meaningless on the changed duration
+
+            last_trip = result_dict['finished_trips'][vin][-1]
+            if last_trip['ending_time'] > to_time:
+                last_trip['ending_time'] = to_time
+                last_trip['duration'] = (to_time - last_trip['starting_time']).total_seconds()
+
+    for vin in data_dict['finished_parkings']:
+        # first do the rough filtering
+        result_dict['finished_parkings'][vin] = [park for park in data_dict['finished_parkings'][vin]
+                                                 if (park['starting_time'] >= from_time
+                                                     and park['ending_time'] <= to_time)
+                                                 or (park['starting_time'] < from_time < park['ending_time'])
+                                                 or (park['starting_time'] < to_time < park['ending_time'])]
+
+        # trim off ends as for finished_trips
+        if len(result_dict['finished_parkings'][vin]):
+            first_park = result_dict['finished_parkings'][vin][0]
+            if first_park['starting_time'] < from_time:
+                first_park['starting_time'] = from_time
+                first_park['duration'] = (first_park['ending_time'] - from_time).total_seconds()
+
+            last_park = result_dict['finished_parkings'][vin][-1]
+            if last_park['ending_time'] > to_time:
+                last_park['ending_time'] = to_time
+                last_park['duration'] = (to_time - last_park['starting_time']).total_seconds()
+
+    unfi_parkings = data_dict['unfinished_parkings']
+    result_dict['unfinished_parkings'] = {vin: unfi_parkings[vin] for vin in unfi_parkings
+                                          if unfi_parkings[vin]['starting_time'] >= from_time}
+
+    unfi_trips = data_dict['unfinished_trips']
+    result_dict['unfinished_trips'] = {vin: unfi_trips[vin] for vin in unfi_trips
+                                       if unfi_trips[vin]['starting_time'] >= from_time}
+
+    unst_trips = data_dict['unstarted_trips']
+    result_dict['unstarted_trips'] = {vin: unst_trips[vin] for vin in unst_trips
+                                      if unst_trips[vin]['ending_time'] <= to_time}
+
+    result_dict['metadata']['starting_time'] = from_time
+    result_dict['metadata']['ending_time'] = to_time
+
+    # TODO: adjust missing data points (result_dict['metadata']['missing'])
+
+    return result_dict
+
+
+def repr_floats(result):
     # force floats to repr to avoid differences in precision when stringified
     # between Python 2 and Python 3
+
     for key in result:
         if isinstance(result[key], float):
             result[key] = repr(result[key])
 
-    written_file = write_csv_to_file(category='stats', items=[result])
+    return result
 
-    return written_file
+
+def stats(data_dict):
+    result = repr_floats(stats_dict(data_dict))
+
+    all_results = [result]
+
+    # TODO: give this timezone awareness/specify split time,
+    # currently it'll slice on midnight GMT or whenever a dataset has started
+
+    time_step = timedelta(seconds=data_dict['metadata']['time_step'])
+    slice_time = data_dict['metadata']['starting_time'] - time_step
+
+    while slice_time <= data_dict['metadata']['ending_time']:
+        one_day_from_time = slice_time - timedelta(days=1) + time_step
+
+        if one_day_from_time >= data_dict['metadata']['starting_time']:
+            sliced_dict = stats_slice(data_dict, one_day_from_time, slice_time)
+
+            result = repr_floats(stats_dict(sliced_dict))
+
+            all_results.append(result)
+
+        seven_days_from_time = slice_time - timedelta(days=7) + time_step
+        if seven_days_from_time >= data_dict['metadata']['starting_time']:
+            sliced_dict = stats_slice(data_dict, seven_days_from_time, slice_time)
+
+            result = repr_floats(stats_dict(sliced_dict))
+
+            all_results.append(result)
+
+        slice_time += timedelta(days=1)
+
+    written_file_name = write_csv_to_file(category='stats', items=all_results)
+
+    return written_file_name
