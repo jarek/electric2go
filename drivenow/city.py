@@ -10,12 +10,18 @@ CITIES = {
         'loc_key': 6099,
         'electric': 'some'
     },
+    'kobenhavn': {
+        'loc_key': 41369,
+        'electric': 'all',
+        'display': 'Copenhagen'
+    },
     'duesseldorf': {
         'loc_key': 1293,
         'display': 'Düsseldorf',
     },
     'hamburg': {
-        'loc_key': 40065
+        'loc_key': 40065,
+        'electric': 'some'
     },
     'koeln': {
         'loc_key': 1774,
@@ -30,6 +36,7 @@ CITIES = {
     },
     'muenchen': {
         'loc_key': 4604,
+        'electric': 'some',
         'display': 'Munich',
         'localized': {
             'de': 'München'
@@ -37,6 +44,7 @@ CITIES = {
     },
     'sanfrancisco': {
         'loc_key': 4259,
+        'electric': 'all',
         'display': 'San Francisco'
     },
     'wien': {
