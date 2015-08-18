@@ -104,6 +104,14 @@ stations and historical availability, and calculate/map historical availability
 of floating carshare vehicles nearby. Big project but pretty interesting.
 Might need to get data from Zipcar/Modo/Communauto/etc for full effect.
 
+New kind of visualization: show cars as they're moving, with a trail behind
+them for, say, 30 minutes, then disappear it. Can show trips as they're
+happening throughout the day. Easier to do now with the new structure.
+
+Also, for cities with multiple systems, it might be pretty fun to map
+multiple systems in one video. Even more moving cars, and potential differences
+between the usage of the different systems!
+
 
 Based on time
 -------------
@@ -168,6 +176,9 @@ is more frequently used during bad weather. For bonus points, get weather
 info automatically from city name and date/time of files being processed.
 Wunderground can be used as basic source of data - historical info is free
 on developer plan (500 calls per day, 10 per minute).
+
+Visualize around special events - Canucks game, Whitecaps game, etc, etc?
+See if we can pick up any additional events or activity.
 
 
 Traditional carshare visualizations
