@@ -3,7 +3,6 @@
 
 from collections import Counter, OrderedDict
 from datetime import timedelta
-from copy import deepcopy
 import csv
 import numpy as np
 
@@ -258,22 +257,46 @@ def stats_dict(data_dict):
 
 
 def stats_slice(data_dict, from_time, to_time):
+    """
+    Get a slice of data_dict containing only activity between
+    from_time and to_time.
+
+    This is intended for stats purposes, to split larger datasets to get
+    use stats by day or week.
+
+    Trips that straddle the cut-off datetimes are truncated to start/end
+    on from_time and to_time in attempt to make utilization ratio calculation
+    more accurate. This makes trip duration data less accurate.
+
+    This is necessarily slightly imprecise, for instance cut-off
+    parts of trips could be classified as mini weird trips.
+    However, accuracy for utilization ratio is well under 1%.
+    """
+
     result_dict = {
         'finished_trips': {},
         'finished_parkings': {},
         'unfinished_trips': {},
         'unfinished_parkings': {},
         'unstarted_trips': {},
-        'metadata': deepcopy(data_dict['metadata'])
+        'metadata': dict.copy(data_dict['metadata'])
     }
 
     for vin in data_dict['finished_trips']:
         # first do the rough filtering
-        result_dict['finished_trips'][vin] = [trip for trip in data_dict['finished_trips'][vin]
-                                              if (trip['starting_time'] >= from_time
-                                                  and trip['ending_time'] <= to_time)
-                                              or (trip['starting_time'] < from_time < trip['ending_time'])
-                                              or (trip['starting_time'] < to_time < trip['ending_time'])]
+        # use dict.copy to avoid changing trip durations in the passed-by-reference data_dict
+        trips = [dict.copy(trip) for trip in data_dict['finished_trips'][vin]
+                 # normal trips, within the day
+                 if (from_time <= trip['starting_time'] <= trip['ending_time'] <= to_time)
+
+                 # trips spanning starting_time
+                 or (trip['starting_time'] < from_time < trip['ending_time'] < to_time)
+
+                 # trips spanning starting_time
+                 or (from_time < trip['starting_time'] < to_time < trip['ending_time'])
+
+                 # trips spanning whole day from from_time to to_time
+                 or (trip['starting_time'] < from_time and trip['ending_time'] > to_time)]
 
         # then trim off ends of trips that straddle dataset borders (either from_time
         # or to_time).
@@ -281,38 +304,44 @@ def stats_slice(data_dict, from_time, to_time):
         # accuracy of utilization ratio calculation.
         # need to only look at first_trip and last_trip in the newly filtered list
         # because by definition only one trip each will straddle from_time and to_time.
-        if len(result_dict['finished_trips'][vin]):
-            first_trip = result_dict['finished_trips'][vin][0]
+        if len(trips):
+            first_trip = trips[0]
             if first_trip['starting_time'] < from_time:
                 first_trip['starting_time'] = from_time
                 first_trip['duration'] = (first_trip['ending_time'] - from_time).total_seconds()
                 # not recalculating speed since it'll be pretty meaningless on the changed duration
 
-            last_trip = result_dict['finished_trips'][vin][-1]
+            last_trip = trips[-1]
             if last_trip['ending_time'] > to_time:
                 last_trip['ending_time'] = to_time
                 last_trip['duration'] = (to_time - last_trip['starting_time']).total_seconds()
 
+        result_dict['finished_trips'][vin] = trips
+
     for vin in data_dict['finished_parkings']:
         # first do the rough filtering
-        result_dict['finished_parkings'][vin] = [park for park in data_dict['finished_parkings'][vin]
-                                                 if (park['starting_time'] >= from_time
-                                                     and park['ending_time'] <= to_time)
-                                                 or (park['starting_time'] < from_time < park['ending_time'])
-                                                 or (park['starting_time'] < to_time < park['ending_time'])]
+        # see comments for finished_trips filter above for reasoning
+        parks = [dict.copy(park) for park in data_dict['finished_parkings'][vin]
+                 if (from_time <= park['starting_time'] <= park['ending_time'] <= to_time)
+                 or (park['starting_time'] < from_time < park['ending_time'] < to_time)
+                 or (from_time < park['starting_time'] < to_time < park['ending_time'])
+                 or (park['starting_time'] < from_time and park['ending_time'] > to_time)]
 
         # trim off ends as for finished_trips
-        if len(result_dict['finished_parkings'][vin]):
-            first_park = result_dict['finished_parkings'][vin][0]
+        if len(parks):
+            first_park = parks[0]
             if first_park['starting_time'] < from_time:
                 first_park['starting_time'] = from_time
                 first_park['duration'] = (first_park['ending_time'] - from_time).total_seconds()
 
-            last_park = result_dict['finished_parkings'][vin][-1]
+            last_park = parks[-1]
             if last_park['ending_time'] > to_time:
                 last_park['ending_time'] = to_time
                 last_park['duration'] = (to_time - last_park['starting_time']).total_seconds()
 
+        result_dict['finished_parkings'][vin] = parks
+
+    # TODO: should we add unfinished into finished, trimming them?
     unfi_parkings = data_dict['unfinished_parkings']
     result_dict['unfinished_parkings'] = {vin: unfi_parkings[vin] for vin in unfi_parkings
                                           if unfi_parkings[vin]['starting_time'] >= from_time}
@@ -344,20 +373,32 @@ def repr_floats(result):
     return result
 
 
-def stats(data_dict):
+def stats(data_dict, tz_offset):
+    # First, get data for whole data_dict dataset
+
     result = repr_floats(stats_dict(data_dict))
 
     all_results = [result]
 
-    # TODO: give this timezone awareness/specify split time,
-    # currently it'll slice on midnight GMT or whenever a dataset has started
+    # Next, create slices of data_dict containing a day's and week's
+    # (where available) data to get more detailed statistics automatically
 
     time_step = timedelta(seconds=data_dict['metadata']['time_step'])
     slice_time = data_dict['metadata']['starting_time'] - time_step
 
+    # Use tz_offset (from process.py's -tz param) to offset start time for data slice.
+    # Times in data_dict are expected to be UTC so this can be used to correct for timezone.
+    slice_time -= timedelta(hours=tz_offset)
+
+    # Use 4.a.m local time for better logical split of "days"
+    slice_time += timedelta(hours=4)
+
     while slice_time <= data_dict['metadata']['ending_time']:
         one_day_from_time = slice_time - timedelta(days=1) + time_step
 
+        # Note: trips_per_car and similar stats will be inaccurate if cars are added or removed
+        # during the data period, as the highest car count during the data period will be used
+        # for all slices
         if one_day_from_time >= data_dict['metadata']['starting_time']:
             sliced_dict = stats_slice(data_dict, one_day_from_time, slice_time)
 
