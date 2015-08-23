@@ -4,7 +4,6 @@
 from __future__ import print_function
 import os
 import sys
-import copy
 import argparse
 import codecs
 from collections import defaultdict
@@ -91,7 +90,7 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
         return result
 
     def end_parking(prev_time, unfinished_parking):
-        result = copy.deepcopy(unfinished_parking)
+        result = dict.copy(unfinished_parking)
 
         result['ending_time'] = prev_time
         result = calculate_parking(result)
@@ -99,7 +98,7 @@ def process_data(system, data_time, prev_data_time, new_availability_json, unfin
         return result
 
     def start_trip(curr_time, starting_car_info):
-        result = copy.deepcopy(starting_car_info)
+        result = dict.copy(starting_car_info)
 
         result['from'] = starting_car_info['coords']
         del result['coords']
