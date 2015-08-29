@@ -2,7 +2,7 @@
 # coding=utf-8
 
 from datetime import timedelta
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 import time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,8 +12,7 @@ from city_helper import is_latlng_in_bounds, get_mean_pixel_size
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
-SPEED_CUTOFFS = [5, 15, 30, float('inf')]
-SPEED_COLOURS = ['r', 'y', 'g', 'b']
+SPEEDS = [(5, 'r'), (15, 'y'), (30, 'g'), (float('inf'), 'b')]
 
 
 timer = []
@@ -154,7 +153,7 @@ def create_points_default_colour(positions):
     """
 
     return {
-        SPEED_COLOURS[-1]: [p['coords'] for p in positions]
+        SPEEDS[-1][1]: [position['coords'] for position in positions]
     }
 
 
@@ -165,20 +164,21 @@ def create_points_speed_colour(positions):
     :returns a dict of lists formatted suitably for passing to plot_geopoints()
     """
 
-    collected = dict((colour, []) for colour in SPEED_COLOURS)
+    collected = defaultdict(list)
 
     for position in positions:
-        # default to the last colour
-        classification = SPEED_COLOURS[-1]
+        # find the right speed basket
+        try:
+            speed_bin = next(speed[1] for speed in SPEEDS
+                             if position['metadata']['speed'] < speed[0])
+        except (KeyError, StopIteration):
+            # KeyError when the position doesn't have 'speed' defined
+            # StopIteration when no speed matches the condition
+            # default to the last colour
+            speed_bin = SPEEDS[-1][1]
 
-        if 'speed' in position['metadata']:
-            # find the right speed basket
-            for i in range(len(SPEED_CUTOFFS)):
-                if position['metadata']['speed'] < SPEED_CUTOFFS[i]:
-                    classification = SPEED_COLOURS[i]
-                    break
-
-        collected[classification].append(position['coords'])
+        # append the position
+        collected[speed_bin].append(position['coords'])
 
     return collected
 
@@ -322,8 +322,8 @@ def make_positions_graph(system, city, data_dict, image_name, symbol):
     # positions are "unfinished parkings" (cars still parked at the end of the dataset)
     # plus all of the "finished parkings" (cars that were parked at one point but moved)
     positions = [p for p in data_dict['unfinished_parkings'].values()]
-    for vin in data_dict['finished_parkings']:
-        positions.extend(data_dict['finished_parkings'][vin])
+    positions.extend(parking for vin in data_dict['finished_parkings']
+                     for parking in data_dict['finished_parkings'][vin])
 
     filtered = filter_positions_to_bounds(city_data, positions)
     coloured = create_points_default_colour(filtered)
