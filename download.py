@@ -8,7 +8,7 @@ import sys
 import cars
 
 
-def save_one_city(city, t, session=None):
+def save_one_city(city, t, session):
     cars_text, _, session = cars.get_all_cars_text(city,
                                                    force_download=True,
                                                    session=session)
@@ -44,6 +44,8 @@ def save(requested_system, requested_city):
             # bypass cities that fail (like Ulm did in 2015-01) without killing whole script
             failures.append((city['system'], city['name']))
             continue
+    if session:
+        session.close()
 
     return t, failures
 
