@@ -45,8 +45,9 @@ def merge_two_dicts(one, two):
     time_step = timedelta(seconds=one['metadata']['time_step'])
     should_be_second_starting_time = one_ending_time + time_step
     if two_starting_time != should_be_second_starting_time:
-        raise ValueError("Files don't appear to be in order."
-                         "ending_time and starting_time must be consecutive.")
+        raise ValueError("Files don't appear to be in order. ending_time and starting_time "
+                         "must be consecutive, but instead they are {} and {}"
+                         .format(one_ending_time, two_starting_time))
 
     for vin in two['unstarted_trips']:
         unstarted_trip = two['unstarted_trips'][vin]
