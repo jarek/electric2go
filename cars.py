@@ -77,34 +77,20 @@ def output_file_name(description, extension=''):
     return file_name
 
 
-def get_all_cars_text(city_obj, force_download=False, session=None):
-    json_text = None
-    cache = False
+def download_all_cars_text(city_data, session=None):
+    if city_data['API_KNOCK_HEAD_URL']:
+        # some APIs require we hit another URL first to prepare session
+        session = head_url(city_data['API_KNOCK_HEAD_URL'],
+                           session,
+                           city_data['API_AVAILABLE_VEHICLES_HEADERS'])
 
-    cached_data_filename = get_current_filename(city_obj)
-    if os.path.exists(cached_data_filename) and not force_download:
-        cached_data_timestamp = os.path.getmtime(cached_data_filename)
-        cached_data_age = time.time() - cached_data_timestamp
-        if cached_data_age < CACHE_PERIOD:
-            cache = cached_data_timestamp
-            timer.append(['using cached data, age in seconds', cached_data_age])
-            with open(cached_data_filename, 'rb') as f:
-                json_text = f.read()
-
-    if not json_text:
-        if city_obj['API_KNOCK_HEAD_URL']:
-            # some APIs require we hit another URL first to prepare session
-            session = head_url(city_obj['API_KNOCK_HEAD_URL'],
-                               session,
-                               city_obj['API_AVAILABLE_VEHICLES_HEADERS'])
-
-        json_text, session = get_url(city_obj['API_AVAILABLE_VEHICLES_URL'],
-                                     session,
-                                     city_obj['API_AVAILABLE_VEHICLES_HEADERS'])
+    json_text, session = get_url(city_data['API_AVAILABLE_VEHICLES_URL'],
+                                 session,
+                                 city_data['API_AVAILABLE_VEHICLES_HEADERS'])
 
     # handle JSONP if necessary
-    if 'JSONP_CALLBACK_NAME' in city_obj:
-        prefix = '{callback}('.format(callback=city_obj['JSONP_CALLBACK_NAME'])
+    if 'JSONP_CALLBACK_NAME' in city_data:
+        prefix = '{callback}('.format(callback=city_data['JSONP_CALLBACK_NAME'])
         suffix1 = ');'
         suffix2 = ')'
 
@@ -118,7 +104,29 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
 
         json_text = json_text.encode('utf-8')
 
-    return json_text, cache, session
+    return json_text, session
+
+
+def get_all_cars_text(city_data):
+    json_text = None
+    cache = False
+
+    cached_data_filename = get_current_filename(city_data)
+    if os.path.exists(cached_data_filename):
+        cached_data_timestamp = os.path.getmtime(cached_data_filename)
+        cached_data_age = time.time() - cached_data_timestamp
+        if cached_data_age < CACHE_PERIOD:
+            cache = cached_data_timestamp
+            timer.append(['using cached data, age in seconds', cached_data_age])
+            with open(cached_data_filename, 'rb') as f:
+                json_text = f.read()
+
+    if not json_text:
+        cache = False
+        json_text, session = download_all_cars_text(city_data)
+        session.close()
+
+    return json_text, cache
 
 
 def fill_in_city_information(system, city_name, city_data):

@@ -37,7 +37,8 @@ class DownloadTest(unittest.TestCase):
         for city in self.test_cities:
             city_data = cars.get_city_by_name(city[0], city[1])
 
-            text, cache, _ = cars.get_all_cars_text(city_data, force_download=True)
+            text, session = cars.download_all_cars_text(city_data)
+            session.close()
 
             # could throw exception if JSON is malformed, test if it does
             info = json.loads(text.decode('utf-8'))
@@ -64,7 +65,7 @@ class DownloadTest(unittest.TestCase):
             # warm up the cache
             _, _ = download.save(city[0], city[1])
 
-            text, cache, _ = cars.get_all_cars_text(city_data)
+            text, cache = cars.get_all_cars_text(city_data)
 
             # check we've gotten a cached file
             self.assertTrue(cache != False and cache > 0)

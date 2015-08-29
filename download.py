@@ -9,9 +9,7 @@ import cars
 
 
 def save_one_city(city, t, session):
-    cars_text, _, session = cars.get_all_cars_text(city,
-                                                   force_download=True,
-                                                   session=session)
+    cars_text, session = cars.download_all_cars_text(city, session=session)
 
     with open(cars.get_current_filename(city), 'wb') as f:
         f.write(cars_text)

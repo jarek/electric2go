@@ -57,7 +57,7 @@ def get_parser(city):
 
 
 def get_electric_cars(city):
-    json_text, cache, _ = cars.get_all_cars_text(city)
+    json_text, cache = cars.get_all_cars_text(city)
 
     time1 = time.time()
 
