@@ -35,7 +35,7 @@ class DownloadTest(unittest.TestCase):
 
     def test_car2go_get_text(self):
         for city in self.test_cities:
-            city_data = cars.get_all_cities(city[0])[city[1]]
+            city_data = cars.get_city_by_name(city[0], city[1])
 
             text, cache, _ = cars.get_all_cars_text(city_data, force_download=True)
 
@@ -47,7 +47,7 @@ class DownloadTest(unittest.TestCase):
 
     def test_download(self):
         for city in self.test_cities:
-            city_data = cars.get_all_cities(city[0])[city[1]]
+            city_data = cars.get_city_by_name(city[0], city[1])
 
             t, _ = download.save(city[0], city[1])
 
@@ -59,7 +59,7 @@ class DownloadTest(unittest.TestCase):
 
     def test_cache(self):
         for city in self.test_cities:
-            city_data = cars.get_all_cities(city[0])[city[1]]
+            city_data = cars.get_city_by_name(city[0], city[1])
 
             # warm up the cache
             _, _ = download.save(city[0], city[1])

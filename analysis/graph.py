@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from cars import get_all_cities
+from cars import get_city_by_name
 from city_helper import is_latlng_in_bounds, get_mean_pixel_size
 
 
@@ -255,7 +255,7 @@ def make_graph(system, city, positions, trips, image_filename, turn,
 
     global timer
 
-    city_data = get_all_cities(system)[city]
+    city_data = get_city_by_name(system, city)
 
     log_name = str(turn)
 
@@ -317,7 +317,7 @@ def make_positions_graph(system, city, data_dict, image_name, symbol):
 
     time_positions_graph_start = time.time()
 
-    city_data = get_all_cities(system)[city]
+    city_data = get_city_by_name(system, city)
 
     # positions are "unfinished parkings" (cars still parked at the end of the dataset)
     # plus all of the "finished parkings" (cars that were parked at one point but moved)
@@ -342,7 +342,7 @@ def make_trips_graph(system, city, trips, image_name):
 
     time_trips_graph_start = time.time()
 
-    city_data = get_all_cities(system)[city]
+    city_data = get_city_by_name(system, city)
 
     def plotter(f, ax):
         if len(trips) > 0:
@@ -359,7 +359,7 @@ def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
 
     time_trips_graph_start = time.time()
 
-    city_data = get_all_cities(system)[city]
+    city_data = get_city_by_name(system, city)
 
     # TODO: use hexbin instead of just drawing points, to avoid problem/unexpected results
     # caused when a trip ends in a given point then the vehicle is picked up again

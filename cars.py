@@ -121,14 +121,44 @@ def get_all_cars_text(city_obj, force_download=False, session=None):
     return json_text, cache, session
 
 
-def get_all_cities(system):
+def fill_in_city_information(system, city_name, city_data):
+    city_data['system'] = system
+    city_data['name'] = city_name
+
+    if 'display' not in city_data:
+        city_data['display'] = city_name.title()
+
+    if 'MAP_SIZES' not in city_data and 'MAP_LIMITS' in city_data:
+        # default to 1920x1080 if we have other map data
+        city_data['MAP_SIZES'] = {'MAP_X': 1920, 'MAP_Y': 1080}
+
+    # set some default values if not present
+    city_data.setdefault('electric', False)
+    city_data.setdefault('of_interest', False)
+    city_data.setdefault('number_first_address', False)
+    city_data.setdefault('API_AVAILABLE_VEHICLES_HEADERS', None)
+    city_data.setdefault('API_KNOCK_HEAD_URL', None)
+
+    return city_data
+
+
+def _get_all_cities_raw(system):
     city_module = get_carshare_system_module(system, 'city')
 
-    all_cities = getattr(city_module, 'CITIES')
+    return getattr(city_module, 'CITIES')
 
-    all_cities = city_helper.fill_in_information(system, all_cities)
 
-    return all_cities
+def get_all_cities(system):
+    all_cities = _get_all_cities_raw(system)
+
+    return {city_name: fill_in_city_information(system, city_name, all_cities[city_name])
+            for city_name in all_cities}
+
+
+def get_city_by_name(system, city_name):
+    all_cities = _get_all_cities_raw(system)
+    city_data = all_cities[city_name]
+    return fill_in_city_information(system, city_name, city_data)
 
 
 def get_carshare_system_module(system_name, module_name=''):

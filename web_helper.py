@@ -37,15 +37,16 @@ def get_system_and_city(allow_any_city=True):
     city = get_param('city') or get_arg(2)
 
     if system in ALL_SYSTEMS:
-        all_cities = cars.get_all_cities(system)
-        if city in all_cities:
-            city_data = all_cities[city]
+        try:
+            city_data = cars.get_city_by_name(system, city)
             if allow_any_city or city_data['electric'] == 'some':
                 return city_data
+        except KeyError:
+            # city name not valid, fall through to default
+            pass
 
     # if city or system were incorrect, return default
-    all_cities = cars.get_all_cities(DEFAULT_SYSTEM)
-    return all_cities[DEFAULT_CITY]
+    return cars.get_city_by_name(DEFAULT_SYSTEM, DEFAULT_CITY)
 
 
 def get_parser(city):

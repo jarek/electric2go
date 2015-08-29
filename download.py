@@ -27,13 +27,12 @@ def save_one_city(city, t, session):
 def save(requested_system, requested_city):
     failures = []
 
-    all_cities = cars.get_all_cities(requested_system)
-
     if requested_city == 'all':
+        all_cities = cars.get_all_cities(requested_system)
         cities_to_download_list = [city for key, city in all_cities.items()
                                    if city['of_interest'] or city['electric'] == 'some']
     else:
-        cities_to_download_list = [all_cities[requested_city]]
+        cities_to_download_list = [cars.get_city_by_name(requested_system, requested_city)]
 
     t = datetime.datetime.utcnow()
     session = None

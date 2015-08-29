@@ -42,9 +42,8 @@ def calculate_trip(trip_data):
     return trip_data
 
 
-def process_data(system, data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
-    # get functions for the correct system
-    parse_module = cars.get_carshare_system_module(system_name=system, module_name='parse')
+def process_data(parse_module, data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
+    # get parser functions for the system
     get_cars_from_json = getattr(parse_module, 'get_cars_from_json')
     extract_car_basics = getattr(parse_module, 'extract_car_basics')
     extract_car_data = getattr(parse_module, 'extract_car_data')
@@ -248,6 +247,12 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             # return False if file is not in the archive
             return False
 
+    # get parser functions for the correct system
+    try:
+        parse_module = cars.get_carshare_system_module(system_name=system, module_name='parse')
+    except ImportError:
+        sys.exit('unsupported system {system_name}'.format(system_name=system))
+
     # vary function based on file_dir / location. if location is an archive file,
     # preload the archive and have the function read files from there
     location_prefix = ''
@@ -298,7 +303,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
 
         if data:
             new_finished_trips, new_finished_parkings, unfinished_trips, unfinished_parkings, unstarted_trips_this_round =\
-                process_data(system, t, prev_t, data, unfinished_trips, unfinished_parkings)
+                process_data(parse_module, t, prev_t, data, unfinished_trips, unfinished_parkings)
 
             # update data dictionaries
             unstarted_trips.update(unstarted_trips_this_round)
@@ -454,11 +459,6 @@ def process_commandline():
         city = os.path.split(city.lower())[1]
     else:
         location, city = os.path.split(city.lower())
-
-    cities_for_system = cars.get_all_cities(args.system)
-    if city not in cities_for_system:
-        sys.exit('unsupported city {city_name} for system {system_name}'.
-                 format(city_name=city, system_name=args.system))
 
     params['city'] = city
     params['location'] = location
