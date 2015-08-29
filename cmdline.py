@@ -23,6 +23,14 @@ def json_serializer(obj):
 def json_deserializer(obj):
     # parse datetimes from JSON we wrote
     for (key, value) in obj.items():
+
+        # json_deserializer is used as an object_hook. That only runs on objects,
+        # that is, dicts. We are also storing datetimes as a list in the 'missing' key.
+        # List items don't get passed into object_hook so we need to catch it separately. Sucks.
+        if key == 'missing':
+            datetimes_as_string_list = obj[key]
+            obj[key] = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S") for t in datetimes_as_string_list]
+
         try:
             # this is the format that isoformat outputs
             obj[key] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
