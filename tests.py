@@ -17,7 +17,6 @@ import merge
 import process
 from analysis import graph as process_graph
 from analysis import stats as process_stats
-import city_helper
 
 CITIES = cars.get_all_cities("car2go")
 
@@ -433,18 +432,18 @@ class HelperFunctionsTest(unittest.TestCase):
         }
 
         # test northern and western hemisphere
-        self.assertTrue(city_helper.is_latlng_in_bounds(CITIES['vancouver'],
-                                                        VALUES['vancouver']))
-        self.assertTrue(city_helper.is_latlng_in_bounds(CITIES['toronto'],
-                                                        VALUES['toronto']))
+        self.assertTrue(process_graph.is_latlng_in_bounds(CITIES['vancouver'],
+                                                          VALUES['vancouver']))
+        self.assertTrue(process_graph.is_latlng_in_bounds(CITIES['toronto'],
+                                                          VALUES['toronto']))
 
         # test northern and eastern hemisphere
-        self.assertTrue(city_helper.is_latlng_in_bounds(CITIES['wien'],
-                                                        VALUES['wien']))
+        self.assertTrue(process_graph.is_latlng_in_bounds(CITIES['wien'],
+                                                          VALUES['wien']))
 
         # TODO: test correctness of calculation for southern hemisphere
-        #self.assertTrue(city_helper.is_latlng_in_bounds(city.CITIES, 'buenosaires',
-        #                                                VALUES['buenosaires']))
+        #self.assertTrue(process_graph.is_latlng_in_bounds(city.CITIES, 'buenosaires',
+        #                                                  VALUES['buenosaires']))
 
     def test_map_latitude(self):
         toronto_res = process_graph.map_latitude(CITIES['toronto'], np.array([43.65]))

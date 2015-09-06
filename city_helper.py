@@ -1,17 +1,6 @@
 # coding=utf-8
 
 
-def is_latlng_in_bounds(city_data, lat, lng=False):
-    if not lng:
-        lng = lat[1]
-        lat = lat[0]
-
-    is_lat = city_data['BOUNDS']['SOUTH'] <= lat <= city_data['BOUNDS']['NORTH']
-    is_lng = city_data['BOUNDS']['WEST'] <= lng <= city_data['BOUNDS']['EAST']
-
-    return is_lat and is_lng
-
-
 def get_pixel_size(city_data):
     # find the length in metres represented by one pixel on graph in both lat and lng direction
 

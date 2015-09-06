@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cars import get_city_by_name
-from city_helper import is_latlng_in_bounds, get_mean_pixel_size
+from city_helper import get_mean_pixel_size
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -29,6 +29,16 @@ def map_longitude(city_data, longitudes):
     west = city_data['MAP_LIMITS']['WEST']
     east = city_data['MAP_LIMITS']['EAST']
     return ((longitudes - west) / (east - west)) * city_data['MAP_SIZES']['MAP_X']
+
+
+def is_latlng_in_bounds(city_data, latlng):
+    lat = latlng[0]
+    lng = latlng[1]
+
+    is_lat = city_data['BOUNDS']['SOUTH'] <= lat <= city_data['BOUNDS']['NORTH']
+    is_lng = city_data['BOUNDS']['WEST'] <= lng <= city_data['BOUNDS']['EAST']
+
+    return is_lat and is_lng
 
 
 def make_graph_axes(city_data, background=None, log_name=''):
