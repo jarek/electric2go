@@ -269,7 +269,7 @@ def stats_slice(data_dict, from_time, to_time):
     more accurate. This makes trip duration data less accurate.
 
     This is necessarily slightly imprecise, for instance cut-off
-    parts of trips could be classified as mini weird trips.
+    parts of trips can be getting classified as mini weird trips.
     However, accuracy for utilization ratio is well under 1%.
     """
 
@@ -318,6 +318,10 @@ def stats_slice(data_dict, from_time, to_time):
 
         result_dict['finished_trips'][vin] = trips
 
+    # filter out cars with no trips
+    result_dict['finished_trips'] = {vin: trips for vin, trips in result_dict['finished_trips'].items()
+                                     if len(trips) > 0}
+
     for vin in data_dict['finished_parkings']:
         # first do the rough filtering
         # see comments for finished_trips filter above for reasoning
@@ -341,23 +345,37 @@ def stats_slice(data_dict, from_time, to_time):
 
         result_dict['finished_parkings'][vin] = parks
 
+    # filter out cars with no parkings
+    result_dict['finished_parkings'] = {vin: parkings for vin, parkings in result_dict['finished_parkings'].items()
+                                        if len(parkings) > 0}
+
     # TODO: should we add unfinished into finished, trimming them?
+    # to_time is already non-inclusive (e.g. from_time being 04:00, to_time will be 03:59),
+    # so we use less-than-or-equal, from_time <= data <= to_time
     unfi_parkings = data_dict['unfinished_parkings']
     result_dict['unfinished_parkings'] = {vin: unfi_parkings[vin] for vin in unfi_parkings
-                                          if unfi_parkings[vin]['starting_time'] >= from_time}
+                                          if from_time <= unfi_parkings[vin]['starting_time'] <= to_time}
 
     unfi_trips = data_dict['unfinished_trips']
     result_dict['unfinished_trips'] = {vin: unfi_trips[vin] for vin in unfi_trips
-                                       if unfi_trips[vin]['starting_time'] >= from_time}
+                                       if from_time <= unfi_trips[vin]['starting_time'] <= to_time}
 
     unst_trips = data_dict['unstarted_trips']
     result_dict['unstarted_trips'] = {vin: unst_trips[vin] for vin in unst_trips
-                                      if unst_trips[vin]['ending_time'] <= to_time}
+                                      if from_time <= unst_trips[vin]['ending_time'] <= to_time}
 
+    # Now we just need to adjust metadata
     result_dict['metadata']['starting_time'] = from_time
     result_dict['metadata']['ending_time'] = to_time
 
-    # TODO: adjust missing data points (result_dict['metadata']['missing'])
+    # adjust missing data points
+    # note that the list comp implicitly does a copy of the `missing` list, which is good,
+    # because we need the original missing list for next iterations
+    result_dict['metadata']['missing'] = [missing_datetime for missing_datetime
+                                          in data_dict['metadata']['missing']
+                                          if from_time <= missing_datetime < to_time]
+
+    # TODO: need to have tests
 
     return result_dict
 
