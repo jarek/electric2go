@@ -167,6 +167,21 @@ def create_points_default_colour(positions):
     }
 
 
+def create_points_electric_colour(positions, electric_colour='r', standard_colour='b'):
+    """
+    Electric engines get electric_colour, other engines get standard_colour
+    :returns a dict of lists formatted suitably for passing to plot_geopoints()
+    """
+
+    # Position electric_colour on top of standard_colour. There is likely to be
+    # many more standard cars than electric cars - putting the electric on top
+    # makes them more visible.
+    return OrderedDict([
+        (standard_colour, [position['coords'] for position in positions if not position['electric']]),
+        (electric_colour, [position['coords'] for position in positions if position['electric']])
+    ])
+
+
 def create_points_speed_colour(positions):
     """
     Extracts a list of all positions ordered by colour according to vehicle speed
@@ -322,7 +337,7 @@ def make_graph(system, city, positions, trips, image_filename, turn,
     graph_wrapper(city_data, plotter, image_filename, graph_background)
 
 
-def make_positions_graph(system, city, data_dict, image_name, symbol):
+def make_positions_graph(system, city, data_dict, image_name, symbol, colour_electric=False):
     global timer
 
     time_positions_graph_start = time.time()
@@ -336,7 +351,11 @@ def make_positions_graph(system, city, data_dict, image_name, symbol):
                      for parking in data_dict['finished_parkings'][vin])
 
     filtered = filter_positions_to_bounds(city_data, positions)
-    coloured = create_points_default_colour(filtered)
+
+    if colour_electric:
+        coloured = create_points_electric_colour(filtered)
+    else:
+        coloured = create_points_default_colour(filtered)
 
     def plotter(f, ax):
         plot_geopoints(ax, city_data, coloured, symbol)
