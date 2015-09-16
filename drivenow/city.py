@@ -32,7 +32,38 @@ CITIES = {
     },
     'london': {
         'loc_key': 40758,
-        'electric': 'some'
+        'electric': 'some',
+        'BOUNDS': {
+            'NORTH': 51.612,  # exact value is 51.611141
+            'SOUTH': 51.518,  # exact value is 51.518598
+            'EAST': 0.022,  # exact value is 0.021994
+            'WEST': -0.165  # exact value is -0.164666
+        },
+        'MAP_LIMITS': {
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=-0.20593,51.518,0.06293,51.612&scale=55659&format=png
+            'NORTH': 51.612,
+            'SOUTH': 51.518,
+            'EAST': 0.06293,
+            'WEST': -0.20593
+        },
+        'DEGREE_LENGTHS': {
+            # for latitude 51.56
+            'LENGTH_OF_LATITUDE': 111258.94,
+            'LENGTH_OF_LONGITUDE': 69349.27
+        },
+        'MAP_SIZES': {
+            'MAP_X': 1920,
+            'MAP_Y': 1080
+        },
+        'LABELS': {
+            'fontsizes': [35, 22, 30, 18],
+            'lines': [
+                (250, 210),
+                (250, 170),
+                (250, 130),
+                (250, 95)
+            ]
+        }
     },
     'muenchen': {
         'loc_key': 4604,
