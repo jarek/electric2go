@@ -180,6 +180,15 @@ on developer plan (500 calls per day, 10 per minute).
 Visualize around special events - Canucks game, Whitecaps game, etc, etc?
 See if we can pick up any additional events or activity.
 
+Try to quantify environmental impact: how many cars does the service replace?
+E.g.: one commute trip in the morning, one errand trip midday, one commute trip
+in the evening, one nightlife trip during a given day would be replacing
+one car, essentially. But if it had a second commute trip in the evening,
+it might be replacing 1.5 cars. Just try to classify trips and
+see how that breaks down, how many commute-like trips are made,
+see if the data says any interesting things.
+
+
 
 Traditional carshare visualizations
 ===================================
