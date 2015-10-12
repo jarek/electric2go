@@ -1,11 +1,13 @@
 # coding=utf-8
 
+import os
 import sys
 import cgi
 import json
 import time
 
 import cars
+import download
 
 
 # systems are loaded dynamically based on their name,
@@ -56,8 +58,30 @@ def get_parser(city):
     return _parse_modules[city['system']]
 
 
+def get_all_cars_text(city_data):
+    json_text = None
+    cache = False
+
+    cached_data_filename = cars.get_current_filename(city_data)
+    if os.path.exists(cached_data_filename):
+        cached_data_timestamp = os.path.getmtime(cached_data_filename)
+        cached_data_age = time.time() - cached_data_timestamp
+        if cached_data_age < cars.CACHE_PERIOD:
+            cache = cached_data_timestamp
+            cars.timer.append(['using cached data, age in seconds', cached_data_age])
+            with open(cached_data_filename, 'rb') as f:
+                json_text = f.read()
+
+    if not json_text:
+        cache = False
+        json_text, session = download.download_one_city(city_data)
+        session.close()
+
+    return json_text, cache
+
+
 def get_electric_cars(city):
-    json_text, cache = cars.get_all_cars_text(city)
+    json_text, cache = get_all_cars_text(city)
 
     time1 = time.time()
 

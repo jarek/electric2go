@@ -2,13 +2,8 @@
 
 import os
 import importlib
-import time
 from datetime import datetime
 from math import radians, sin, cos, atan2, sqrt
-
-import requests
-
-import city_helper
 
 
 CACHE_PERIOD = 60  # cache data for this many seconds at most
@@ -17,34 +12,6 @@ DATA_COLLECTION_INTERVAL_MINUTES = 1  # used in download.py, process.py
 root_dir = os.path.dirname(os.path.realpath(__file__))
 
 timer = []
-
-
-def head_url(url, session, extra_headers):
-    htime1 = time.time()
-
-    if session is None:
-        session = requests.Session()
-
-    session.head(url, headers=extra_headers)
-
-    htime2 = time.time()
-    timer.append(['http head, ms', (htime2-htime1)*1000.0])
-
-    return session
-
-
-def get_url(url, session, extra_headers):
-    htime1 = time.time()
-
-    if session is None:
-        session = requests.Session()
-
-    r = session.get(url, headers=extra_headers)
-
-    htime2 = time.time()
-    timer.append(['http get, ms', (htime2-htime1)*1000.0])
-
-    return r.content, session
 
 
 def get_data_dir(system):
@@ -75,58 +42,6 @@ def output_file_name(description, extension=''):
         file_name = '{name}.{ext}'.format(name=file_name, ext=extension)
 
     return file_name
-
-
-def download_all_cars_text(city_data, session=None):
-    if city_data['API_KNOCK_HEAD_URL']:
-        # some APIs require we hit another URL first to prepare session
-        session = head_url(city_data['API_KNOCK_HEAD_URL'],
-                           session,
-                           city_data['API_AVAILABLE_VEHICLES_HEADERS'])
-
-    json_text, session = get_url(city_data['API_AVAILABLE_VEHICLES_URL'],
-                                 session,
-                                 city_data['API_AVAILABLE_VEHICLES_HEADERS'])
-
-    # handle JSONP if necessary
-    if 'JSONP_CALLBACK_NAME' in city_data:
-        prefix = '{callback}('.format(callback=city_data['JSONP_CALLBACK_NAME'])
-        suffix1 = ');'
-        suffix2 = ')'
-
-        json_text = json_text.decode('utf-8')
-
-        if json_text.startswith(prefix):
-            if json_text.endswith(suffix1):
-                json_text = json_text[len(prefix):-len(suffix1)]
-            elif json_text.endswith(suffix2):
-                json_text = json_text[len(prefix):-len(suffix2)]
-
-        json_text = json_text.encode('utf-8')
-
-    return json_text, session
-
-
-def get_all_cars_text(city_data):
-    json_text = None
-    cache = False
-
-    cached_data_filename = get_current_filename(city_data)
-    if os.path.exists(cached_data_filename):
-        cached_data_timestamp = os.path.getmtime(cached_data_filename)
-        cached_data_age = time.time() - cached_data_timestamp
-        if cached_data_age < CACHE_PERIOD:
-            cache = cached_data_timestamp
-            timer.append(['using cached data, age in seconds', cached_data_age])
-            with open(cached_data_filename, 'rb') as f:
-                json_text = f.read()
-
-    if not json_text:
-        cache = False
-        json_text, session = download_all_cars_text(city_data)
-        session.close()
-
-    return json_text, cache
 
 
 def fill_in_city_information(system, city_name, city_data):

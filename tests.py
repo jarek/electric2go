@@ -12,6 +12,7 @@ from datetime import datetime
 
 import cars
 import download
+import web_helper
 import normalize
 import merge
 import process
@@ -36,7 +37,7 @@ class DownloadTest(unittest.TestCase):
         for city in self.test_cities:
             city_data = cars.get_city_by_name(city[0], city[1])
 
-            text, session = cars.download_all_cars_text(city_data)
+            text, session = download.download_one_city(city_data)
             session.close()
 
             # could throw exception if JSON is malformed, test if it does
@@ -64,7 +65,7 @@ class DownloadTest(unittest.TestCase):
             # warm up the cache
             _, _ = download.save(city[0], city[1])
 
-            text, cache = cars.get_all_cars_text(city_data)
+            text, cache = web_helper.get_all_cars_text(city_data)
 
             # check we've gotten a cached file
             self.assertTrue(cache != False and cache > 0)
