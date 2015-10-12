@@ -72,13 +72,11 @@ def download_one_city(city_data, session=None):
 def save_one_city(city, t, session):
     cars_text, session = download_one_city(city, session=session)
 
-    with open(cars.get_current_filename(city), 'wb') as f:
+    with open(cars.get_current_file_path(city), 'wb') as f:
         f.write(cars_text)
 
-    # also save data every DATA_COLLECTION_INTERVAL_MINUTES
-    if t.minute % cars.DATA_COLLECTION_INTERVAL_MINUTES == 0:
-        with open(cars.get_file_path(city, t), 'wb') as f:
-            f.write(cars_text)
+    with open(cars.get_file_path(city, t), 'wb') as f:
+        f.write(cars_text)
 
     return session
 
@@ -114,6 +112,9 @@ def process_commandline():
 
     requested_system = sys.argv[1].lower()
     requested_city = sys.argv[2].lower()
+
+    # TODO: can't actually run this without collecting data - so running just the web page
+    # also requires a cronjob to clean out collected data - should be a switch
 
     t, failures = save(requested_system, requested_city)
 

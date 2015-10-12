@@ -53,7 +53,7 @@ class DownloadTest(unittest.TestCase):
             t, _ = download.save(city[0], city[1])
 
             file_absolute = cars.get_file_path(city_data, t)
-            file_current = cars.get_current_filename(city_data)
+            file_current = cars.get_current_file_path(city_data)
 
             self.assertTrue(os.path.exists(file_absolute))
             self.assertTrue(os.path.exists(file_current))

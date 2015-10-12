@@ -18,6 +18,8 @@ ALL_SYSTEMS = ['car2go', 'drivenow', 'communauto']
 DEFAULT_SYSTEM = 'drivenow'
 DEFAULT_CITY = 'london'
 
+CACHE_PERIOD = 60  # cache data for this many seconds at most
+
 _parse_modules = {}
 
 
@@ -62,11 +64,11 @@ def get_all_cars_text(city_data):
     json_text = None
     cache = False
 
-    cached_data_filename = cars.get_current_filename(city_data)
+    cached_data_filename = cars.get_current_file_path(city_data)
     if os.path.exists(cached_data_filename):
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
         cached_data_age = time.time() - cached_data_timestamp
-        if cached_data_age < cars.CACHE_PERIOD:
+        if cached_data_age < CACHE_PERIOD:
             cache = cached_data_timestamp
             cars.timer.append(['using cached data, age in seconds', cached_data_age])
             with open(cached_data_filename, 'rb') as f:

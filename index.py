@@ -130,7 +130,7 @@ def print_all_html():
 
     # supplementary information
     cache_age = (time.time() - cache) if cache else cache
-    cache_next_refresh = cars.CACHE_PERIOD - cache_age
+    cache_next_refresh = web_helper.CACHE_PERIOD - cache_age
 
     # render big template
     tmpl_layout = env.get_template('layout.html')

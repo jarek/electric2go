@@ -6,9 +6,6 @@ from datetime import datetime
 from math import radians, sin, cos, atan2, sqrt
 
 
-CACHE_PERIOD = 60  # cache data for this many seconds at most
-DATA_COLLECTION_INTERVAL_MINUTES = 1  # used in download.py, process.py
-
 root_dir = os.path.dirname(os.path.realpath(__file__))
 
 timer = []
@@ -18,7 +15,7 @@ def get_data_dir(system):
     return os.path.join(root_dir, 'data', system)
 
 
-def get_current_filename(city_data):
+def get_current_file_path(city_data):
     data_dir = get_data_dir(city_data['system'])
     return os.path.join(data_dir, 'current_%s' % city_data['name'])
 
