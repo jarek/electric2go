@@ -5,6 +5,7 @@ from . import API_ROUTE_ALL_BUSES_HEADERS, API_ROUTE_ALL_BUSES_URL
 
 # we pretend that individual routes are "cities" - the abstraction holds otherwise
 CITIES = {
+    '010': { 'of_interest': True },
     '099': {
         'of_interest': True
     },

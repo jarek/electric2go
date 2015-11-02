@@ -108,7 +108,7 @@ CITIES = {
         }
     },
     'columbus': {
-        'of_interest': True, 'number_first_address': True,
+        'number_first_address': True,
         'BOUNDS': {
             'NORTH': 40.075535,
             'SOUTH': 39.92898,

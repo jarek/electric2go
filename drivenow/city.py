@@ -78,6 +78,9 @@ CITIES = {
         'electric': 'all',
         'display': 'San Francisco'
     },
+    'stockholm': {
+        'loc_key': 42128
+    },
     'wien': {
         'loc_key': 40468,
         'display': 'Vienna',
