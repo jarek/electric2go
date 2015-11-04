@@ -99,3 +99,7 @@ for city, city_data in CITIES.items():
 
     if 'API_AVAILABLE_VEHICLES_HEADERS' not in city_data:
         city_data['API_AVAILABLE_VEHICLES_HEADERS'] = API_AVAILABLE_VEHICLES_HEADERS
+
+# san francisco has been suspended, don't collect its data anymore
+CITIES['sanfrancisco']['of_interest'] = False
+
