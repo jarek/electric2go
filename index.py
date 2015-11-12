@@ -119,9 +119,10 @@ def print_all_html():
     electric_cars, cache = web_helper.get_electric_cars(requested_city)
 
     # get list of cities
-    all_cities = [city for system in web_helper.ALL_SYSTEMS
+    all_cities = (city for system in web_helper.ALL_SYSTEMS
                   for city in cars.get_all_cities(system).values()
-                  if city['electric'] == 'some']
+                  if city['electric'] == 'some')
+    all_cities = sorted(all_cities, key=lambda c: c['name'])
 
     # get car details
     car_infos = [get_car_info(car, electric_cars, requested_city) for car in electric_cars]
