@@ -274,8 +274,11 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
     # 1 * time_step to get the first data file in first iteration
     t = starting_time - timedelta(minutes=time_step)
 
-    # in the very first iteration, value of prev_t is not used, so use None
-    prev_t = None
+    # In the very first iteration of main loop, value of prev_t is not used.
+    # This initial value will be only used when there is no data at all,
+    # in which case it'll become the ending_time. We want ending_time
+    # to be at least somewhat useful, so assign t.
+    prev_t = t
 
     skipped = 0
     max_t = starting_time + timedelta(minutes=time_step * (max_steps - 1))
