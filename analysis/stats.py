@@ -375,7 +375,23 @@ def stats_slice(data_dict, from_time, to_time):
                                           in data_dict['metadata']['missing']
                                           if from_time <= missing_datetime < to_time]
 
-    # TODO: need to have tests
+    # TODO: there is a bug here somewhere:
+    # analysing the same time period from two differently-cut datasets gives different results.
+    # e.g., a dataset from 2015-07-20 to 2015-08-09 and another dataset from 2015-08-01 to 2015-08-19
+    # both contain a period from 2015-08-01 to 2015-08-08 but the resulting statistics
+    # are slightly different. This is bad.
+
+    # I think I should rewrite how the unstarted/unfinished trips are treated in general.
+    # Rather than trimming ends off but keeping the trips in trips dicts, should convert them
+    # to unstarted/unfinished trips instead.
+
+    # TODO: need to create tests after "correct" logic is finalized
+
+    # TODO: split this code into a "split.py" or "splice.py" to complement merge.py
+
+    # TODO: make a basic visualiser? using the slice function and output into json,
+    # and a HTML/js to take in that json and display it in little lines with tooltips identifying cars
+    # Would be useful for debugging - and also for future visualisations
 
     return result_dict
 

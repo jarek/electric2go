@@ -233,6 +233,10 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             # extractfile doesn't support "with" syntax :(
             f = archive.extractfile(location_prefix + filename)
 
+            # TODO: about half of run time is spent in reading in this file and doing json.load
+            # I can't do much about json.load, but I could see if I can somehow preload the files
+            # so that it doesn't have to do stupid things like checking for each file or seeking to it manually
+
             try:
                 reader = codecs.getreader('utf-8')
                 result = json.load(reader(f))
@@ -292,6 +296,12 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
 
     missing_data_points = []
     previously_skipped = []
+
+    # TODO: remove max_skip since I don't use it in practice any more,
+    # I just end up setting it to 10 or 60 if I run into problems,
+    # and read the status from missing_files.
+    # TODO: instead, give different/more prominent warning if we quit before
+    # getting to max_files/max_t
 
     # Normally, loop as long as new data points exist and we haven't skipped
     # too many bad data points.
