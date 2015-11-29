@@ -397,12 +397,16 @@ def stats_slice(data_dict, from_time, to_time):
 
 
 def repr_floats(result):
-    # force floats to repr to avoid differences in precision when stringified
-    # between Python 2 and Python 3
+    # Force floats to formatted strings to avoid differences in precision
+    # between Python 2 and Python 3, and between separate runs under Python 3.
+    # Floats have to be stringified for CSV output anyway, and doing so now
+    # lets us do it consistently.
+    # Use 10 significant digits as this is more than enough for stats
+    # while well less than level where float representation issues crop up.
 
     for key in result:
         if isinstance(result[key], float):
-            result[key] = repr(result[key])
+            result[key] = format(result[key], '.10g')
 
     return result
 

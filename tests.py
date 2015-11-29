@@ -96,10 +96,10 @@ class StatsTest(unittest.TestCase):
                     "total trips": 1737,
                     "starting time": datetime(2015, 4, 28, 8, 0, 0),
                     "ending time": datetime(2015, 4, 30, 7, 59, 0),
-                    "time elapsed seconds": 172740,
-                    "trips per car median": 6,
-                    "distance per trip quartile 25": 0.6388606347651411,
-                    "duration per trip quartile 75": 32,
+                    "time elapsed seconds": 172740.0,
+                    "trips per car median": 6.0,
+                    "distance per trip quartile 25": 0.638860634765,
+                    "duration per trip quartile 75": 32.0,
                     "weird trip count": 64
                 },
                 "expected_dataframes": {
@@ -135,11 +135,11 @@ class StatsTest(unittest.TestCase):
                     "total trips": 1967,
                     "starting time": datetime(2015, 5, 16, 11, 0, 0),
                     "ending time": datetime(2015, 5, 18, 10, 59, 0),
-                    "time elapsed seconds": 172740,
-                    "utilization ratio": 0.12329940659834618,
-                    "trips per car per day quartile 25": 1.6255644320944773,
-                    "distance per trip quartile 25": 0.3909876034341634,
-                    "duration per trip quartile 75": 40,
+                    "time elapsed seconds": 172740.0,
+                    "utilization ratio": 0.1232994066,
+                    "trips per car per day quartile 25": 1.625564432,
+                    "distance per trip quartile 25": 0.3909876034,
+                    "duration per trip quartile 75": 40.0,
                     "weird trip count": 103
                 },
                 "expected_dataframes": {
@@ -183,11 +183,11 @@ class StatsTest(unittest.TestCase):
                     "total trips": 1333,
                     "starting time": datetime(2015, 6, 19, 0, 0, 0),
                     "ending time": datetime(2015, 6, 19, 23, 59, 0),
-                    "time elapsed seconds": 86340,
-                    "utilization ratio": 0.1325850701642714,
-                    "trips per car per day quartile 25": 3.0020847810979845,
-                    "distance per trip quartile 25": 0.15637713310531542,
-                    "duration per trip quartile 75": 37,
+                    "time elapsed seconds": 86340.0,
+                    "utilization ratio": 0.1325850702,
+                    "trips per car per day quartile 25": 3.002084781,
+                    "distance per trip quartile 25": 0.1563771331,
+                    "duration per trip quartile 75": 37.0,
                     "weird trip count": 37
                 },
                 "expected_dataframes": {
@@ -232,11 +232,11 @@ class StatsTest(unittest.TestCase):
                     "total trips": 1333,
                     "starting time": datetime(2015, 6, 19, 0, 0, 0),
                     "ending time": datetime(2015, 6, 19, 23, 59, 0),
-                    "time elapsed seconds": 86340,
-                    "utilization ratio": 0.1325850701642714,
-                    "trips per car per day quartile 25": 3.0020847810979845,
-                    "distance per trip quartile 25": 0.15637713310531542,
-                    "duration per trip quartile 75": 37,
+                    "time elapsed seconds": 86340.0,
+                    "utilization ratio": 0.1325850702,
+                    "trips per car per day quartile 25": 3.002084781,
+                    "distance per trip quartile 25": 0.1563771331,
+                    "duration per trip quartile 75": 37.0,
                     "weird trip count": 37
                 },
                 "expected_dataframes": {
@@ -284,6 +284,10 @@ class StatsTest(unittest.TestCase):
             exp_stats = self.datasets[dataset_name]["expected_stats"]
 
             stats = process_stats.stats_dict(self.results[dataset_name])
+
+            # for consistent significant figures between py2 and py3
+            stats = process_stats.repr_floats(stats)
+            exp_stats = process_stats.repr_floats(exp_stats)
 
             for category in exp_stats:
                 self.assertEqual(exp_stats[category], stats[category],
@@ -418,9 +422,9 @@ class IntegrationTest(unittest.TestCase):
                 return data_row[index]
 
             # they're strings because everything in CSV is a string by default I think
-            self.assertEqual(get_data('utilization ratio'), '0.06061195898297236')
-            self.assertEqual(get_data('trips per car mean'), '8.6779661016949152')
-            self.assertEqual(get_data('distance per trip quartile 75'), '3.3623576221234872')
+            self.assertEqual(get_data('utilization ratio'), '0.06061195898')
+            self.assertEqual(get_data('trips per car mean'), '8.677966102')
+            self.assertEqual(get_data('distance per trip quartile 75'), '3.362357622')
 
 
 class HelperFunctionsTest(unittest.TestCase):
