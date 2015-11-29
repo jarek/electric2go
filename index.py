@@ -34,7 +34,7 @@ def google_api_key():
 
 
 def format_latlng(car):
-    return '%s,%s' % (car['lat'], car['lng'])
+    return '{:f},{:f}'.format(car['lat'], car['lng'])
 
 
 def get_car_info(car, all_cars, city):
