@@ -50,7 +50,7 @@ class DownloadTest(unittest.TestCase):
         for city in self.test_cities:
             city_data = cars.get_city_by_name(city[0], city[1])
 
-            t, _ = download.save(city[0], city[1])
+            t, _ = download.save(city[0], city[1], should_archive=True)
 
             file_absolute = cars.get_file_path(city_data, t)
             file_current = cars.get_current_file_path(city_data)
@@ -63,7 +63,7 @@ class DownloadTest(unittest.TestCase):
             city_data = cars.get_city_by_name(city[0], city[1])
 
             # warm up the cache
-            _, _ = download.save(city[0], city[1])
+            _, _ = download.save(city[0], city[1], should_archive=False)
 
             text, cache = web_helper.get_all_cars_text(city_data)
 

@@ -69,19 +69,20 @@ def download_one_city(city_data, session=None):
     return json_text, session
 
 
-def save_one_city(city, t, session):
+def save_one_city(city, timestamp_to_save, should_archive, session):
     cars_text, session = download_one_city(city, session=session)
 
     with open(cars.get_current_file_path(city), 'wb') as f:
         f.write(cars_text)
 
-    with open(cars.get_file_path(city, t), 'wb') as f:
-        f.write(cars_text)
+    if should_archive:
+        with open(cars.get_file_path(city, timestamp_to_save), 'wb') as f:
+            f.write(cars_text)
 
     return session
 
 
-def save(requested_system, requested_city):
+def save(requested_system, requested_city, should_archive):
     failures = []
 
     if requested_city == 'all':
@@ -95,7 +96,7 @@ def save(requested_system, requested_city):
     session = None
     for city in cities_to_download_list:
         try:
-            session = save_one_city(city, t, session=session)
+            session = save_one_city(city, t, should_archive, session)
         except:
             # bypass cities that fail (like Ulm did in 2015-01) without killing whole script
             failures.append((city['system'], city['name']))
@@ -113,10 +114,12 @@ def process_commandline():
     requested_system = sys.argv[1].lower()
     requested_city = sys.argv[2].lower()
 
-    # TODO: can't actually run this without collecting data - so running just the web page
-    # also requires a cronjob to clean out collected data - should be a switch
+    if len(sys.argv) > 3:
+        requested_archive = (sys.argv[3].lower() == 'archive')
+    else:
+        requested_archive = False
 
-    t, failures = save(requested_system, requested_city)
+    t, failures = save(requested_system, requested_city, should_archive=requested_archive)
 
     end_time = datetime.datetime.utcnow()
 
