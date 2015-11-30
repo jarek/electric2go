@@ -8,8 +8,6 @@ from math import radians, sin, cos, atan2, sqrt
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 
-timer = []
-
 
 def get_data_dir(system):
     return os.path.join(root_dir, 'data', system)

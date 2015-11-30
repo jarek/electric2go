@@ -11,6 +11,9 @@ import requests
 import cars
 
 
+timer = []
+
+
 def head_url(url, session, extra_headers):
     htime1 = time.time()
 
@@ -20,7 +23,7 @@ def head_url(url, session, extra_headers):
     session.head(url, headers=extra_headers)
 
     htime2 = time.time()
-    cars.timer.append(['http head, ms', (htime2-htime1)*1000.0])
+    timer.append(['http head, ms', (htime2-htime1)*1000.0])
 
     return session
 
@@ -34,7 +37,7 @@ def get_url(url, session, extra_headers):
     r = session.get(url, headers=extra_headers)
 
     htime2 = time.time()
-    cars.timer.append(['http get, ms', (htime2-htime1)*1000.0])
+    timer.append(['http get, ms', (htime2-htime1)*1000.0])
 
     return r.content, session
 

@@ -20,8 +20,6 @@ import web_helper
 # or come up with a formula to estimate it based on map size and zoom level.
 MAP_SIZE_IN_DEGREES = 0.02
 
-timer = []
-
 
 def google_api_key():
     try:
@@ -98,11 +96,11 @@ def pluralize(count, string, end_ptr=None, rep_ptr=''):
     return '{count:.0f} {label}'.format(count=count, label=label)
 
 
-def get_timer_info(t=timer):
+def get_timer_info(t):
     return ['<!--%s: %f-->' % (timepoint[0], timepoint[1]) for timepoint in t]
 
 
-def print_timer_info(t=timer):
+def print_timer_info(t):
     for line in get_timer_info(t):
         print(line)
 
@@ -153,10 +151,9 @@ def print_all_html():
 
     # print timer info separately. TODO: rewrite timers to not be horrible
     ttime2 = time.time()
-    timer.append(['total, ms', (ttime2-ttime1)*1000.0])
+    web_helper.request_timer.append(['total, ms', (ttime2-ttime1)*1000.0])
 
-    print_timer_info(cars.timer)
-    print_timer_info()
+    print_timer_info(web_helper.request_timer)
 
 
 if __name__ == '__main__':

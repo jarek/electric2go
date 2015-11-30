@@ -51,8 +51,8 @@ def json_respond():
         result['cache'] = False
 
     if web_helper.get_param('debug'):
-        cars.timer.append(['total, ms', (time.time()-ttime1)*1000.0])
-        result['timer'] = cars.timer
+        web_helper.request_timer.append(['total, ms', (time.time()-ttime1)*1000.0])
+        result['timer'] = web_helper.request_timer
 
     print(json.dumps(result))
 
