@@ -20,8 +20,6 @@ DEFAULT_CITY = 'london'
 
 CACHE_PERIOD = 60  # cache data for this many seconds at most
 
-_parse_modules = {}
-
 
 def get_param(param_name):
     arguments = cgi.FieldStorage()
@@ -53,17 +51,11 @@ def get_system_and_city(allow_any_city=True):
     return cars.get_city_by_name(DEFAULT_SYSTEM, DEFAULT_CITY)
 
 
-def get_parser(city):
-    if city['system'] not in _parse_modules:
-        _parse_modules[city['system']] = cars.get_carshare_system_module(city['system'], 'parse')
-
-    return _parse_modules[city['system']]
-
-
 def get_all_cars_text(city_data):
     json_text = None
     cache = False
 
+    # TODO: move into a download/cache module so the logic for finding files by name is not here?
     cached_data_filename = cars.get_current_file_path(city_data)
     if os.path.exists(cached_data_filename):
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
@@ -87,7 +79,7 @@ def get_electric_cars(city):
 
     time1 = time.time()
 
-    parse = get_parser(city)
+    parse = cars.get_parser(city['system'])
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))
     parsed_cars = [parse.extract_car_data(car) for car in all_cars]
 
@@ -101,7 +93,7 @@ def get_electric_cars(city):
 
 
 def fill_in_car(car, city):
-    car['range'] = get_parser(city).get_range(car)
+    car['range'] = city['range_estimator'](car)
     car['address'] = format_address(car['address'], city)
 
     return car

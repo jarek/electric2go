@@ -59,11 +59,23 @@ def fill_in_city_information(system, city_name, city_data):
     city_data.setdefault('API_AVAILABLE_VEHICLES_HEADERS', None)
     city_data.setdefault('API_KNOCK_HEAD_URL', None)
 
+    # provide the range estimator
+    city_data['range_estimator'] = getattr(get_parser(system), 'get_range', None)
+
     return city_data
 
 
+def _get_carshare_system_module(system_name, module_name=''):
+    if module_name == '':
+        lib_name = system_name
+    else:
+        lib_name = '%s.%s' % (system_name, module_name)
+
+    return importlib.import_module(lib_name)
+
+
 def _get_all_cities_raw(system):
-    city_module = get_carshare_system_module(system, 'city')
+    city_module = _get_carshare_system_module(system, 'city')
 
     return getattr(city_module, 'CITIES')
 
@@ -81,13 +93,16 @@ def get_city_by_name(system, city_name):
     return fill_in_city_information(system, city_name, city_data)
 
 
-def get_carshare_system_module(system_name, module_name=''):
-    if module_name == '':
-        lib_name = system_name
-    else:
-        lib_name = '%s.%s' % (system_name, module_name)
+_parse_modules = {}
+def get_parser(system):
+    # Function with a mini-cache since getting parser requires importing
+    # modules which might be pretty slow, and parsers might get requested a lot
+    # Python 3 has a @functools.lru_cache but Python 2 doesn't :(
+    # so hack our own simple one.
+    if system not in _parse_modules:
+        _parse_modules[system] = _get_carshare_system_module(system, 'parse')
 
-    return importlib.import_module(lib_name)
+    return _parse_modules[system]
 
 
 def dist(ll1, ll2):

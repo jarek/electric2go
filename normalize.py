@@ -253,7 +253,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
 
     # get parser functions for the correct system
     try:
-        parse_module = cars.get_carshare_system_module(system_name=system, module_name='parse')
+        parse_module = cars.get_parser(system)
     except ImportError:
         sys.exit('unsupported system {system_name}'.format(system_name=system))
 
