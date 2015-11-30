@@ -96,19 +96,8 @@ def pluralize(count, string, end_ptr=None, rep_ptr=''):
     return '{count:.0f} {label}'.format(count=count, label=label)
 
 
-def get_timer_info(t):
-    return ['<!--%s: %f-->' % (timepoint[0], timepoint[1]) for timepoint in t]
-
-
-def print_timer_info(t):
-    for line in get_timer_info(t):
-        print(line)
-
-
 def print_all_html():
     print('Content-type: text/html\n')
-
-    ttime1 = time.time()
 
     env = Environment(loader=PackageLoader('frontend', '.'), trim_blocks=True, lstrip_blocks=True)
     env.filters['count'] = pluralize
@@ -148,12 +137,6 @@ def print_all_html():
         # Python 2 needs an explicit encode in some cases,
         # particularly when using BaseHTTPServer module
         print(full_html.encode('utf-8'))
-
-    # print timer info separately. TODO: rewrite timers to not be horrible
-    ttime2 = time.time()
-    web_helper.request_timer.append(['total, ms', (ttime2-ttime1)*1000.0])
-
-    print_timer_info(web_helper.request_timer)
 
 
 if __name__ == '__main__':

@@ -3,7 +3,6 @@
 
 from __future__ import print_function
 import datetime
-import time
 import sys
 
 import requests
@@ -11,33 +10,20 @@ import requests
 import cars
 
 
-timer = []
-
-
 def head_url(url, session, extra_headers):
-    htime1 = time.time()
-
     if session is None:
         session = requests.Session()
 
     session.head(url, headers=extra_headers)
 
-    htime2 = time.time()
-    timer.append(['http head, ms', (htime2-htime1)*1000.0])
-
     return session
 
 
 def get_url(url, session, extra_headers):
-    htime1 = time.time()
-
     if session is None:
         session = requests.Session()
 
     r = session.get(url, headers=extra_headers)
-
-    htime2 = time.time()
-    timer.append(['http get, ms', (htime2-htime1)*1000.0])
 
     return r.content, session
 

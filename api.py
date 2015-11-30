@@ -4,7 +4,6 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 import json
-import time
 
 import cars
 import web_helper
@@ -17,8 +16,6 @@ def fill_in_distance(car, query_ll):
 
 def json_respond():
     print('Content-type: application/json\n')
-
-    ttime1 = time.time()
 
     requested_city = web_helper.get_system_and_city()
     electric_cars, cache = web_helper.get_electric_cars(requested_city)
@@ -49,10 +46,6 @@ def json_respond():
         result['cache_age'] = cache
     else:
         result['cache'] = False
-
-    if web_helper.get_param('debug'):
-        web_helper.request_timer.append(['total, ms', (time.time()-ttime1)*1000.0])
-        result['timer'] = web_helper.request_timer
 
     print(json.dumps(result))
 

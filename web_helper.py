@@ -64,17 +64,13 @@ def get_all_cars_text(city_data):
         cached_data_age = time.time() - cached_data_timestamp
         if cached_data_age < CACHE_PERIOD:
             cache = cached_data_timestamp
-            request_timer.append(['using cached data, age in seconds', cached_data_age])
             with open(cached_data_filename, 'rb') as f:
                 json_text = f.read()
 
     if not json_text:
         cache = False
-        time1 = time.time()
         json_text, session = download.download_one_city(city_data)
-        time2 = time.time()
         session.close()
-        request_timer.append(['data download, ms', (time2-time1)*1000.0])
 
     return json_text, cache
 
@@ -82,15 +78,9 @@ def get_all_cars_text(city_data):
 def get_electric_cars(city):
     json_text, cache = get_all_cars_text(city)
 
-    time1 = time.time()
-
     parse = cars.get_parser(city['system'])
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))
     parsed_cars = [parse.extract_car_data(car) for car in all_cars]
-
-    time2 = time.time()
-    request_timer.append(['json size, kB', len(json_text)/1000.0])
-    request_timer.append(['json load, ms', (time2-time1)*1000.0])
 
     electric_cars = [car for car in parsed_cars if car['electric']]
 
