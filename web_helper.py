@@ -1,10 +1,8 @@
 # coding=utf-8
 
-import os
 import sys
 import cgi
 import json
-import time
 
 import cars
 import download
@@ -53,30 +51,8 @@ def get_system_and_city(allow_any_city=True):
     return cars.get_city_by_name(DEFAULT_SYSTEM, DEFAULT_CITY)
 
 
-def get_all_cars_text(city_data):
-    json_text = None
-    cache = False
-
-    # TODO: move into a download/cache module so the logic for finding files by name is not here?
-    cached_data_filename = cars.get_current_file_path(city_data)
-    if os.path.exists(cached_data_filename):
-        cached_data_timestamp = os.path.getmtime(cached_data_filename)
-        cached_data_age = time.time() - cached_data_timestamp
-        if cached_data_age < CACHE_PERIOD:
-            cache = cached_data_timestamp
-            with open(cached_data_filename, 'rb') as f:
-                json_text = f.read()
-
-    if not json_text:
-        cache = False
-        json_text, session = download.download_one_city(city_data)
-        session.close()
-
-    return json_text, cache
-
-
 def get_electric_cars(city):
-    json_text, cache = get_all_cars_text(city)
+    json_text, cache = download.get_current(city, CACHE_PERIOD)
 
     parse = cars.get_parser(city['system'])
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))

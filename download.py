@@ -3,7 +3,9 @@
 
 from __future__ import print_function
 import datetime
+import os
 import sys
+import time
 
 import requests
 
@@ -69,6 +71,32 @@ def save_one_city(city, timestamp_to_save, should_archive, session):
             f.write(cars_text)
 
     return session
+
+
+def get_current(city_data, max_cache_age):
+    """
+    Gets current data for city. Returns data from local cache file
+    if available, downloads data from API otherwise.
+    """
+    json_text = None
+    cache = False
+
+    # see if it's already cached
+    cached_data_filename = cars.get_current_file_path(city_data)
+    if os.path.exists(cached_data_filename):
+        cached_data_timestamp = os.path.getmtime(cached_data_filename)
+        cached_data_age = time.time() - cached_data_timestamp
+        if cached_data_age < max_cache_age:
+            cache = cached_data_timestamp
+            with open(cached_data_filename, 'rb') as f:
+                json_text = f.read()
+
+    if not json_text:
+        cache = False
+        json_text, session = download_one_city(city_data)
+        session.close()
+
+    return json_text, cache
 
 
 def save(requested_system, requested_city, should_archive):

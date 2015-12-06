@@ -12,7 +12,6 @@ from datetime import datetime
 
 import cars
 import download
-import web_helper
 import normalize
 import merge
 import process
@@ -65,7 +64,7 @@ class DownloadTest(unittest.TestCase):
             # warm up the cache
             _, _ = download.save(city[0], city[1], should_archive=False)
 
-            text, cache = web_helper.get_all_cars_text(city_data)
+            text, cache = download.get_current(city_data, max_cache_age=30)
 
             # check we've gotten a cached file
             self.assertTrue(cache != False and cache > 0)
