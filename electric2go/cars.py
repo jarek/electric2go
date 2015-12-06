@@ -65,11 +65,11 @@ def fill_in_city_information(system, city_name, city_data):
 
 def _get_carshare_system_module(system_name, module_name=''):
     if module_name == '':
-        lib_name = system_name
+        lib_name = '.systems.{s}'.format(s=system_name)
     else:
-        lib_name = '%s.%s' % (system_name, module_name)
+        lib_name = '.systems.{s}.{m}'.format(s=system_name, m=module_name)
 
-    return importlib.import_module(lib_name)
+    return importlib.import_module(lib_name, __package__)
 
 
 def _get_all_cities_raw(system):

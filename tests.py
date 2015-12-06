@@ -10,13 +10,10 @@ import csv
 from subprocess import Popen, PIPE
 from datetime import datetime
 
-import cars
-import download
-import normalize
-import merge
-import process
-from analysis import graph as process_graph
-from analysis import stats as process_stats
+from electric2go import cars, download
+from electric2go.analysis import normalize, merge, process
+from electric2go.analysis import graph as process_graph
+from electric2go.analysis import stats as process_stats
 
 CITIES = cars.get_all_cities("car2go")
 
@@ -387,7 +384,7 @@ class IntegrationTest(unittest.TestCase):
         # - check a few of the stats values to make sure they're the expected numbers for the dataset
 
         data_dir = '/home/jarek/car2go-columbus'
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.path.dirname(os.path.abspath(__file__)) + '/scripts'
 
         Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-01.tgz'],
               cwd=data_dir,

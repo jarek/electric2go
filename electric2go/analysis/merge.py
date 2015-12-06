@@ -1,12 +1,9 @@
-#!/usr/bin/env python3
 # coding=utf-8
 
 from __future__ import print_function
-import argparse
 from datetime import timedelta
 
-import cmdline
-import normalize
+from . import cmdline, normalize
 
 
 def merge_two_dicts(one, two):
@@ -127,18 +124,3 @@ def merge_all_files(files):
                  for file_to_load in files)
 
     return merge_all_dicts(file_objs)
-
-
-def process_commandline():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('files', type=str, nargs='+',
-                        help='files to merge, must be in order')
-    args = parser.parse_args()
-
-    result_dict = merge_all_files(args.files)
-
-    cmdline.write_json(result_dict)
-
-
-if __name__ == '__main__':
-    process_commandline()

@@ -5,8 +5,8 @@ from __future__ import unicode_literals
 from __future__ import print_function
 import json
 
-import cars
 import web_helper
+from web_helper import cars
 
 
 def fill_in_distance(car, query_ll):

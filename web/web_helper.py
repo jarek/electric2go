@@ -1,11 +1,15 @@
 # coding=utf-8
 
+import os
 import sys
 import cgi
 import json
 
-import cars
-import download
+# ask script to look for the electric2go package in one directory up
+# you might want to hardcode a path instead
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from electric2go import cars, download
 
 
 # systems are loaded dynamically based on their name,

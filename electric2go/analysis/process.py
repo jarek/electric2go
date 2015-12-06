@@ -1,21 +1,16 @@
-#!/usr/bin/env python3
 # coding=utf-8
 
 from __future__ import print_function
 import os
 import sys
 import stat
-import argparse
 import json
 from datetime import timedelta
 import time
 
-import cmdline
-import cars
-from analysis import stats as process_stats, graph as process_graph
-
-
-DEBUG = False
+from . import cmdline
+from .. import cars
+from . import stats as process_stats, graph as process_graph
 
 
 def build_data_frames(result_dict):
@@ -66,7 +61,7 @@ def build_data_frames(result_dict):
 
 
 def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
-                          show_move_lines, show_speeds, distance, tz_offset):
+                          show_move_lines, show_speeds, distance, tz_offset, debug):
     # TODO: migrate away from using the global timer objects
     # and printing timer messages directly
     # It appears process_graph functions will be safe to parallelize, they
@@ -95,7 +90,7 @@ def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
 
     print(turn, 'generated graph in %d ms' % time_graph, file=sys.stderr)
 
-    if DEBUG:
+    if debug:
         print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
         print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
 
@@ -104,12 +99,11 @@ def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
 
 def batch_process(video=False, web=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
-                  all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
+                  all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False,
+                  debug=False):
     """
     :return: does not return anything
     """
-
-    global DEBUG
 
     timer = []
 
@@ -121,7 +115,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     system = result_dict['metadata']['system']
     city = result_dict['metadata']['city']
 
-    if DEBUG:
+    if debug:
         time_load_total = (time.time() - time_load_start)
         data_duration = (result_dict['metadata']['ending_time'] - result_dict['metadata']['starting_time']).total_seconds()
         time_load_minute = time_load_total / (data_duration/60)
@@ -139,7 +133,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
         # TODO: clean up timers/prints in make_graph_from_frame so it can be parallelized safely
         iter_filenames = [
             make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
-                                  show_move_lines, show_speeds, distance, tz_offset)
+                                  show_move_lines, show_speeds, distance, tz_offset, debug)
             for data in build_data_frames(result_dict)
         ]
 
@@ -166,7 +160,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
             print('./' + command_file_name)
 
         background_path = os.path.relpath(os.path.join(cars.root_dir,
-            'backgrounds/', '%s-background.png' % city))
+            'systems/backgrounds/', '%s-background.png' % city))
         png_filepaths = animation_files_prefix + '_%05d.png'
         mp4_path = animation_files_prefix + '.mp4'
 
@@ -196,50 +190,6 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     if all_trips_points_image:
         process_graph.make_trip_origin_destination_graph(system, city, all_trips, all_trips_points_image, symbol)
 
-    if DEBUG:
+    if debug:
         print('\n'.join(l[0] + ': ' + str(l[1]) for l in process_graph.timer), file=sys.stderr)
         print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
-
-
-def process_commandline():
-    global DEBUG
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-debug', action='store_true',
-                        help='print extra debug and timing messages to stderr')
-    parser.add_argument('-tz', '--tz-offset', type=int, default=0,
-                        help='offset times by TZ_OFFSET hours')
-    parser.add_argument('-v', '--video', action='store_true',
-                        help='generate minute-by-minute images for animating into a video')
-    parser.add_argument('-web', action='store_true',
-                        help='create pngcrush script and JS filelist for HTML animation page use; '
-                             'requires VIDEO')
-    parser.add_argument('-lines', '--show-move-lines', action='store_true',
-                        help='show lines indicating vehicles\' trips')
-    parser.add_argument('-d', '--distance', type=float, default=False,
-                        help='mark distance of DISTANCE meters from nearest car on map')
-    parser.add_argument('-speeds', '--show_speeds', action='store_true',
-                        help='indicate vehicles\' speeds in addition to locations')
-    parser.add_argument('-symbol', type=str, default='.',
-                        help='matplotlib symbol to indicate vehicles on the images '
-                             '(default \'.\', larger \'o\')')
-    parser.add_argument('-s', '--stats', action='store_true',
-                        help='generate some basic statistics about carshare use')
-    parser.add_argument('-ap', '--all-positions-image', type=str, default=False,
-                        help='create image of all vehicle positions in the dataset and save to ALL_POSITIONS_IMAGE')
-    parser.add_argument('-atl', '--all-trips-lines-image', type=str, default=False,
-                        help='create image of all trips in the dataset and save to ALL_TRIPS_LINES_IMAGE')
-    parser.add_argument('-atp', '--all-trips-points-image', type=str, default=False,
-                        help='create image of all trips in the dataset and save to ALL_TRIPS_POINTS_IMAGE')
-
-    args = parser.parse_args()
-    params = vars(args)
-
-    DEBUG = args.debug
-    del params['debug']
-
-    batch_process(**params)
-
-
-if __name__ == '__main__':
-    process_commandline()

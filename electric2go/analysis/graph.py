@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # coding=utf-8
 
 from datetime import timedelta
@@ -7,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from cars import get_city_by_name
+from ..cars import get_city_by_name
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+

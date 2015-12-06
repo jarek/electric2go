@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # coding=utf-8
 
 from collections import Counter, OrderedDict
@@ -6,7 +5,7 @@ from datetime import timedelta
 import csv
 import numpy as np
 
-import cars
+from .. import cars
 
 
 def write_csv(f, items):

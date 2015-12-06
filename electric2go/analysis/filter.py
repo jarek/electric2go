@@ -1,10 +1,6 @@
-#!/usr/bin/env python3
 # coding=utf-8
 
-import argparse
 from random import sample
-
-import cmdline
 
 
 def by_vehicle(result_dict, find_by):
@@ -49,26 +45,3 @@ def by_vehicle(result_dict, find_by):
     result_dict['unstarted_trips'] = {k: v for k, v in result_dict['unstarted_trips'].items() if k == vin_to_find}
 
     return result_dict
-
-
-def process_commandline():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--by-vehicle', type=str, default=False,
-                        help='filter all results to only include data for one vehicle; '
-                             'accepts VINs, "random", "most_trips", "most_distance", and "most_duration".')
-
-    args = parser.parse_args()
-
-    input_dict = cmdline.read_json()
-
-    # TODO: add more filters, like filtering by timeframe, latlng, etc
-    # though it might be easier to provide a harness and have the filter functions be per-analysis-project
-    # - at least for now until I figure out what the most used filters are
-
-    result_dict = by_vehicle(input_dict, args.by_vehicle)
-
-    cmdline.write_json(result_dict)
-
-
-if __name__ == '__main__':
-    process_commandline()
