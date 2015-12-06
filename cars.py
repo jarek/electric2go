@@ -3,7 +3,7 @@
 import os
 import importlib
 from datetime import datetime
-from math import radians, sin, cos, atan2, sqrt
+from math import radians, sin, cos, asin, sqrt
 
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -126,9 +126,6 @@ def dist(ll1, ll2):
     d_lng = radians(lng2 - lng1)
 
     a = sin(d_lat/2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(d_lng/2)**2
-    # I think in theory the shorter calculation c = 2 * asin(sqrt(a))
-    # is mathematically the same. In practice, floating point precision errors
-    # break my tests on the 14th decimal digit.
-    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    c = 2 * asin(sqrt(a))
 
     return earth_radius * c

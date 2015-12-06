@@ -137,7 +137,7 @@ function calculate_distance(lat1, lng1, lat2, lng2) {
         Math.sin(dLat/2) * Math.sin(dLat/2) +
         Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
         Math.sin(dLon/2) * Math.sin(dLon/2); 
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    var c = 2 * Math.asin(Math.sqrt(a));
     var d = R * c; // Distance in km
     return d;
 }
