@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..cars import get_city_by_name
+from ..systems import get_city_by_name
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+

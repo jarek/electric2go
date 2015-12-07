@@ -10,12 +10,12 @@ import csv
 from subprocess import Popen, PIPE
 from datetime import datetime
 
-from electric2go import cars, download
+from electric2go import cars, download, systems
 from electric2go.analysis import normalize, merge, process
 from electric2go.analysis import graph as process_graph
 from electric2go.analysis import stats as process_stats
 
-CITIES = cars.get_all_cities("car2go")
+CITIES = systems.get_all_cities("car2go")
 
 # TODO: we need way more tests
 
@@ -31,7 +31,7 @@ class DownloadTest(unittest.TestCase):
 
     def test_car2go_get_text(self):
         for city in self.test_cities:
-            city_data = cars.get_city_by_name(city[0], city[1])
+            city_data = systems.get_city_by_name(city[0], city[1])
 
             text, session = download.download_one_city(city_data)
             session.close()
@@ -44,7 +44,7 @@ class DownloadTest(unittest.TestCase):
 
     def test_download(self):
         for city in self.test_cities:
-            city_data = cars.get_city_by_name(city[0], city[1])
+            city_data = systems.get_city_by_name(city[0], city[1])
 
             t, _ = download.save(city[0], city[1], should_archive=True)
 
@@ -56,7 +56,7 @@ class DownloadTest(unittest.TestCase):
 
     def test_cache(self):
         for city in self.test_cities:
-            city_data = cars.get_city_by_name(city[0], city[1])
+            city_data = systems.get_city_by_name(city[0], city[1])
 
             # warm up the cache
             _, _ = download.save(city[0], city[1], should_archive=False)

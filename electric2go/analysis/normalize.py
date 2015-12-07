@@ -10,7 +10,7 @@ import time
 import tarfile
 
 from .cmdline import json  # will be either simplejson or json
-from .. import cars
+from .. import cars, systems
 
 
 def calculate_parking(data):
@@ -245,7 +245,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
 
     # get parser functions for the correct system
     try:
-        parse_module = cars.get_parser(system)
+        parse_module = systems.get_parser(system)
     except ImportError:
         sys.exit('unsupported system {system_name}'.format(system_name=system))
 

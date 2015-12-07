@@ -8,7 +8,7 @@ import time
 from jinja2 import Environment, PackageLoader
 
 import web_helper
-from web_helper import cars
+from web_helper import cars, systems
 
 
 # For zoom=15 and size 300x250, the map is less than 0.02 degrees across
@@ -107,7 +107,7 @@ def print_all_html():
 
     # get list of cities
     all_cities = (city for system in web_helper.ALL_SYSTEMS
-                  for city in cars.get_all_cities(system).values()
+                  for city in systems.get_all_cities(system).values()
                   if city['electric'] == 'some')
     all_cities = sorted(all_cities, key=lambda c: c['name'])
 

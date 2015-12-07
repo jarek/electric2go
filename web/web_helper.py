@@ -9,7 +9,7 @@ import json
 # you might want to hardcode a path instead
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from electric2go import cars, download
+from electric2go import cars, download, systems
 
 
 # systems are loaded dynamically based on their name,
@@ -44,7 +44,7 @@ def get_system_and_city(allow_any_city=True):
 
     if system in ALL_SYSTEMS:
         try:
-            city_data = cars.get_city_by_name(system, city)
+            city_data = systems.get_city_by_name(system, city)
             if allow_any_city or city_data['electric'] == 'some':
                 return city_data
         except KeyError:
@@ -52,13 +52,13 @@ def get_system_and_city(allow_any_city=True):
             pass
 
     # if city or system were incorrect, return default
-    return cars.get_city_by_name(DEFAULT_SYSTEM, DEFAULT_CITY)
+    return systems.get_city_by_name(DEFAULT_SYSTEM, DEFAULT_CITY)
 
 
 def get_electric_cars(city):
     json_text, cache = download.get_current(city, CACHE_PERIOD)
 
-    parse = cars.get_parser(city['system'])
+    parse = systems.get_parser(city['system'])
     all_cars = parse.get_cars_from_json(json.loads(json_text.decode('utf-8')))
     parsed_cars = [parse.extract_car_data(car) for car in all_cars]
 

@@ -3,12 +3,11 @@
 from __future__ import print_function
 import datetime
 import os
-import sys
 import time
 
 import requests
 
-from . import cars
+from . import cars, systems
 
 
 def head_url(url, session, extra_headers):
@@ -102,11 +101,11 @@ def save(requested_system, requested_city, should_archive):
     failures = []
 
     if requested_city == 'all':
-        all_cities = cars.get_all_cities(requested_system)
+        all_cities = systems.get_all_cities(requested_system)
         cities_to_download_list = [city for key, city in all_cities.items()
                                    if city['of_interest'] or city['electric'] == 'some']
     else:
-        cities_to_download_list = [cars.get_city_by_name(requested_system, requested_city)]
+        cities_to_download_list = [systems.get_city_by_name(requested_system, requested_city)]
 
     t = datetime.datetime.utcnow()
     session = None
