@@ -9,7 +9,7 @@ import json
 # you might want to hardcode a path instead
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from electric2go import cars, download, systems
+from electric2go import cars, download, systems  # cars used in api.py
 
 
 # systems are loaded dynamically based on their name,

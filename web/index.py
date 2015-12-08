@@ -8,7 +8,7 @@ import time
 from jinja2 import Environment, PackageLoader
 
 import web_helper
-from web_helper import cars, systems
+from web_helper import systems
 
 
 # For zoom=15 and size 300x250, the map is less than 0.02 degrees across
