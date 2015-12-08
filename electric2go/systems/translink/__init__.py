@@ -3,14 +3,35 @@
 from os import path
 
 
-API_KEY = ''  # provide key either here or in file "api_key"
-
-_api_key_file = path.join(path.dirname(__file__), 'api_key')
-if path.exists(_api_key_file):
-    with open(_api_key_file, 'r') as f:
+try:
+    with open(path.join(path.dirname(__file__), 'api_key'), 'r') as f:
         API_KEY = f.read().strip()
+except IOError:
+    API_KEY = ''
 
-API_ROUTE_ALL_BUSES_URL = lambda route:\
-    'http://api.translink.ca/rttiapi/v1/buses?routeNo={route}&apikey={key}'.format(key=API_KEY, route=route)
 
-API_ROUTE_ALL_BUSES_HEADERS = {'Accept': 'application/json'}
+# we pretend that individual routes are "cities" - the abstraction holds otherwise
+CITIES = {
+    '010': {
+        'of_interest': True
+    },
+    '099': {
+        'of_interest': True
+    },
+    '020': {
+        'of_interest': True
+    },
+    '005': {
+        'of_interest': True
+    }
+}
+
+API_URL = 'http://api.translink.ca/rttiapi/v1/buses?routeNo={route}&apikey={key}'
+
+# fill in data that is constant for all routes
+for route_number, route_data in CITIES.items():
+    if 'API_AVAILABLE_VEHICLES_URL' not in route_data:
+        route_data['API_AVAILABLE_VEHICLES_URL'] = API_URL.format(key=API_KEY, route=route_number)
+
+    if 'API_AVAILABLE_VEHICLES_HEADERS' not in route_data:
+        route_data['API_AVAILABLE_VEHICLES_HEADERS'] = {'Accept': 'application/json'}

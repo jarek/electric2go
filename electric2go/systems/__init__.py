@@ -37,7 +37,7 @@ def _get_carshare_system_module(system_name, module_name=''):
 
 
 def _get_all_cities_raw(system):
-    city_module = _get_carshare_system_module(system, 'city')
+    city_module = _get_carshare_system_module(system)
 
     return getattr(city_module, 'CITIES')
 

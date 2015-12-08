@@ -1,10 +1,20 @@
 # coding=utf-8
 
+from __future__ import unicode_literals
+
 
 JSONP_CALLBACK_NAME = 'electric2goscraper'
 
-
 # communauto auto-mobile has only one city for now, and the service always returns it,
 # so I am hardcoding the URL
-API_AVAILABLE_VEHICLES_URL = lambda city: \
-    'https://www.reservauto.net/WCF/LSI/LSIBookingService.asmx/GetVehicleProposals?CustomerID=&Longitude=0&Latitude=0&Callback={callback}'.format(callback=JSONP_CALLBACK_NAME)
+API_URL = 'https://www.reservauto.net/WCF/LSI/LSIBookingService.asmx/GetVehicleProposals?CustomerID=&Longitude=0&Latitude=0&Callback={callback}'
+
+CITIES = {
+    'montreal': {
+        'display': 'Montréal',
+        'electric': 'some',
+        'of_interest': True,
+        'API_AVAILABLE_VEHICLES_URL': API_URL.format(callback=JSONP_CALLBACK_NAME),
+        'JSONP_CALLBACK_NAME': JSONP_CALLBACK_NAME
+    }
+}
