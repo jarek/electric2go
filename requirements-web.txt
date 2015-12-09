@@ -1,4 +1,4 @@
-# this is all that is required for web.py, api.py, download.py
+# this is all that is required for index.py, api.py, download.py
 # process.py has more but it is not needed for web pages
 Jinja2==2.7.3
 MarkupSafe==0.23

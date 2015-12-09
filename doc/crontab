@@ -5,13 +5,13 @@
 # Replace the ellipses with actual path, optionally replace "car2go" with
 # another supported system.
 
-*/1 * * * * python3 .../electric2go/download.py car2go all >> .../electric2go/data/cronlog-car2go
-*/1 * * * * python3 .../electric2go/download.py drivenow all >> .../electric2go/data/cronlog-drivenow
+*/1 * * * * python3 .../scripts/download.py car2go all >> .../electric2go/data/cronlog-car2go
+*/1 * * * * python3 .../scripts/download.py drivenow all >> .../electric2go/data/cronlog-drivenow
 
 # Optionally, archive the downloaded information, by adding "archive" param:
 
-*/1 * * * * python3 .../electric2go/download.py car2go all archive >> .../electric2go/data/cronlog-car2go
-*/1 * * * * python3 .../electric2go/download.py drivenow all archive >> .../electric2go/data/cronlog-drivenow
+*/1 * * * * python3 .../scripts/download.py car2go all archive >> .../electric2go/data/cronlog-car2go
+*/1 * * * * python3 .../scripts/download.py drivenow all archive >> .../electric2go/data/cronlog-drivenow
 
 # Daily, at 1 am server time, tarball+gzip up previous day's archived files
 # into .../electric2go/data/car2go-archives/.

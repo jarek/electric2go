@@ -1,5 +1,7 @@
-# this is all that is required for web.py, api.py, download.py
-# process.py has more but it is not needed for web pages
+# these are requirements for the whole repository
+# there are requirements-download.txt and requirements-web.txt
+# if you only use those parts.
+
 Jinja2==2.7.3
 MarkupSafe==0.23
 requests>=2.4.1
