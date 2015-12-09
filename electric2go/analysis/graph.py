@@ -42,6 +42,9 @@ def is_latlng_in_bounds(city_data, latlng):
 def get_pixel_size(city_data):
     # find the length in metres represented by one pixel on graph in both lat and lng direction
 
+    # TODO: calculate DEGREE_LENGTHS here from formula rather than needing it provided in city_data
+    # it is only ever used here (so far? hm, that distance-from-subway-station could use it as well)
+
     lat_range = city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH']
     lat_in_m = lat_range * city_data['DEGREE_LENGTHS']['LENGTH_OF_LATITUDE']
     pixel_in_lat_m = lat_in_m / city_data['MAP_SIZES']['MAP_Y']
