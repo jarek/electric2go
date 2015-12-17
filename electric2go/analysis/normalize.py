@@ -268,7 +268,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
 
     # load_next_data increments t before loading in data, so subtract
     # 1 * time_step to get the first data file in first iteration
-    t = starting_time - timedelta(minutes=time_step)
+    t = starting_time - timedelta(seconds=time_step)
 
     # In the very first iteration of main loop, value of prev_t is not used.
     # This initial value will be only used when there is no data at all,
@@ -277,7 +277,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
     prev_t = t
 
     skipped = 0
-    max_t = starting_time + timedelta(minutes=time_step * (max_steps - 1))
+    max_t = starting_time + timedelta(seconds=time_step * (max_steps - 1))
 
     unfinished_trips = {}
     unfinished_parkings = {}
@@ -302,7 +302,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
         time_process_start = time.time()
 
         # get next data point according to provided time_step
-        t += timedelta(minutes=time_step)
+        t += timedelta(seconds=time_step)
 
         data = load_data_point(city, t, location)
 
@@ -383,7 +383,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             'city': city,
             'starting_time': starting_time,
             'ending_time': ending_time,
-            'time_step': time_step*60,
+            'time_step': time_step,
             'missing': missing_data_points
         }
     }

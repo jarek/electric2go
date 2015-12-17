@@ -85,7 +85,7 @@ class StatsTest(unittest.TestCase):
                     "starting_time": datetime(2015, 4, 28, 8, 0, 0),
                     "max_steps": 2880,
                     "max_skip": 0,
-                    "time_step": 1
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 296,
@@ -124,7 +124,7 @@ class StatsTest(unittest.TestCase):
                     "starting_time": datetime(2015, 5, 16, 11, 0, 0),
                     "max_steps": 2880,
                     "max_skip": 0,
-                    "time_step": 1
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 238,
@@ -172,7 +172,7 @@ class StatsTest(unittest.TestCase):
                     "starting_time": datetime(2015, 6, 19, 0, 0, 0),
                     "max_skip": 1,
                     "max_steps": 44647,
-                    "time_step": 1
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 238,
@@ -221,7 +221,7 @@ class StatsTest(unittest.TestCase):
                     "starting_time": datetime(2015, 6, 19, 0, 0, 0),
                     "max_skip": 1,
                     "max_steps": 44647,
-                    "time_step": 1
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 238,

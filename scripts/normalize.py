@@ -26,8 +26,8 @@ def process_commandline():
     parser.add_argument('-st', '--starting-time', type=str,
                         help='if using an archive, optional first data point '
                              'to process; format YYYY-mm-DD--HH-MM')
-    parser.add_argument('-step', '--time-step', type=int, default=1,
-                        help='each step is TIME_STEP minutes (default 1)')
+    parser.add_argument('-step', '--time-step', type=int, default=60,
+                        help='each step is TIME_STEP seconds (default 60)')
     parser.add_argument('-max', '--max-steps', type=int, default=44647,
                         help='limit maximum amount of TIME_STEPs to process '
                              '(default 44647 = 1440 * 31)')
