@@ -17,8 +17,6 @@ from electric2go.analysis.normalize import batch_load_data
 
 def process_commandline():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-debug', action='store_true',
-                        help='print extra debug and timing messages to stderr')
     parser.add_argument('system', type=str,
                         help='system to be used (e.g. car2go, drivenow, ...)')
     parser.add_argument('starting_filename', type=str,

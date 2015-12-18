@@ -6,7 +6,6 @@ import sys
 import codecs
 from collections import defaultdict
 from datetime import timedelta
-import time
 import tarfile
 
 from .cmdline import json  # will be either simplejson or json
@@ -205,7 +204,7 @@ def process_data(parse_module, data_time, prev_data_time, new_availability_json,
     return finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips
 
 
-def batch_load_data(system, city, location, starting_time, time_step, max_steps, max_skip, debug=False):
+def batch_load_data(system, city, location, starting_time, time_step, max_steps, max_skip):
     def load_data_from_file(city, t, file_dir):
         filename = cars.get_file_name(city, t)
         filepath_to_load = os.path.join(file_dir, filename)
@@ -263,9 +262,6 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
     else:
         load_data_point = load_data_from_file
 
-    timer = []
-    time_load_start = time.time()
-
     # load_next_data increments t before loading in data, so subtract
     # 1 * time_step to get the first data file in first iteration
     t = starting_time - timedelta(seconds=time_step)
@@ -299,8 +295,6 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
     # too many bad data points.
     # If we have a limit specified (in max_steps), loop only until limit is reached
     while t < max_t and skipped <= max_skip:
-        time_process_start = time.time()
-
         # get next data point according to provided time_step
         t += timedelta(seconds=time_step)
 
@@ -316,9 +310,6 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
                 finished_parkings[vin].append(new_finished_parkings[vin])
             for vin in new_finished_trips:
                 finished_trips[vin].append(new_finished_trips[vin])
-
-            timer.append(('{city} {t}: batch_load_data process_data, ms'.format(city=city, t=t),
-                          (time.time()-time_process_start)*1000.0))
 
             prev_t = t
             """ prev_t is now last data point that was successfully loaded.
@@ -357,15 +348,6 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             print('file for {city} {t} is missing or malformed'.format(city=city, t=t),
                   file=sys.stderr)
 
-        timer.append(('{city} {t}: batch_load_data total load loop, ms'.format(city=city, t=t),
-                      (time.time()-time_process_start)*1000.0))
-
-        if debug:
-            print('\n'.join(l[0] + ': ' + str(l[1]) for l in timer), file=sys.stderr)
-
-        # reset timer to only keep information about one data point at a time
-        timer = []
-
     # ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found.
     # Not necessarily the same as max_time - files could have ran out before
@@ -387,13 +369,5 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             'missing': missing_data_points
         }
     }
-
-    if debug:
-        time_load_total = (time.time() - time_load_start)
-        data_duration = (ending_time - starting_time).total_seconds()
-        time_load_minute = time_load_total / (data_duration/60)
-        print('\ntotal data load loop: {:f} hours of data, {:f} s, {:f} ms per 1 minute of data, {:f} s per 1 day of data'.format(
-            data_duration/3600, time_load_total, time_load_minute * 1000, time_load_minute * 1440),
-            file=sys.stderr)
 
     return result
