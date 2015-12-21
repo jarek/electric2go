@@ -314,13 +314,16 @@ def batch_load_data(system, city, location, starting_time, ending_time, time_ste
     # to be at least somewhat useful, so assign t.
     prev_t = starting_time
 
+    # These two dicts contain ongoing record of things that are happening.
+    # The dicts are modified in each iteration as cars' trips and parkings
+    # end or start.
     unfinished_trips = {}
     unfinished_parkings = {}
-    unstarted_trips = {}
 
+    # These are built up as we iterate, and only appended to.
+    unstarted_trips = {}
     finished_trips = defaultdict(list)
     finished_parkings = defaultdict(list)
-
     missing_data_points = []
 
     # Loop until we get to end of dataset or until the limit requested.
@@ -369,7 +372,8 @@ def batch_load_data(system, city, location, starting_time, ending_time, time_ste
     # actual_ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found.
     # Not necessarily the same as input ending_time - files could have ran out
-    # before we got to input ending_time.
+    # before we got to input ending_time, or the last file could have been
+    # malformed.
     actual_ending_time = prev_t
 
     result = {
