@@ -298,21 +298,21 @@ def batch_load_data(system, city, location, starting_time, ending_time, time_ste
         last_file_time = max(get_city_and_time_from_filename(filename)[1]
                              for filename in matching_files)
 
-    # load_next_data increments t before loading in data, so subtract
-    # 1 * time_step to get the first data file in first iteration
-    t = starting_time - timedelta(seconds=time_step)
-
     if not ending_time or ending_time > last_file_time:
         # If ending_time not provided, scan until we get to the last file.
         # If provided, check if it is earlier than data actually available;
         # if not, only use what is available
         ending_time = last_file_time
 
+    # t will be the time of the current iteration
+    t = starting_time
+
+    # prev_t will be the time of the previous *good* dataset.
     # In the very first iteration of main loop, value of prev_t is not used.
     # This initial value will be only used when there is no data at all,
     # in which case it'll become the ending_time. We want ending_time
     # to be at least somewhat useful, so assign t.
-    prev_t = t
+    prev_t = starting_time
 
     unfinished_trips = {}
     unfinished_parkings = {}
@@ -324,10 +324,8 @@ def batch_load_data(system, city, location, starting_time, ending_time, time_ste
     missing_data_points = []
 
     # Loop until we get to end of dataset or until the limit requested.
-    while t < ending_time:
-        # get next data point according to provided time_step
-        t += timedelta(seconds=time_step)
-
+    while t <= ending_time:
+        # get current time's data
         data = load_data_point(city, t, location)
 
         if data:
@@ -364,6 +362,9 @@ def batch_load_data(system, city, location, starting_time, ending_time, time_ste
         else:
             # Data file not found or was malformed, report it as missing.
             missing_data_points.append(t)
+
+        # get next data time according to provided time_step
+        t += timedelta(seconds=time_step)
 
     # actual_ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found.
