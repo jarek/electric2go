@@ -83,8 +83,7 @@ class StatsTest(unittest.TestCase):
                     "city": "columbus",
                     "location": "/home/jarek/car2go-columbus/extracted/",
                     "starting_time": datetime(2015, 4, 28, 8, 0, 0),
-                    "max_steps": 2880,
-                    "max_skip": 0,
+                    "ending_time": datetime(2015, 4, 30, 7, 59, 0),
                     "time_step": 60
                 },
                 "expected_stats": {
@@ -122,8 +121,7 @@ class StatsTest(unittest.TestCase):
                     "city": "vancouver",
                     "location": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/",
                     "starting_time": datetime(2015, 5, 16, 11, 0, 0),
-                    "max_steps": 2880,
-                    "max_skip": 0,
+                    "ending_time": datetime(2015, 5, 18, 10, 59, 0),
                     "time_step": 60
                 },
                 "expected_stats": {
@@ -170,8 +168,7 @@ class StatsTest(unittest.TestCase):
                     "city": "vancouver",
                     "location": "/home/jarek/evo-vancouver/vancouver_2015-06-19.tgz",
                     "starting_time": datetime(2015, 6, 19, 0, 0, 0),
-                    "max_skip": 1,
-                    "max_steps": 44647,
+                    "ending_time": None,
                     "time_step": 60
                 },
                 "expected_stats": {
@@ -219,8 +216,7 @@ class StatsTest(unittest.TestCase):
                     "city": "vancouver",
                     "location": "/home/jarek/evo-vancouver/vancouver_2015-06-19/",
                     "starting_time": datetime(2015, 6, 19, 0, 0, 0),
-                    "max_skip": 1,
-                    "max_steps": 44647,
+                    "ending_time": None,
                     "time_step": 60
                 },
                 "expected_stats": {

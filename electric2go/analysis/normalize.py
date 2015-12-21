@@ -1,11 +1,11 @@
 # coding=utf-8
 
-from __future__ import print_function
 import os
 import sys
 import codecs
 from collections import defaultdict
 from datetime import timedelta
+import glob
 import tarfile
 
 from .cmdline import json  # will be either simplejson or json
@@ -204,7 +204,23 @@ def process_data(parse_module, data_time, prev_data_time, new_availability_json,
     return finished_trips, finished_parkings, unfinished_trips, unfinished_parkings, unstarted_potential_trips
 
 
-def batch_load_data(system, city, location, starting_time, time_step, max_steps, max_skip):
+def get_city_and_time_from_filename(filename):
+    city, leftover = filename.rsplit('_', 1)
+
+    # don't use splitext so we correctly handle filenames with multiple dots
+    # like wien_2015-06-19.tar.gz
+    parts = leftover.split('.', 1)
+
+    if len(parts) == 2 and not parts[0].endswith('--00-00'):
+        # replace file extension with 00:00 if needed
+        leftover = leftover.replace('.' + parts[1], '--00-00')
+
+    file_time = cars.parse_date(leftover)
+
+    return city, file_time
+
+
+def batch_load_data(system, city, location, starting_time, ending_time, time_step):
     def load_data_from_file(city, t, file_dir):
         filename = cars.get_file_name(city, t)
         filepath_to_load = os.path.join(file_dir, filename)
@@ -218,6 +234,10 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             return False
 
     def load_data_from_tar(city, t, archive):
+        # TODO: whole structure for loading files can be much improved.
+        # Study implementation for tarfile and see how to best use it.
+        # Also add zipfile support.
+
         filename = cars.get_file_name(city, t)
 
         try:
@@ -252,28 +272,47 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
     # preload the archive and have the function read files from there
     location_prefix = ''
     if os.path.isfile(location) and tarfile.is_tarfile(location):
+        load_data_point = load_data_from_tar
+
         location = tarfile.open(location)
 
-        # handle file name prefixes like "./vancouver_2015-06-19--00-00"
-        first_file = location.next()
-        location_prefix = first_file.name.split(city)[0]
+        # Get time of last data point.
+        # This implementation assumes that files in the tarfile
+        # are in alphabetical/chronological order. This assumption
+        # holds for my data scripts
+        last_file_name = location.getnames()[-1]
+        _, last_file_time = get_city_and_time_from_filename(last_file_name)
 
-        load_data_point = load_data_from_tar
+        # handle file name prefixes like "./vancouver_2015-06-19--00-00"
+        location_prefix = last_file_name.split(city)[0]
     else:
         load_data_point = load_data_from_file
+
+        # Get time of last data point.
+        # First search for all files matching naming scheme
+        # for the current city, then find its max date - Python's
+        # directory lists all return in arbitrary order.
+        mask = cars.FILENAME_MASK.format(city=city)
+        matching_files = glob.glob(os.path.join(location, mask))
+
+        last_file_time = max(get_city_and_time_from_filename(filename)[1]
+                             for filename in matching_files)
 
     # load_next_data increments t before loading in data, so subtract
     # 1 * time_step to get the first data file in first iteration
     t = starting_time - timedelta(seconds=time_step)
+
+    if not ending_time or ending_time > last_file_time:
+        # If ending_time not provided, scan until we get to the last file.
+        # If provided, check if it is earlier than data actually available;
+        # if not, only use what is available
+        ending_time = last_file_time
 
     # In the very first iteration of main loop, value of prev_t is not used.
     # This initial value will be only used when there is no data at all,
     # in which case it'll become the ending_time. We want ending_time
     # to be at least somewhat useful, so assign t.
     prev_t = t
-
-    skipped = 0
-    max_t = starting_time + timedelta(seconds=time_step * (max_steps - 1))
 
     unfinished_trips = {}
     unfinished_parkings = {}
@@ -283,18 +322,9 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
     finished_parkings = defaultdict(list)
 
     missing_data_points = []
-    previously_skipped = []
 
-    # TODO: remove max_skip since I don't use it in practice any more,
-    # I just end up setting it to 10 or 60 if I run into problems,
-    # and read the status from missing_files.
-    # TODO: instead, give different/more prominent warning if we quit before
-    # getting to max_files/max_t
-
-    # Normally, loop as long as new data points exist and we haven't skipped
-    # too many bad data points.
-    # If we have a limit specified (in max_steps), loop only until limit is reached
-    while t < max_t and skipped <= max_skip:
+    # Loop until we get to end of dataset or until the limit requested.
+    while t < ending_time:
         # get next data point according to provided time_step
         t += timedelta(seconds=time_step)
 
@@ -331,28 +361,15 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             I've decided on interpretation resulting in 6 in the past, so I'll
             stick with that. """
 
-            if skipped > 0:
-                # if we got to a good point after skipping some bad points,
-                # save data points that we skipped
-                missing_data_points.extend(previously_skipped)
-
-                # reset out the counters for possible future skip episodes
-                skipped = 0
-                previously_skipped = []
-
         else:
-            # data point file was not found or not valid, try to skip past it
-            skipped += 1
-            previously_skipped.append(t)
+            # Data file not found or was malformed, report it as missing.
+            missing_data_points.append(t)
 
-            print('file for {city} {t} is missing or malformed'.format(city=city, t=t),
-                  file=sys.stderr)
-
-    # ending_time is the actual ending time of the resulting dataset,
+    # actual_ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found.
-    # Not necessarily the same as max_time - files could have ran out before
-    # we got to max_time.
-    ending_time = prev_t
+    # Not necessarily the same as input ending_time - files could have ran out
+    # before we got to input ending_time.
+    actual_ending_time = prev_t
 
     result = {
         'finished_trips': finished_trips,
@@ -364,7 +381,7 @@ def batch_load_data(system, city, location, starting_time, time_step, max_steps,
             'system': system,
             'city': city,
             'starting_time': starting_time,
-            'ending_time': ending_time,
+            'ending_time': actual_ending_time,
             'time_step': time_step,
             'missing': missing_data_points
         }

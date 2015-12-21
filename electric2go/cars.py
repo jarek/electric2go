@@ -7,6 +7,9 @@ from math import radians, sin, cos, asin, sqrt
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 
+FILENAME_FORMAT = '%s_%04d-%02d-%02d--%02d-%02d'
+FILENAME_MASK = '{city}_????-??-??--??-??'
+
 
 def get_data_dir(system):
     return os.path.join(root_dir, 'data', system)
@@ -18,13 +21,18 @@ def get_current_file_path(city_data):
 
 
 def get_file_name(city_name, t):
-    filename_format = '%s_%04d-%02d-%02d--%02d-%02d'
-    return filename_format % (city_name, t.year, t.month, t.day, t.hour, t.minute)
+    # same format as parsed by parse_date()
+    return FILENAME_FORMAT % (city_name, t.year, t.month, t.day, t.hour, t.minute)
 
 
 def get_file_path(city_data, t):
     filename = get_file_name(city_data['name'], t)
     return os.path.join(get_data_dir(city_data['system']), filename)
+
+
+def parse_date(string):
+    # same format as produced by get_file_name() from FILENAME_FORMAT
+    return datetime.strptime(string, '%Y-%m-%d--%H-%M')
 
 
 def output_file_name(description, extension=''):
