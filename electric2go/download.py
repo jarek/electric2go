@@ -61,6 +61,11 @@ def download_one_city(city_data, session=None):
 def save_one_city(city, timestamp_to_save, should_archive, session):
     cars_text, session = download_one_city(city, session=session)
 
+    # ensure data directory exists; writing a file would fail otherwise
+    data_dir = cars.get_data_dir(city)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
     with open(cars.get_current_file_path(city), 'wb') as f:
         f.write(cars_text)
 

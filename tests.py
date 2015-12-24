@@ -54,6 +54,25 @@ class DownloadTest(unittest.TestCase):
             self.assertTrue(os.path.exists(file_absolute))
             self.assertTrue(os.path.exists(file_current))
 
+    def test_download_create_dir(self):
+        # tests that script will attempt to create data directories
+        # if they don't exist
+        import shutil
+
+        city_data = {'system': 'sharengo', 'name': 'milano'}
+        data_dir = cars.get_data_dir(city_data)
+
+        # delete if already exists
+        if os.path.exists(data_dir):
+            shutil.rmtree(data_dir)
+
+        # download
+        t, _ = download.save(city_data['system'], city_data['name'], False)
+        file_current = cars.get_current_file_path(city_data)
+
+        # test it was downloaded
+        self.assertTrue(os.path.exists(file_current))
+
     def test_cache(self):
         for city in self.test_cities:
             city_data = systems.get_city_by_name(city[0], city[1])

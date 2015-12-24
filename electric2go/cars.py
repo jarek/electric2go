@@ -11,12 +11,12 @@ FILENAME_FORMAT = '%s_%04d-%02d-%02d--%02d-%02d'
 FILENAME_MASK = '{city}_????-??-??--??-??'
 
 
-def get_data_dir(system):
-    return os.path.join(root_dir, 'data', system)
+def get_data_dir(city_data):
+    return os.path.join(root_dir, 'data', city_data['system'])
 
 
 def get_current_file_path(city_data):
-    data_dir = get_data_dir(city_data['system'])
+    data_dir = get_data_dir(city_data)
     return os.path.join(data_dir, 'current_%s' % city_data['name'])
 
 
@@ -27,7 +27,7 @@ def get_file_name(city_name, t):
 
 def get_file_path(city_data, t):
     filename = get_file_name(city_data['name'], t)
-    return os.path.join(get_data_dir(city_data['system']), filename)
+    return os.path.join(get_data_dir(city_data), filename)
 
 
 def parse_date(string):
