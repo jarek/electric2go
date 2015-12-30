@@ -6,17 +6,17 @@ import stat
 import json
 
 from . import cmdline, generate
-from .. import cars
+from .. import cars, systems
 from . import stats as process_stats, graph as process_graph
 
 
-def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
+def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
                           show_speeds, distance, tz_offset):
     index, turn, current_positions, current_trips = data
 
     image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
 
-    process_graph.make_graph(system, city, current_positions, current_trips,
+    process_graph.make_graph(result_dict, current_positions, current_trips,
                              image_filename, turn,
                              show_speeds, distance, symbol, tz_offset)
 
@@ -45,10 +45,8 @@ def process_web(iter_filenames):
     return command_file_name
 
 
-def make_animate_command(city, animation_files_prefix, frame_count):
-    # TODO: move the below line into a systems package function, get_background_as_image(result_dict) or something
-    background_path = os.path.relpath(os.path.join(cars.root_dir,
-                                                   'systems/backgrounds/', '%s-background.png' % city))
+def make_animate_command(result_dict, animation_files_prefix, frame_count):
+    background_path = systems.get_background_as_image(result_dict)
     png_filepaths = animation_files_prefix + '_%05d.png'
     mp4_path = animation_files_prefix + '.mp4'
 
@@ -75,10 +73,8 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     # read in all data
     result_dict = cmdline.read_json()
 
-    system = result_dict['metadata']['system']
-    city = result_dict['metadata']['city']
-
     # set up params for iteratively-named images
+    city = result_dict['metadata']['city']
     animation_files_prefix = cars.output_file_name(description=city)
 
     # generate images
@@ -91,7 +87,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
         # according to http://stackoverflow.com/a/4662511/1265923
 
         generated_images = [
-            make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
+            make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
                                   show_speeds, distance, tz_offset)
             for data in generate.build_data_frames(result_dict, show_move_lines)
         ]
@@ -102,7 +98,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
             print('\nto pngcrush:')
             print('./' + crush_command_file)
 
-        aniamate_command_text = make_animate_command(city, animation_files_prefix, len(generated_images))
+        aniamate_command_text = make_animate_command(result_dict, animation_files_prefix, len(generated_images))
         print('\nto animate:')
         print(aniamate_command_text)
 

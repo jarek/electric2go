@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..systems import get_city_by_name, get_city_by_result_dict
+from ..systems import get_city_by_result_dict
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -300,13 +300,13 @@ def graph_wrapper(city_data, plot_function, image_name, background=None):
                   (time.time()-time_save_start)*1000.0))
 
 
-def make_graph(system, city, positions, trips, image_filename, turn,
+def make_graph(result_dict, positions, trips, image_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
     """ Creates and saves matplotlib figure for provided positions and trips. """
 
     global timer
 
-    city_data = get_city_by_name(system, city)
+    city_data = get_city_by_result_dict(result_dict)
 
     log_name = str(turn)
 
