@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..systems import get_city_by_name
+from ..systems import get_city_by_name, get_city_by_result_dict
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -363,18 +363,18 @@ def make_graph(system, city, positions, trips, image_filename, turn,
     graph_wrapper(city_data, plotter, image_filename, graph_background)
 
 
-def make_positions_graph(system, city, data_dict, image_name, symbol, colour_electric=False):
+def make_positions_graph(result_dict, image_name, symbol, colour_electric=False):
     global timer
 
     time_positions_graph_start = time.time()
 
-    city_data = get_city_by_name(system, city)
+    city_data = get_city_by_result_dict(result_dict)
 
     # positions are "unfinished parkings" (cars still parked at the end of the dataset)
     # plus all of the "finished parkings" (cars that were parked at one point but moved)
-    positions = [p for p in data_dict['unfinished_parkings'].values()]
-    positions.extend(parking for vin in data_dict['finished_parkings']
-                     for parking in data_dict['finished_parkings'][vin])
+    positions = [p for p in result_dict['unfinished_parkings'].values()]
+    positions.extend(parking for vin in result_dict['finished_parkings']
+                     for parking in result_dict['finished_parkings'][vin])
 
     filtered = filter_positions_to_bounds(city_data, positions)
 
@@ -398,12 +398,12 @@ def _get_trips(result_dict):
             for trip in result_dict['finished_trips'][vin]]
 
 
-def make_trips_graph(system, city, result_dict, image_name):
+def make_trips_graph(result_dict, image_name):
     global timer
 
     time_trips_graph_start = time.time()
 
-    city_data = get_city_by_name(system, city)
+    city_data = get_city_by_result_dict(result_dict)
 
     trips = _get_trips(result_dict)
 
@@ -417,12 +417,12 @@ def make_trips_graph(system, city, result_dict, image_name):
                   (time.time()-time_trips_graph_start)*1000.0))
 
 
-def make_trip_origin_destination_graph(system, city, result_dict, image_name, symbol):
+def make_trip_origin_destination_graph(result_dict, image_name, symbol):
     global timer
 
     time_trips_graph_start = time.time()
 
-    city_data = get_city_by_name(system, city)
+    city_data = get_city_by_result_dict(result_dict)
 
     trips = _get_trips(result_dict)
 

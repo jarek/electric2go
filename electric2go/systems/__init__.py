@@ -55,6 +55,10 @@ def get_city_by_name(system, city_name):
     return _fill_in_city_information(system, city_name, city_data)
 
 
+def get_city_by_result_dict(result_dict):
+    return get_city_by_name(result_dict['system'], result_dict['city'])
+
+
 _parse_modules = {}
 def get_parser(system):
     # Function with a mini-cache since getting parser requires importing

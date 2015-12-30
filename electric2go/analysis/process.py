@@ -23,6 +23,48 @@ def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
     return image_filename
 
 
+def process_web(iter_filenames):
+    # TODO: consider removing this functionality, it's, like, never been used
+    filenames_file_name = cars.output_file_name('filenames', 'json')
+    with open(filenames_file_name, 'w') as f:
+        json.dump(iter_filenames, f)
+
+    crushed_dir = cars.output_file_name('crushed-images')
+    if not os.path.exists(crushed_dir):
+        os.makedirs(crushed_dir)
+
+    crush_commands = ['pngcrush %s %s' %
+                      (filename, os.path.join(crushed_dir, os.path.basename(filename)))
+                      for filename in iter_filenames]
+
+    command_file_name = cars.output_file_name('pngcrush')
+    with open(command_file_name, 'w') as f:
+        f.write('\n'.join(crush_commands))
+    os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+    return command_file_name
+
+
+def make_animate_command(city, animation_files_prefix, frame_count):
+    # TODO: move the below line into a systems package function, get_background_as_image(result_dict) or something
+    background_path = os.path.relpath(os.path.join(cars.root_dir,
+                                                   'systems/backgrounds/', '%s-background.png' % city))
+    png_filepaths = animation_files_prefix + '_%05d.png'
+    mp4_path = animation_files_prefix + '.mp4'
+
+    framerate = 30
+    # to my best understanding, my "input" is the static background image
+    # which avconv assumes to be "25 fps".
+    # to get output at 30 fps to be correct length to include all frames,
+    # I need to convert framecount from 25 fps to 30 fps
+    frames = (frame_count / 25.0) * framerate
+
+    command_template = "avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s"
+    command = command_template % (framerate, background_path, png_filepaths, frames, mp4_path)
+
+    return command
+
+
 def batch_process(video=False, web=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
                   all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
@@ -48,7 +90,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
         # all ultimately go to matplotlib which is parallel-safe
         # according to http://stackoverflow.com/a/4662511/1265923
 
-        iter_filenames = [
+        generated_images = [
             make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
                                   show_speeds, distance, tz_offset)
             for data in generate.build_data_frames(result_dict, show_move_lines)
@@ -56,51 +98,23 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
 
         # print animation information if applicable
         if web:
-            filenames_file_name = cars.output_file_name('filenames', 'json')
-            with open(filenames_file_name, 'w') as f:
-                json.dump(iter_filenames, f)
-
-            crushed_dir = cars.output_file_name('crushed-images')
-            if not os.path.exists(crushed_dir):
-                os.makedirs(crushed_dir)
-
-            crush_commands = ['pngcrush %s %s' %
-                              (filename, os.path.join(crushed_dir, os.path.basename(filename)))
-                              for filename in iter_filenames]
-
-            command_file_name = cars.output_file_name('pngcrush')
-            with open(command_file_name, 'w') as f:
-                f.write('\n'.join(crush_commands))
-            os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
+            crush_command_file = process_web(generated_images)
             print('\nto pngcrush:')
-            print('./' + command_file_name)
+            print('./' + crush_command_file)
 
-        background_path = os.path.relpath(os.path.join(cars.root_dir,
-            'systems/backgrounds/', '%s-background.png' % city))
-        png_filepaths = animation_files_prefix + '_%05d.png'
-        mp4_path = animation_files_prefix + '.mp4'
-
-        framerate = 30
-        # to my best understanding, my "input" is the static background image
-        # which avconv assumes to be "25 fps".
-        # to get output at 30 fps to be correct length to include all frames,
-        # I need to convert framecount from 25 fps to 30 fps
-        frames = (len(iter_filenames)/25.0)*framerate
-
+        aniamate_command_text = make_animate_command(city, animation_files_prefix, len(generated_images))
         print('\nto animate:')
-        print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
-        # if i wanted to invoke this, just do os.system('avconv...')
+        print(aniamate_command_text)
 
     if stats:
         written_file = process_stats.stats(result_dict, tz_offset)
         print(written_file)  # provide output name for easier reuse
 
     if all_positions_image:
-        process_graph.make_positions_graph(system, city, result_dict, all_positions_image, symbol)
+        process_graph.make_positions_graph(result_dict, all_positions_image, symbol)
 
     if all_trips_lines_image:
-        process_graph.make_trips_graph(system, city, result_dict, all_trips_lines_image)
+        process_graph.make_trips_graph(result_dict, all_trips_lines_image)
 
     if all_trips_points_image:
-        process_graph.make_trip_origin_destination_graph(system, city, result_dict, all_trips_points_image, symbol)
+        process_graph.make_trip_origin_destination_graph(result_dict, all_trips_points_image, symbol)
