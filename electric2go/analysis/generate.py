@@ -14,11 +14,8 @@ def build_data_frame(result_dict, turn, include_trips=False):
     fin_trips = result_dict['finished_trips']
     unfinished_parkings = result_dict['unfinished_parkings']
 
-    # flatteb list
-    finished_parkings = [item for vin in fin_parkings for item in fin_parkings[vin]]
-
-    # filter list
-    current_positions = [p for p in finished_parkings
+    # flatten and filter parking list
+    current_positions = [p for vin in fin_parkings for p in fin_parkings[vin]
                          if p['starting_time'] <= turn <= p['ending_time']]
 
     # add in parkings that we don't know when they finished
@@ -26,14 +23,12 @@ def build_data_frame(result_dict, turn, include_trips=False):
                               if unfinished_parkings[vin]['starting_time'] <= turn])
 
     if include_trips:
-        finished_trips = [trip for vin in fin_trips for trip in fin_trips[vin]]
-        current_trips = [p for p in finished_trips
-                         if p['ending_time'] == turn]
+        current_trips = [trip for vin in fin_trips for trip in fin_trips[vin]
+                         if trip['ending_time'] == turn]
     else:
         current_trips = None
 
-    data_frame = (current_positions, current_trips)
-    return data_frame
+    return current_positions, current_trips
 
 
 def build_data_frames(result_dict):
