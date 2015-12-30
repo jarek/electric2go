@@ -2,10 +2,8 @@
 
 from __future__ import print_function
 import os
-import sys
 import stat
 import json
-import time
 
 from . import cmdline, generate
 from .. import cars
@@ -13,11 +11,8 @@ from . import stats as process_stats, graph as process_graph
 
 
 def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
-                          show_move_lines, show_speeds, distance, tz_offset):
+                          show_speeds, distance, tz_offset):
     index, turn, current_positions, current_trips = data
-
-    if not show_move_lines:
-        current_trips = []
 
     image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
 
@@ -55,8 +50,8 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
 
         iter_filenames = [
             make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
-                                  show_move_lines, show_speeds, distance, tz_offset)
-            for data in generate.build_data_frames(result_dict)
+                                  show_speeds, distance, tz_offset)
+            for data in generate.build_data_frames(result_dict, show_move_lines)
         ]
 
         # print animation information if applicable

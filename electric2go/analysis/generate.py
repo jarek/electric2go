@@ -31,7 +31,7 @@ def build_data_frame(result_dict, turn, include_trips=False):
     return current_positions, current_trips
 
 
-def build_data_frames(result_dict):
+def build_data_frames(result_dict, include_trips=True):
     # start from the starting time
     turn = result_dict['metadata']['starting_time']
     index = 0
@@ -53,7 +53,7 @@ def build_data_frames(result_dict):
         # would be double-filtering.
         # (Confirmed with actually looking at source data.)
 
-        current_positions, current_trips = build_data_frame(result_dict, turn, True)
+        current_positions, current_trips = build_data_frame(result_dict, turn, include_trips)
 
         data_frame = (index, turn, current_positions, current_trips)
         yield data_frame
