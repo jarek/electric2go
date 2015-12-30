@@ -5,14 +5,13 @@ from __future__ import print_function
 import argparse
 import os
 import sys
-import tarfile
 
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from electric2go import cars
 from electric2go.analysis import cmdline
-from electric2go.analysis.normalize import batch_load_data, get_city_and_time_from_filename
+from electric2go.analysis.normalize import batch_load_data
 
 
 def process_commandline():
@@ -35,44 +34,24 @@ def process_commandline():
     args = parser.parse_args()
     params = vars(args)
 
+    # indent is only used in this script, not passed through to package code
     json_indent = args.indent
-    filename = args.starting_filename
+    del params['indent']
 
-    if not os.path.exists(filename):
-        sys.exit('file not found: ' + filename)
+    if not os.path.exists(params['starting_filename']):
+        sys.exit('file not found: ' + params['starting_filename'])
 
-    # Handle the following cases:
-    # - filename being like "car2go-archives/wien_2015-06-19.tgz" <- archive
-    # - filename being like "car2go-archives/wien_2015-06-19--04-00" <- first of many files
-
-    try:
-        city, time_in_filename = get_city_and_time_from_filename(filename)
-
-        if params['starting_time']:
+    if params['starting_time']:
+        try:
             params['starting_time'] = cars.parse_date(params['starting_time'])
-        else:
-            params['starting_time'] = time_in_filename
-    except ValueError:
-        sys.exit('time format not recognized: ' + params['starting_time'])
+        except ValueError:
+            sys.exit('time format not recognized: ' + params['starting_time'])
 
     if params['ending_time']:
         try:
-            # parse ending time
             params['ending_time'] = cars.parse_date(params['ending_time'])
         except ValueError:
             sys.exit('time format not recognized: ' + params['ending_time'])
-
-    if tarfile.is_tarfile(filename):
-        location = filename
-        city = os.path.split(city.lower())[1]
-    else:
-        location, city = os.path.split(city.lower())
-
-    params['city'] = city
-    params['location'] = location
-
-    del params['starting_filename']
-    del params['indent']
 
     result = batch_load_data(**params)
 
