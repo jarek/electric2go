@@ -92,8 +92,6 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
         print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
         # if i wanted to invoke this, just do os.system('avconv...')
 
-    all_trips = [trip for vin in result_dict['finished_trips'] for trip in result_dict['finished_trips'][vin]]
-
     if stats:
         written_file = process_stats.stats(result_dict, tz_offset)
         print(written_file)  # provide output name for easier reuse
@@ -102,7 +100,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
         process_graph.make_positions_graph(system, city, result_dict, all_positions_image, symbol)
 
     if all_trips_lines_image:
-        process_graph.make_trips_graph(system, city, all_trips, all_trips_lines_image)
+        process_graph.make_trips_graph(system, city, result_dict, all_trips_lines_image)
 
     if all_trips_points_image:
-        process_graph.make_trip_origin_destination_graph(system, city, all_trips, all_trips_points_image, symbol)
+        process_graph.make_trip_origin_destination_graph(system, city, result_dict, all_trips_points_image, symbol)

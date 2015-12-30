@@ -392,12 +392,20 @@ def make_positions_graph(system, city, data_dict, image_name, symbol, colour_ele
                   (time.time()-time_positions_graph_start)*1000.0))
 
 
-def make_trips_graph(system, city, trips, image_name):
+def _get_trips(result_dict):
+    return [trip
+            for vin in result_dict['finished_trips']
+            for trip in result_dict['finished_trips'][vin]]
+
+
+def make_trips_graph(system, city, result_dict, image_name):
     global timer
 
     time_trips_graph_start = time.time()
 
     city_data = get_city_by_name(system, city)
+
+    trips = _get_trips(result_dict)
 
     def plotter(f, ax):
         if len(trips) > 0:
@@ -409,12 +417,14 @@ def make_trips_graph(system, city, trips, image_name):
                   (time.time()-time_trips_graph_start)*1000.0))
 
 
-def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
+def make_trip_origin_destination_graph(system, city, result_dict, image_name, symbol):
     global timer
 
     time_trips_graph_start = time.time()
 
     city_data = get_city_by_name(system, city)
+
+    trips = _get_trips(result_dict)
 
     # TODO: use hexbin instead of just drawing points, to avoid problem/unexpected results
     # caused when a trip ends in a given point then the vehicle is picked up again
