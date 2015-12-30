@@ -25,6 +25,11 @@ def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
 
 def process_web(iter_filenames):
     # TODO: consider removing this functionality, it's, like, never been used
+    # and the mode is highly inefficient - so much easier to load a proper video
+    # than to make a hobo-video from individual images in JS,
+    # and the individual image (where it might be more accessible than JS canvas)
+    # is not really served by this function anyway.
+
     filenames_file_name = cars.output_file_name('filenames', 'json')
     with open(filenames_file_name, 'w') as f:
         json.dump(iter_filenames, f)
@@ -63,6 +68,28 @@ def make_animate_command(result_dict, animation_files_prefix, frame_count):
     return command
 
 
+def make_video_frames(result_dict, distance, show_move_lines, show_speeds, symbol, tz_offset):
+    # set up params for iteratively-named images
+    city = result_dict['metadata']['city']
+    animation_files_prefix = cars.output_file_name(description=city)
+
+    # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
+    # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
+    # TODO: parallelize
+    # It appears process_graph functions will be safe to parallelize, they
+    # all ultimately go to matplotlib which is parallel-safe
+    # according to http://stackoverflow.com/a/4662511/1265923
+    generated_images = [
+        make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
+                              show_speeds, distance, tz_offset)
+        for data in generate.build_data_frames(result_dict, show_move_lines)
+    ]
+
+    animate_command_text = make_animate_command(result_dict, animation_files_prefix, len(generated_images))
+
+    return animate_command_text, generated_images
+
+
 def batch_process(video=False, web=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
                   all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
@@ -73,24 +100,11 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
     # read in all data
     result_dict = cmdline.read_json()
 
-    # set up params for iteratively-named images
-    city = result_dict['metadata']['city']
-    animation_files_prefix = cars.output_file_name(description=city)
-
     # generate images
     if video:
-        # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
-        # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
-        # TODO: parallelize
-        # It appears process_graph functions will be safe to parallelize, they
-        # all ultimately go to matplotlib which is parallel-safe
-        # according to http://stackoverflow.com/a/4662511/1265923
-
-        generated_images = [
-            make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
-                                  show_speeds, distance, tz_offset)
-            for data in generate.build_data_frames(result_dict, show_move_lines)
-        ]
+        animate_command_text, generated_images = make_video_frames(result_dict, distance,
+                                                                   show_move_lines, show_speeds,
+                                                                   symbol, tz_offset)
 
         # print animation information if applicable
         if web:
@@ -98,9 +112,9 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
             print('\nto pngcrush:')
             print('./' + crush_command_file)
 
-        aniamate_command_text = make_animate_command(result_dict, animation_files_prefix, len(generated_images))
+        # print animation information
         print('\nto animate:')
-        print(aniamate_command_text)
+        print(animate_command_text)
 
     if stats:
         written_file = process_stats.stats(result_dict, tz_offset)
