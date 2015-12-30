@@ -54,6 +54,25 @@ class DownloadTest(unittest.TestCase):
             self.assertTrue(os.path.exists(file_absolute))
             self.assertTrue(os.path.exists(file_current))
 
+    def test_download_create_dir(self):
+        # tests that script will attempt to create data directories
+        # if they don't exist
+        import shutil
+
+        city_data = {'system': 'sharengo', 'name': 'milano'}
+        data_dir = cars.get_data_dir(city_data)
+
+        # delete if already exists
+        if os.path.exists(data_dir):
+            shutil.rmtree(data_dir)
+
+        # download
+        t, _ = download.save(city_data['system'], city_data['name'], False)
+        file_current = cars.get_current_file_path(city_data)
+
+        # test it was downloaded
+        self.assertTrue(os.path.exists(file_current))
+
     def test_cache(self):
         for city in self.test_cities:
             city_data = systems.get_city_by_name(city[0], city[1])
@@ -78,14 +97,14 @@ class StatsTest(unittest.TestCase):
 
     datasets = {
             "columbus": {
+                # This is defined by specifying path to the first file.
+                # Command-line will typically be invoked like this.
                 "params": {
                     "system": "car2go",
-                    "city": "columbus",
-                    "location": "/home/jarek/car2go-columbus/extracted/",
-                    "starting_time": datetime(2015, 4, 28, 8, 0, 0),
-                    "max_steps": 2880,
-                    "max_skip": 0,
-                    "time_step": 1
+                    "starting_filename": "/home/jarek/car2go-columbus/extracted/columbus_2015-04-28--08-00",
+                    "starting_time": None,
+                    "ending_time": datetime(2015, 4, 30, 7, 59, 0),
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 296,
@@ -114,17 +133,21 @@ class StatsTest(unittest.TestCase):
                         "turn": "2015-04-30T07:59:00",
                         "len_cars": 285
                     }
+                },
+                "expected_metadata": {
+                    "city": "columbus",
+                    "system": "car2go"
                 }
             },
             "vancouver": {
+                # This is defined by specifying path to the first file.
+                # Command-line will typically be invoked like this.
                 "params": {
                     "system": "evo",
-                    "city": "vancouver",
-                    "location": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/",
-                    "starting_time": datetime(2015, 5, 16, 11, 0, 0),
-                    "max_steps": 2880,
-                    "max_skip": 0,
-                    "time_step": 1
+                    "starting_filename": "/home/jarek/evo-vancouver/vancouver_2015-05-1618/vancouver_2015-05-16--11-00",
+                    "starting_time": None,
+                    "ending_time": datetime(2015, 5, 18, 10, 59, 0),
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 238,
@@ -161,18 +184,23 @@ class StatsTest(unittest.TestCase):
                         "len_cars": 226,
                         "len_trips": 0,
                     }
+                },
+                "expected_metadata": {
+                    "city": "vancouver",
+                    "system": "evo"
                 }
             },
             "vancouver_archive": {
-                # all expected data should be the same as in vancouver_files
+                # This is defined by specifying path to an archive.
+                # Command-line will typically be invoked like this.
+
+                # All expected data should be the same as in vancouver_files
                 "params": {
                     "system": "evo",
-                    "city": "vancouver",
-                    "location": "/home/jarek/evo-vancouver/vancouver_2015-06-19.tgz",
-                    "starting_time": datetime(2015, 6, 19, 0, 0, 0),
-                    "max_skip": 1,
-                    "max_steps": 44647,
-                    "time_step": 1
+                    "starting_filename": "/home/jarek/evo-vancouver/vancouver_2015-06-19.tgz",
+                    "starting_time": None,
+                    "ending_time": None,
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 238,
@@ -213,15 +241,16 @@ class StatsTest(unittest.TestCase):
                 }
             },
             "vancouver_files": {
-                # all expected data should be the same as in vancouver_archive
+                # This is defined by specifying path to the first file.
+                # Command-line will typically be invoked like this.
+
+                # All expected data should be the same as in vancouver_archive
                 "params": {
                     "system": "evo",
-                    "city": "vancouver",
-                    "location": "/home/jarek/evo-vancouver/vancouver_2015-06-19/",
-                    "starting_time": datetime(2015, 6, 19, 0, 0, 0),
-                    "max_skip": 1,
-                    "max_steps": 44647,
-                    "time_step": 1
+                    "starting_filename": "/home/jarek/evo-vancouver/vancouver_2015-06-19/vancouver_2015-06-19--00-00",
+                    "starting_time": None,
+                    "ending_time": None,
+                    "time_step": 60
                 },
                 "expected_stats": {
                     "total vehicles": 238,
@@ -383,8 +412,14 @@ class IntegrationTest(unittest.TestCase):
         # - process.py the output of the PIPE to get usage stats
         # - check a few of the stats values to make sure they're the expected numbers for the dataset
 
+        # note, this will always use python3 to run the scripts even if tests.py
+        # is ran with python2 - it uses the hashbang in the scripts which is py3
+
         data_dir = '/home/jarek/car2go-columbus'
         script_dir = os.path.dirname(os.path.abspath(__file__)) + '/scripts'
+
+        data_dir_part_1 = '/home/jarek/'
+        data_dir_part_2 = 'car2go-columbus/'
 
         Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-01.tgz'],
               cwd=data_dir,
@@ -392,8 +427,9 @@ class IntegrationTest(unittest.TestCase):
         Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-02.tgz'],
               cwd=data_dir,
               stdout=open(os.path.join(data_dir, 'columbus_2015-06-02.json'), 'w')).wait()
-        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-03.tgz'],
-              cwd=data_dir,
+        # test call using a directory name to make sure this is being parsed properly
+        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', data_dir_part_2 + 'columbus_2015-06-03.tgz'],
+              cwd=data_dir_part_1,
               stdout=open(os.path.join(data_dir, 'columbus_2015-06-03.json'), 'w')).wait()
 
         p1 = Popen([os.path.join(script_dir, 'merge.py'),
@@ -407,6 +443,11 @@ class IntegrationTest(unittest.TestCase):
         p1.stdout.close()  # Allow m1 to receive a SIGPIPE if p2 exits.
 
         stats_file = p2.communicate()[0].strip().decode('utf-8')
+
+        stats_file_path = os.path.join(data_dir, stats_file)
+        
+        if not os.path.isfile(stats_file_path):
+            self.fail("stats file not generated by process.py")
 
         with open(os.path.join(data_dir, stats_file)) as f:
             reader = csv.reader(f)
@@ -467,4 +508,3 @@ class HelperFunctionsTest(unittest.TestCase):
  
 if __name__ == '__main__':
     unittest.main()
-
