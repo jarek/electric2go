@@ -2,7 +2,6 @@
 
 from datetime import timedelta
 from collections import defaultdict, OrderedDict
-import time
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -11,9 +10,6 @@ from ..systems import get_city_by_name
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
 SPEEDS = [(5, 'r'), (15, 'y'), (30, 'g'), (float('inf'), 'b')]
-
-
-timer = []
 
 
 # strictly not correct as lat/lng isn't a grid, but close enough at city scales
@@ -64,20 +60,15 @@ def get_mean_pixel_size(city_data):
     return (pixel_in_m[0] + pixel_in_m[1]) / 2
 
 
-def make_graph_axes(city_data, background=None, log_name=''):
+def make_graph_axes(city_data, background=None):
     """
     Sets up figure area and axes for a city to be graphed.
     :param background: path to an image file to load,
     or a matplotlib.imshow()-compatible value, or None
-    :param log_name: used for logging only
     :return: tuple(matplotlib_fig, matplotlib_ax)
     """
 
     # set up figure area
-
-    global timer
-
-    time_plotsetup_start = time.time()
 
     dpi = 80
     # i actually have no idea why this is necessary, but the 
@@ -85,15 +76,12 @@ def make_graph_axes(city_data, background=None, log_name=''):
     dpi_adj_x = 0.775
     dpi_adj_y = 0.8
 
-    # TODO: verify the timings for the comments below, if the 20-50 ms is
-    # now insignificant (e.g. save is 500 ms every time...)
-    # TODO: the two below take ~20 ms. try to reuse
+    # TODO: see if it is possible to reuse figure or axes rather than
+    # creating new ones every time
     f = plt.figure(dpi=dpi)
     f.set_size_inches(city_data['MAP_SIZES']['MAP_X']/dpi_adj_x/dpi,
                       city_data['MAP_SIZES']['MAP_Y']/dpi_adj_y/dpi)
 
-    # TODO: this takes 50 ms each time. try to reuse the whole set of axes
-    # rather than regenerating it each time
     ax = f.add_subplot(111)
     ax.axis([0, city_data['MAP_SIZES']['MAP_X'], 0, city_data['MAP_SIZES']['MAP_Y']])
 
@@ -114,9 +102,6 @@ def make_graph_axes(city_data, background=None, log_name=''):
 
     if background is not None:
         ax.imshow(background, origin='lower', aspect='auto')
-
-    timer.append((log_name + ': make_graph_axes, ms',
-                  (time.time()-time_plotsetup_start)*1000.0))
 
     return f, ax
 
@@ -261,58 +246,37 @@ def graph_wrapper(city_data, plot_function, image_name, background=None):
     :return: none
     """
 
-    global timer
-
-    log_name = image_name
-    if log_name.endswith('.png'):
-        log_name = log_name[:-4]
-
     # set up axes
-    f, ax = make_graph_axes(city_data, background, log_name)
+    f, ax = make_graph_axes(city_data, background)
 
     # pass axes back to function to actually do the plotting
     plot_function(f, ax)
 
-    time_save_start = time.time()
-
     # render graph to file
-    # saving as .png takes about 130-150 ms
-    # saving as .ps or .eps takes about 30-50 ms
-    # .svg is about 100 ms - and preserves transparency
-    # .pdf is about 80 ms
-    # svg and e/ps would have to be rendered before being animated, though
-    # possibly making it a moot point
+    # TODO: could see if saving to a file type other than a png is faster
+    # (it seems to have been when I was trying it a long time ago,
+    # ps being ~4 times faster, svg and pdf being ~2 times faster),
+    # but make sure to include time to render the file to a format
+    # that avconv can use as input.
     f.savefig(image_name, bbox_inches='tight', pad_inches=0, dpi=80, transparent=True)
 
     # close the plot to free the memory. memory is never freed otherwise until
     # script is killed or exits.
-    # this line causes a matplotlib backend RuntimeError in a close_event()
-    # function ("wrapped C/C++ object of %S has been deleted") in every second
-    # iteration, but this appears to be async from main thread and
-    # doesn't appear to influence the correctness of output,
-    # so I'll leave it as is for the time being
     plt.close(f)
-
-    timer.append((log_name + ': graph_wrapper save figure, ms',
-                  (time.time()-time_save_start)*1000.0))
 
 
 def make_graph(system, city, positions, trips, image_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
     """ Creates and saves matplotlib figure for provided positions and trips. """
 
-    global timer
-
     city_data = get_city_by_name(system, city)
-
-    log_name = str(turn)
 
     # filter to only vehicles that are in city's graphing bounds
     filtered_positions = filter_positions_to_bounds(city_data, positions)
 
     if highlight_distance:
         positions_without_metadata = [p['coords'] for p in filtered_positions]
-        graph_background = make_accessibility_background(city_data, positions_without_metadata, highlight_distance, log_name)
+        graph_background = make_accessibility_background(city_data, positions_without_metadata, highlight_distance)
     else:
         graph_background = None
 
@@ -324,8 +288,6 @@ def make_graph(system, city, positions, trips, image_filename, turn,
 
     # define what to add to the graph
     def plotter(f, ax):
-        time_plot_start = time.time()
-
         # plot points for vehicles
         ax = plot_geopoints(ax, city_data, positions_by_colour, symbol)
 
@@ -353,18 +315,11 @@ def make_graph(system, city, positions, trips, image_filename, turn,
                 'available cars: %d' % len(filtered_positions),
                 fontsize=fontsizes[3])
 
-        timer.append((log_name + ': make_graph plot and label, ms',
-                      (time.time()-time_plot_start)*1000.0))
-
     # create and save plot
     graph_wrapper(city_data, plotter, image_filename, graph_background)
 
 
 def make_positions_graph(system, city, data_dict, image_name, symbol, colour_electric=False):
-    global timer
-
-    time_positions_graph_start = time.time()
-
     city_data = get_city_by_name(system, city)
 
     # positions are "unfinished parkings" (cars still parked at the end of the dataset)
@@ -385,15 +340,8 @@ def make_positions_graph(system, city, data_dict, image_name, symbol, colour_ele
 
     graph_wrapper(city_data, plotter, image_name, background=None)
 
-    timer.append((image_name + ': make_positions_graph total, ms',
-                  (time.time()-time_positions_graph_start)*1000.0))
-
 
 def make_trips_graph(system, city, trips, image_name):
-    global timer
-
-    time_trips_graph_start = time.time()
-
     city_data = get_city_by_name(system, city)
 
     def plotter(f, ax):
@@ -402,15 +350,8 @@ def make_trips_graph(system, city, trips, image_name):
 
     graph_wrapper(city_data, plotter, image_name, background=None)
 
-    timer.append((image_name + ': make_trips_graph total, ms',
-                  (time.time()-time_trips_graph_start)*1000.0))
-
 
 def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
-    global timer
-
-    time_trips_graph_start = time.time()
-
     city_data = get_city_by_name(system, city)
 
     # TODO: use hexbin instead of just drawing points, to avoid problem/unexpected results
@@ -427,13 +368,8 @@ def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
 
     graph_wrapper(city_data, plotter, image_name, background=None)
 
-    timer.append((image_name + ': make_trip_origin_destination_graph total, ms',
-                  (time.time()-time_trips_graph_start)*1000.0))
 
-
-def make_accessibility_background(city_data, positions, distance, log_name):
-    global timer
-
+def make_accessibility_background(city_data, positions, distance):
     latitudes, longitudes = zip(*positions)
     latitudes = np.round(map_latitude(city_data, np.array(latitudes)))
     longitudes = np.round(map_longitude(city_data, np.array(longitudes)))
@@ -446,8 +382,6 @@ def make_accessibility_background(city_data, positions, distance, log_name):
     # (circle_mask) around the point indicating each car. We'll need to shift 
     # things around near the borders of the map, but this is relatively
     # straightforward.
-
-    time_preprocess_start = time.time()
 
     accessible_colour = (255, 255, 255, 0)  # white, fully transparent
     inaccessible_colour = (239, 239, 239, 100)  # #efefef, mostly transparent
@@ -477,11 +411,6 @@ def make_accessibility_background(city_data, positions, distance, log_name):
     y, x = np.ogrid[-radius: radius+1, -radius: radius+1]
     circle_mask = x**2+y**2 <= radius**2
     c_m_shape = circle_mask.shape
-
-    timer.append((log_name + ': make_accessibility_background preprocess, ms',
-                  (time.time()-time_preprocess_start)*1000.0))
-
-    time_iter_start = time.time()
 
     for i in range(len(latitudes)):
         # to just crudely mark a square area around lat/lng:
@@ -526,11 +455,6 @@ def make_accessibility_background(city_data, positions, distance, log_name):
         # not using accessible_multiplier currently because it's too slow
         # markers[master_mask] *= accessible_multiplier
 
-    timer.append((log_name + ': make_accessibility_background mask iter, ms',
-                  (time.time()-time_iter_start)*1000.0))
-
-    time_mask_apply_start = time.time()
-
     # note: can also do something like this: markers[mask] *= (1, 1, 1, 0.5)
     # and it updates everything - should be useful for relative values.
     # except it has to happen within the iteration as shown above, and is also
@@ -539,13 +463,5 @@ def make_accessibility_background(city_data, positions, distance, log_name):
     # by a vector 200 times might just be inherently a bit slow :(
 
     markers[master_mask] = accessible_colour
-
-    timer.append((log_name + ': make_accessibility_background mask apply, ms',
-                  (time.time()-time_mask_apply_start)*1000.0))
-
-    time_bg_render_start = time.time()
-
-    timer.append((log_name + ': make_accessibility_background bg render, ms',
-                  (time.time()-time_bg_render_start)*1000.0))
 
     return markers

@@ -14,8 +14,6 @@ from electric2go.analysis.process import batch_process
 
 def process_commandline():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-debug', action='store_true',
-                        help='print extra debug and timing messages to stderr')
     parser.add_argument('-tz', '--tz-offset', type=int, default=0,
                         help='offset times by TZ_OFFSET hours')
     parser.add_argument('-v', '--video', action='store_true',
