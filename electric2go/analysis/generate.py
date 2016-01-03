@@ -2,13 +2,16 @@
 
 from datetime import timedelta
 
+import json
+from .. import cars, systems
+
 
 # This is basically the inverse of normalize.py
 # - it generates per-minute / per-moment state
 # from a result_dict.
 
 
-def build_data_frame(result_dict, turn, include_trips=False):
+def build_data_frame(result_dict, turn, include_trips):
     # shorter variable names for easier access
     fin_parkings = result_dict['finished_parkings']
     fin_trips = result_dict['finished_trips']
@@ -63,8 +66,26 @@ def build_data_frames(result_dict, include_trips=True):
 
 
 def build_files(result_dict):
-    pass
+    parse_module = systems.get_parser(result_dict['metadata']['system'])
+
+    write_car_data = getattr(parse_module, 'write_car_data')
+    write_cars_to_json = getattr(parse_module, 'write_cars_to_json')
+
+    # source files don't include trip info, so don't ask build_data_frames for that
+    for data_frame in build_data_frames(result_dict, include_trips=False):
+        index, turn, current_positions, current_trips = data_frame
+
+        formatted_cars = [write_car_data(car) for car in current_positions]
+
+        formatted_json = write_cars_to_json(formatted_cars)
+
+        yield turn, formatted_json
 
 
 def write_files(result_dict):
-    pass
+    city = result_dict['metadata']['city']
+    for data_time, data_dict in build_files(result_dict):
+        file_name = cars.get_file_name(city, data_time)
+        # TODO: output dir? as param?
+        with open(file_name, 'w') as f:
+            json.dump(data_dict, f)

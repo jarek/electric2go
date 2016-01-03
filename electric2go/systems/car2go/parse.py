@@ -55,3 +55,27 @@ def get_range(car):
         range = 0
 
     return range
+
+
+def write_car_data(car):
+    # inverse of extract_car_data
+    formatted_car = {
+        'vin': car['vin'],
+        'coordinates': (car['lng'], car['lat'], 0),
+        'name': car['license_plate'],
+        'address': car['address'],
+
+        'fuel': car['fuel'],
+        'engineType': car['fuel_type'],
+        'charging': car['charging'],
+
+        'interior': car['cleanliness_interior'],
+        'exterior': car['cleanliness_exterior']
+    }
+
+    return formatted_car
+
+
+def write_cars_to_json(cars):
+    # inverse of get_get_cars_from_json
+    return {'placemarks': cars}
