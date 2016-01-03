@@ -5,9 +5,9 @@ import os
 import stat
 import json
 
-from . import generate
-from .. import cars, systems
-from . import graph as process_graph
+from . import generate, graph
+from ..cars import output_file_name
+from ..systems import get_background_as_image
 
 
 def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
@@ -16,9 +16,8 @@ def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
 
     image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
 
-    process_graph.make_graph(result_dict, current_positions, current_trips,
-                             image_filename, turn,
-                             show_speeds, distance, symbol, tz_offset)
+    graph.make_graph(result_dict, current_positions, current_trips, image_filename,
+                     turn, show_speeds, distance, symbol, tz_offset)
 
     return image_filename
 
@@ -30,11 +29,11 @@ def process_web(iter_filenames):
     # and the individual image (where it might be more accessible than JS canvas)
     # is not really served by this function anyway.
 
-    filenames_file_name = cars.output_file_name('filenames', 'json')
+    filenames_file_name = output_file_name('filenames', 'json')
     with open(filenames_file_name, 'w') as f:
         json.dump(iter_filenames, f)
 
-    crushed_dir = cars.output_file_name('crushed-images')
+    crushed_dir = output_file_name('crushed-images')
     if not os.path.exists(crushed_dir):
         os.makedirs(crushed_dir)
 
@@ -42,7 +41,7 @@ def process_web(iter_filenames):
                       (filename, os.path.join(crushed_dir, os.path.basename(filename)))
                       for filename in iter_filenames]
 
-    command_file_name = cars.output_file_name('pngcrush')
+    command_file_name = output_file_name('pngcrush')
     with open(command_file_name, 'w') as f:
         f.write('\n'.join(crush_commands))
     os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
@@ -51,7 +50,7 @@ def process_web(iter_filenames):
 
 
 def make_animate_command(result_dict, animation_files_prefix, frame_count):
-    background_path = systems.get_background_as_image(result_dict)
+    background_path = get_background_as_image(result_dict)
     png_filepaths = animation_files_prefix + '_%05d.png'
     mp4_path = animation_files_prefix + '.mp4'
 
@@ -71,7 +70,7 @@ def make_animate_command(result_dict, animation_files_prefix, frame_count):
 def make_video_frames(result_dict, distance, show_move_lines, show_speeds, symbol, tz_offset):
     # set up params for iteratively-named images
     city = result_dict['metadata']['city']
-    animation_files_prefix = cars.output_file_name(description=city)
+    animation_files_prefix = output_file_name(description=city)
 
     # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
     # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
