@@ -9,8 +9,7 @@ import sys
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from electric2go.analysis import cmdline, stats, graph
-from electric2go.analysis.process import make_video_frames, process_web
+from electric2go.analysis import cmdline, stats, graph, video
 
 
 def process_commandline():
@@ -49,13 +48,13 @@ def process_commandline():
 
     # generate images
     if params['video']:
-        animate_command_text, generated_images = make_video_frames(
+        animate_command_text, generated_images = video.make_video_frames(
             result_dict, params['distance'], params['show_move_lines'],
             params['show_speeds'], params['symbol'], params['tz_offset'])
 
         # print animation information if applicable
         if params['web']:
-            crush_command_file = process_web(generated_images)
+            crush_command_file = video.process_web(generated_images)
             print('\nto pngcrush:')
             print('./' + crush_command_file)
 
