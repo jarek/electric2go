@@ -1,10 +1,5 @@
 # coding=utf-8
 
-from __future__ import print_function
-import os
-import stat
-import json
-
 from . import generate, graph
 from ..cars import output_file_name
 from ..systems import get_background_as_image
@@ -20,33 +15,6 @@ def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
                      turn, show_speeds, distance, symbol, tz_offset)
 
     return image_filename
-
-
-def process_web(iter_filenames):
-    # TODO: consider removing this functionality, it's, like, never been used
-    # and the mode is highly inefficient - so much easier to load a proper video
-    # than to make a hobo-video from individual images in JS,
-    # and the individual image (where it might be more accessible than JS canvas)
-    # is not really served by this function anyway.
-
-    filenames_file_name = output_file_name('filenames', 'json')
-    with open(filenames_file_name, 'w') as f:
-        json.dump(iter_filenames, f)
-
-    crushed_dir = output_file_name('crushed-images')
-    if not os.path.exists(crushed_dir):
-        os.makedirs(crushed_dir)
-
-    crush_commands = ['pngcrush %s %s' %
-                      (filename, os.path.join(crushed_dir, os.path.basename(filename)))
-                      for filename in iter_filenames]
-
-    command_file_name = output_file_name('pngcrush')
-    with open(command_file_name, 'w') as f:
-        f.write('\n'.join(crush_commands))
-    os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-    return command_file_name
 
 
 def make_animate_command(result_dict, animation_files_prefix, frame_count):

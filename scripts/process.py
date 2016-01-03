@@ -20,9 +20,6 @@ def process_commandline():
                         help='offset times by TZ_OFFSET hours')
     parser.add_argument('-v', '--video', action='store_true',
                         help='generate minute-by-minute images for animating into a video')
-    parser.add_argument('-web', action='store_true',
-                        help='create pngcrush script and JS filelist for HTML animation page use; '
-                             'requires VIDEO')
     parser.add_argument('-lines', '--show-move-lines', action='store_true',
                         help='show lines indicating vehicles\' trips')
     parser.add_argument('-d', '--distance', type=float, default=False,
@@ -51,12 +48,6 @@ def process_commandline():
         animate_command_text, generated_images = video.make_video_frames(
             result_dict, params['distance'], params['show_move_lines'],
             params['show_speeds'], params['symbol'], params['tz_offset'])
-
-        # print animation information if applicable
-        if params['web']:
-            crush_command_file = video.process_web(generated_images)
-            print('\nto pngcrush:')
-            print('./' + crush_command_file)
 
         # print animation information
         print('\nto animate:')
