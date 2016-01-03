@@ -3,58 +3,10 @@
 from __future__ import print_function
 import os
 import sys
-from datetime import timedelta
 
-from . import cmdline
+from . import cmdline, generate
 from .. import cars
 from . import stats as process_stats, graph as process_graph
-
-
-def build_data_frames(result_dict):
-    # temp function to facilitate switchover and testing to new data format
-
-    # shorter variable names for easier access
-    turn = result_dict['metadata']['starting_time']
-    fin_parkings = result_dict['finished_parkings']
-    fin_trips = result_dict['finished_trips']
-    unfinished_parkings = result_dict['unfinished_parkings']
-
-    # flatten lists
-    finished_parkings = [item for vin in fin_parkings for item in fin_parkings[vin]]
-    finished_trips = [trip for vin in fin_trips for trip in fin_trips[vin]]
-
-    index = 0
-
-    while turn <= result_dict['metadata']['ending_time']:
-        # The condition of `p['starting_time'] <= turn <= p['ending_time']`
-        # (with the two less-than-or-equal) in the statement to get
-        # current_positions is correct.
-
-        # I was initially afraid it was wrong because parking periods
-        # are defined in process_data as follows:
-        #   "A parking period starts on data_time and ends on prev_data_time."
-        # and so I thought this had to be `turn < p['ending_time']`
-
-        # But actually the equals on both ends is fine. process_data does the
-        # logical filtering as to when a parking starts and ends. With this,
-        # in process_data output, cars are still available when
-        # `turn == p['ending_time']`. Trying to do `turn < p['ending_time']`
-        # would be double-filtering.
-        # (Confirmed with actually looking at source data.)
-
-        current_positions = [p for p in finished_parkings
-                             if p['starting_time'] <= turn <= p['ending_time']]
-        current_positions.extend([unfinished_parkings[vin] for vin in unfinished_parkings
-                                  if unfinished_parkings[vin]['starting_time'] <= turn])
-
-        current_trips = [p for p in finished_trips
-                         if p['ending_time'] == turn]
-
-        data_frame = (index, turn, current_positions, current_trips)
-        yield data_frame
-
-        index += 1
-        turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
 def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
@@ -98,7 +50,7 @@ def batch_process(video=False, tz_offset=0, stats=False,
         iter_filenames = [
             make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
                                   show_move_lines, show_speeds, distance, tz_offset)
-            for data in build_data_frames(result_dict)
+            for data in generate.build_data_frames(result_dict)
         ]
         # TODO: refactor so that there exists a function that returns iter_filenames
 

@@ -11,7 +11,7 @@ from subprocess import Popen, PIPE
 from datetime import datetime
 
 from electric2go import cars, download, systems
-from electric2go.analysis import normalize, merge, process
+from electric2go.analysis import normalize, merge, generate
 from electric2go.analysis import graph as process_graph
 from electric2go.analysis import stats as process_stats
 
@@ -327,7 +327,7 @@ class StatsTest(unittest.TestCase):
             # immediately evaluating a generator is kinda rude, but this is
             # only for testing, where I have expected values for
             # specific indexes. don't do this in non-test code obviously.
-            data_frames = list(process.build_data_frames(self.results[dataset_name]))
+            data_frames = list(generate.build_data_frames(self.results[dataset_name]))
 
             for i in exp_dataframes:
                 exp_frame = exp_dataframes[i]
