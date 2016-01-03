@@ -5,9 +5,9 @@ import os
 import stat
 import json
 
-from . import cmdline, generate
+from . import generate
 from .. import cars, systems
-from . import stats as process_stats, graph as process_graph
+from . import graph as process_graph
 
 
 def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
@@ -88,43 +88,3 @@ def make_video_frames(result_dict, distance, show_move_lines, show_speeds, symbo
     animate_command_text = make_animate_command(result_dict, animation_files_prefix, len(generated_images))
 
     return animate_command_text, generated_images
-
-
-def batch_process(video=False, web=False, tz_offset=0, stats=False,
-                  show_move_lines=True, show_speeds=False, symbol='.', distance=False,
-                  all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
-    """
-    :return: does not return anything
-    """
-
-    # read in all data
-    result_dict = cmdline.read_json()
-
-    # generate images
-    if video:
-        animate_command_text, generated_images = make_video_frames(result_dict, distance,
-                                                                   show_move_lines, show_speeds,
-                                                                   symbol, tz_offset)
-
-        # print animation information if applicable
-        if web:
-            crush_command_file = process_web(generated_images)
-            print('\nto pngcrush:')
-            print('./' + crush_command_file)
-
-        # print animation information
-        print('\nto animate:')
-        print(animate_command_text)
-
-    if stats:
-        written_file = process_stats.stats(result_dict, tz_offset)
-        print(written_file)  # provide output name for easier reuse
-
-    if all_positions_image:
-        process_graph.make_positions_graph(result_dict, all_positions_image, symbol)
-
-    if all_trips_lines_image:
-        process_graph.make_trips_graph(result_dict, all_trips_lines_image)
-
-    if all_trips_points_image:
-        process_graph.make_trip_origin_destination_graph(result_dict, all_trips_points_image, symbol)

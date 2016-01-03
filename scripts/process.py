@@ -9,7 +9,8 @@ import sys
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from electric2go.analysis.process import batch_process
+from electric2go.analysis import cmdline, stats, graph
+from electric2go.analysis.process import make_video_frames, process_web
 
 
 def process_commandline():
@@ -44,7 +45,36 @@ def process_commandline():
     args = parser.parse_args()
     params = vars(args)
 
-    batch_process(**params)
+    result_dict = cmdline.read_json()
+
+    # generate images
+    if params['video']:
+        animate_command_text, generated_images = make_video_frames(
+            result_dict, params['distance'], params['show_move_lines'],
+            params['show_speeds'], params['symbol'], params['tz_offset'])
+
+        # print animation information if applicable
+        if params['web']:
+            crush_command_file = process_web(generated_images)
+            print('\nto pngcrush:')
+            print('./' + crush_command_file)
+
+        # print animation information
+        print('\nto animate:')
+        print(animate_command_text)
+
+    if params['stats']:
+        written_file = stats.stats(result_dict, params['tz_offset'])
+        print(written_file)  # provide output name for easier reuse
+
+    if params['all_positions_image']:
+        graph.make_positions_graph(result_dict, params['all_positions_image'], params['symbol'])
+
+    if params['all_trips_lines_image']:
+        graph.make_trips_graph(result_dict, params['all_trips_lines_image'])
+
+    if params['all_trips_points_image']:
+        graph.make_trip_origin_destination_graph(result_dict, params['all_trips_points_image'], params['symbol'])
 
 
 if __name__ == '__main__':
