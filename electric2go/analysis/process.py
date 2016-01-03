@@ -57,7 +57,7 @@ def build_data_frames(result_dict):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
+def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
                           show_move_lines, show_speeds, distance, tz_offset):
     index, turn, current_positions, current_trips = data
 
@@ -66,7 +66,7 @@ def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
 
     image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
 
-    process_graph.make_graph(system, city, current_positions, current_trips,
+    process_graph.make_graph(result_dict, current_positions, current_trips,
                              image_filename, turn,
                              show_speeds, distance, symbol, tz_offset)
 
@@ -86,10 +86,8 @@ def batch_process(video=False, tz_offset=0, stats=False,
     # read in all data
     result_dict = cmdline.read_json()
 
-    system = result_dict['metadata']['system']
-    city = result_dict['metadata']['city']
-
     # set up params for iteratively-named images
+    city = result_dict['metadata']['city']
     animation_files_prefix = cars.output_file_name(description=city)
 
     # generate images
@@ -98,7 +96,7 @@ def batch_process(video=False, tz_offset=0, stats=False,
         # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
         # TODO: make sure everything inside has no side effects then parallelize
         iter_filenames = [
-            make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
+            make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
                                   show_move_lines, show_speeds, distance, tz_offset)
             for data in build_data_frames(result_dict)
         ]
@@ -120,17 +118,15 @@ def batch_process(video=False, tz_offset=0, stats=False,
         print('''avconv -loop 1 -r %d -i %s -vf 'movie=%s [over], [in][over] overlay' -b 15360000 -frames %d %s''' % (framerate, background_path, png_filepaths, frames, mp4_path))
         # if i wanted to invoke this, just do os.system('avconv...')
 
-    all_trips = [trip for vin in result_dict['finished_trips'] for trip in result_dict['finished_trips'][vin]]
-
     if stats:
         written_file = process_stats.stats(result_dict, tz_offset)
         print(written_file)  # provide output name for easier reuse
 
     if all_positions_image:
-        process_graph.make_positions_graph(system, city, result_dict, all_positions_image, symbol)
+        process_graph.make_positions_graph(result_dict, all_positions_image, symbol)
 
     if all_trips_lines_image:
-        process_graph.make_trips_graph(system, city, all_trips, all_trips_lines_image)
+        process_graph.make_trips_graph(result_dict, all_trips_lines_image)
 
     if all_trips_points_image:
-        process_graph.make_trip_origin_destination_graph(system, city, all_trips, all_trips_points_image, symbol)
+        process_graph.make_trip_origin_destination_graph(result_dict, all_trips_points_image, symbol)

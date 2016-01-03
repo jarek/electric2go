@@ -5,7 +5,7 @@ from collections import defaultdict, OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..systems import get_city_by_name
+from ..systems import get_city_by_result_dict
 
 
 # speed ranges are designated as: 0-5; 5-15; 15-30; 30+
@@ -255,11 +255,11 @@ def graph_wrapper(city_data, plot_function, image_name, background=None):
     plt.close(f)
 
 
-def make_graph(system, city, positions, trips, image_filename, turn,
+def make_graph(result_dict, positions, trips, image_filename, turn,
                show_speeds, highlight_distance, symbol, tz_offset):
     """ Creates and saves matplotlib figure for provided positions and trips. """
 
-    city_data = get_city_by_name(system, city)
+    city_data = get_city_by_result_dict(result_dict)
 
     # filter to only vehicles that are in city's graphing bounds
     filtered_positions = filter_positions_to_bounds(city_data, positions)
@@ -309,14 +309,14 @@ def make_graph(system, city, positions, trips, image_filename, turn,
     graph_wrapper(city_data, plotter, image_filename, graph_background)
 
 
-def make_positions_graph(system, city, data_dict, image_name, symbol, colour_electric=False):
-    city_data = get_city_by_name(system, city)
+def make_positions_graph(result_dict, image_name, symbol, colour_electric=False):
+    city_data = get_city_by_result_dict(result_dict)
 
     # positions are "unfinished parkings" (cars still parked at the end of the dataset)
     # plus all of the "finished parkings" (cars that were parked at one point but moved)
-    positions = [p for p in data_dict['unfinished_parkings'].values()]
-    positions.extend(parking for vin in data_dict['finished_parkings']
-                     for parking in data_dict['finished_parkings'][vin])
+    positions = [p for p in result_dict['unfinished_parkings'].values()]
+    positions.extend(parking for vin in result_dict['finished_parkings']
+                     for parking in result_dict['finished_parkings'][vin])
 
     filtered = filter_positions_to_bounds(city_data, positions)
 
@@ -331,8 +331,16 @@ def make_positions_graph(system, city, data_dict, image_name, symbol, colour_ele
     graph_wrapper(city_data, plotter, image_name, background=None)
 
 
-def make_trips_graph(system, city, trips, image_name):
-    city_data = get_city_by_name(system, city)
+def _get_trips(result_dict):
+    return [trip
+            for vin in result_dict['finished_trips']
+            for trip in result_dict['finished_trips'][vin]]
+
+
+def make_trips_graph(result_dict, image_name):
+    city_data = get_city_by_result_dict(result_dict)
+
+    trips = _get_trips(result_dict)
 
     def plotter(f, ax):
         if len(trips) > 0:
@@ -341,8 +349,10 @@ def make_trips_graph(system, city, trips, image_name):
     graph_wrapper(city_data, plotter, image_name, background=None)
 
 
-def make_trip_origin_destination_graph(system, city, trips, image_name, symbol):
-    city_data = get_city_by_name(system, city)
+def make_trip_origin_destination_graph(result_dict, image_name, symbol):
+    city_data = get_city_by_result_dict(result_dict)
+
+    trips = _get_trips(result_dict)
 
     # TODO: use hexbin instead of just drawing points, to avoid problem/unexpected results
     # caused when a trip ends in a given point then the vehicle is picked up again
