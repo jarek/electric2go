@@ -90,16 +90,6 @@ def make_graph_axes(city_data, background=None):
     ax.axes.get_yaxis().set_visible(False)
     ax.set_frame_on(False)
 
-    try:
-        # support passing in path to an image file.
-        # matplotlib's processing makes the image look a bit worse than
-        # the original map - so keeping the generated graph transparent 
-        # and overlaying it on source map post-render is a good option too
-        background = plt.imread(background)
-    except TypeError:
-        # not an image path, ignore
-        pass
-
     if background is not None:
         ax.imshow(background, origin='lower', aspect='auto')
 
