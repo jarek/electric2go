@@ -18,9 +18,6 @@ def process_commandline():
                         help='offset times by TZ_OFFSET hours')
     parser.add_argument('-v', '--video', action='store_true',
                         help='generate minute-by-minute images for animating into a video')
-    parser.add_argument('-web', action='store_true',
-                        help='create pngcrush script and JS filelist for HTML animation page use; '
-                             'requires VIDEO')
     parser.add_argument('-lines', '--show-move-lines', action='store_true',
                         help='show lines indicating vehicles\' trips')
     parser.add_argument('-d', '--distance', type=float, default=False,

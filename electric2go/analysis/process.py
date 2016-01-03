@@ -3,8 +3,6 @@
 from __future__ import print_function
 import os
 import sys
-import stat
-import json
 from datetime import timedelta
 
 from . import cmdline
@@ -78,7 +76,7 @@ def make_graph_from_frame(system, city, data, animation_files_prefix, symbol,
     return image_filename
 
 
-def batch_process(video=False, web=False, tz_offset=0, stats=False,
+def batch_process(video=False, tz_offset=0, stats=False,
                   show_move_lines=True, show_speeds=False, symbol='.', distance=False,
                   all_positions_image=False, all_trips_lines_image=False, all_trips_points_image=False):
     """
@@ -104,28 +102,7 @@ def batch_process(video=False, web=False, tz_offset=0, stats=False,
                                   show_move_lines, show_speeds, distance, tz_offset)
             for data in build_data_frames(result_dict)
         ]
-
-        # print animation information if applicable
-        if web:
-            filenames_file_name = cars.output_file_name('filenames', 'json')
-            with open(filenames_file_name, 'w') as f:
-                json.dump(iter_filenames, f)
-
-            crushed_dir = cars.output_file_name('crushed-images')
-            if not os.path.exists(crushed_dir):
-                os.makedirs(crushed_dir)
-
-            crush_commands = ['pngcrush %s %s' %
-                              (filename, os.path.join(crushed_dir, os.path.basename(filename)))
-                              for filename in iter_filenames]
-
-            command_file_name = cars.output_file_name('pngcrush')
-            with open(command_file_name, 'w') as f:
-                f.write('\n'.join(crush_commands))
-            os.chmod(command_file_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-
-            print('\nto pngcrush:')
-            print('./' + command_file_name)
+        # TODO: refactor so that there exists a function that returns iter_filenames
 
         background_path = os.path.relpath(os.path.join(cars.root_dir,
             'systems/backgrounds/', '%s-background.png' % city))
