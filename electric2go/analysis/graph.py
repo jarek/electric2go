@@ -108,6 +108,9 @@ def plot_points(ax, points, colour, symbol):
 
 
 def plot_geopoints(ax, city_data, geopoints_dict, symbol):
+    # TODO: basically all invocations pass through filter_positions_to_bounds.
+    # might be worth doing so in here instead? i don't see why we would want to plot
+    # points outside the bounds, or even how that would work
     for colour in geopoints_dict:
         if len(geopoints_dict[colour]):
             lats, lngs = zip(*geopoints_dict[colour])
