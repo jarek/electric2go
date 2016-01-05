@@ -5,11 +5,11 @@ from ..cars import output_file_name
 from ..systems import get_background_as_image
 
 
-def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
+def make_graph_from_frame(result_dict, data, filename_prefix, symbol,
                           show_speeds, distance, tz_offset):
     index, turn, current_positions, current_trips = data
 
-    image_filename = '{file}_{i:05d}.png'.format(file=animation_files_prefix, i=index)
+    image_filename = '{file}_{i:05d}.png'.format(file=filename_prefix, i=index)
 
     graph.make_graph(result_dict, current_positions, current_trips, image_filename,
                      turn, show_speeds, distance, symbol, tz_offset)
@@ -17,10 +17,10 @@ def make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
     return image_filename
 
 
-def make_animate_command(result_dict, animation_files_prefix, frame_count):
+def make_animate_command(result_dict, filename_prefix, frame_count):
     background_path = get_background_as_image(result_dict)
-    png_filepaths = animation_files_prefix + '_%05d.png'
-    mp4_path = animation_files_prefix + '.mp4'
+    png_filepaths = '{file}_%05d.png'.format(file=filename_prefix)
+    mp4_path = '{file}.mp4'.format(file=filename_prefix)
 
     framerate = 30
     # to my best understanding, my "input" is the static background image
@@ -38,7 +38,7 @@ def make_animate_command(result_dict, animation_files_prefix, frame_count):
 def make_video_frames(result_dict, distance, show_move_lines, show_speeds, symbol, tz_offset):
     # set up params for iteratively-named images
     city = result_dict['metadata']['city']
-    animation_files_prefix = output_file_name(description=city)
+    filename_prefix = output_file_name(description=city)
 
     # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
     # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
@@ -47,11 +47,11 @@ def make_video_frames(result_dict, distance, show_move_lines, show_speeds, symbo
     # all ultimately go to matplotlib which is parallel-safe
     # according to http://stackoverflow.com/a/4662511/1265923
     generated_images = [
-        make_graph_from_frame(result_dict, data, animation_files_prefix, symbol,
+        make_graph_from_frame(result_dict, data, filename_prefix, symbol,
                               show_speeds, distance, tz_offset)
         for data in generate.build_data_frames(result_dict, show_move_lines)
     ]
 
-    animate_command_text = make_animate_command(result_dict, animation_files_prefix, len(generated_images))
+    animate_command_text = make_animate_command(result_dict, filename_prefix, len(generated_images))
 
     return animate_command_text, generated_images
