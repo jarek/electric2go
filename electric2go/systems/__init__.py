@@ -1,6 +1,10 @@
 # coding=utf-8
 
+import os
 import importlib
+
+
+systems_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 def _fill_in_city_information(system, city_name, city_data):
@@ -70,3 +74,17 @@ def get_parser(system):
         _parse_modules[system] = _get_carshare_system_module(system, 'parse')
 
     return _parse_modules[system]
+
+
+def get_background_as_image(result_dict):
+    # TODO: Eventually I want these to be automatically generated
+    # based on result_dict, rather than shared as binary images.
+    # But even then I will be able to save that automatically generated image
+    # to a temp file and return its path in this function :)
+
+    file_name = '{city}-background.png'.format(
+        city=result_dict['metadata']['city'])
+
+    path = os.path.join(systems_dir, 'backgrounds', file_name)
+
+    return os.path.relpath(path)
