@@ -3,11 +3,9 @@
 from os import path
 
 
-try:
-    with open(path.join(path.dirname(__file__), 'api_key'), 'r') as f:
-        API_KEY = f.read().strip()
-except IOError:
-    API_KEY = ''
+# translink API requires an API key, so fail with exception if file not found
+with open(path.join(path.dirname(__file__), 'api_key'), 'r') as f:
+    API_KEY = f.read().strip()
 
 
 # we pretend that individual routes are "cities" - the abstraction holds otherwise

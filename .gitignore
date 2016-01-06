@@ -1,10 +1,9 @@
-# semi-private key file
-oauth_key
-car2go/oauth_key
-*/api_key
+# semi-private key files
+api_key
+google_api_key
 
 # downloaded data directory
-data/
+electric2go/data/
 
 # pycharm/intellij metadata directory
 .idea/

@@ -25,7 +25,7 @@ def google_api_key():
     try:
         with open('google_api_key', 'r') as f:
             key = f.read().strip()
-    except:
+    except IOError:
         key = ''
 
     return key

@@ -1,11 +1,16 @@
 DirectoryIndex index.py
 
-<Files oauth_key>
+<Files electric2go/systems/car2go/api_key>
 	Order allow,deny
 	Deny from all
 </Files>
 
-<Files car2go/oauth_key>
+<Files electric2go/systems/drivenow/api_key>
+	Order allow,deny
+	Deny from all
+</Files>
+
+<Files electric2go/systems/translink/api_key>
 	Order allow,deny
 	Deny from all
 </Files>
