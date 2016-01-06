@@ -9,6 +9,7 @@ import sys
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from electric2go.cars import output_file_name
 from electric2go.analysis import cmdline, stats
 
 
@@ -22,8 +23,11 @@ def process_commandline():
 
     result_dict = cmdline.read_json()
 
-    written_file = stats.stats(result_dict, params['tz_offset'])
-    print(written_file)  # provide output name for easier reuse
+    output_file = output_file_name('stats', 'csv')
+
+    stats.stats(result_dict, output_file, params['tz_offset'])
+
+    print(output_file)  # provide output name for easier reuse
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ import sys
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from electric2go.cars import output_file_name
 from electric2go.analysis import cmdline, video
 
 
@@ -31,9 +32,12 @@ def process_commandline():
 
     result_dict = cmdline.read_json()
 
+    output_filename_prefix = output_file_name(result_dict['metadata']['city'])
+
     animate_command_text, generated_images = video.make_video_frames(
-        result_dict, params['distance'], params['show_move_lines'],
-        params['show_speeds'], params['symbol'], params['tz_offset'])
+        result_dict, output_filename_prefix,
+        params['distance'], params['show_move_lines'], params['show_speeds'],
+        params['symbol'], params['tz_offset'])
 
     # print animation information
     print('\nto animate:')

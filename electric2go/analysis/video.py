@@ -1,7 +1,6 @@
 # coding=utf-8
 
 from . import generate, graph
-from ..cars import output_file_name
 from ..systems import get_background_as_image
 
 
@@ -35,11 +34,8 @@ def make_animate_command(result_dict, filename_prefix, frame_count):
     return command
 
 
-def make_video_frames(result_dict, distance, show_move_lines, show_speeds, symbol, tz_offset):
-    # set up params for iteratively-named images
-    city = result_dict['metadata']['city']
-    filename_prefix = output_file_name(description=city)
-
+def make_video_frames(result_dict, filename_prefix, distance, show_move_lines,
+                      show_speeds, symbol, tz_offset):
     # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
     # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
     # TODO: parallelize

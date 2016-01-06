@@ -5,8 +5,6 @@ from datetime import timedelta
 import csv
 import numpy as np
 
-from .. import cars
-
 
 def write_csv(f, items):
     """
@@ -27,11 +25,13 @@ def write_csv(f, items):
     return f
 
 
-def write_csv_to_file(category, items):
-    file_name = cars.output_file_name(category, 'csv')
-    with open(file_name, 'w') as f:
+def write_csv_to_file(output_file, items):
+    """
+    :type items: list[OrderedDict]
+    """
+
+    with open(output_file, 'w') as f:
         write_csv(f, items)
-    return file_name
 
 
 def is_trip_weird(trip):
@@ -410,7 +410,7 @@ def repr_floats(result):
     return result
 
 
-def stats(data_dict, tz_offset):
+def stats(data_dict, output_file, tz_offset):
     # First, get data for whole data_dict dataset
 
     result = repr_floats(stats_dict(data_dict))
@@ -453,6 +453,4 @@ def stats(data_dict, tz_offset):
 
         slice_time += timedelta(days=1)
 
-    written_file_name = write_csv_to_file(category='stats', items=all_results)
-
-    return written_file_name
+    write_csv_to_file(output_file, all_results)
