@@ -15,7 +15,7 @@ from electric2go.analysis import cmdline, stats
 
 def process_commandline():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-tz', '--tz-offset', type=int, default=0,
+    parser.add_argument('-tz', '--tz-offset', type=float, default=0,
                         help='offset times when days are split by TZ_OFFSET hours')
 
     args = parser.parse_args()

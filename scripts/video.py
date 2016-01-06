@@ -15,17 +15,17 @@ from electric2go.analysis import cmdline, video
 
 def process_commandline():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-tz', '--tz-offset', type=int, default=0,
+    parser.add_argument('-tz', '--tz-offset', type=float, default=0,
                         help='offset times by TZ_OFFSET hours')
-    parser.add_argument('-lines', '--show-move-lines', action='store_true',
-                        help='show lines indicating vehicles\' trips')
     parser.add_argument('-d', '--distance', type=float, default=False,
-                        help='mark distance of DISTANCE meters from nearest car on map')
-    parser.add_argument('-speeds', '--show_speeds', action='store_true',
-                        help='indicate vehicles\' speeds in addition to locations')
-    parser.add_argument('-symbol', type=str, default='.',
-                        help='matplotlib symbol to indicate vehicles on the images '
-                             '(default \'.\', larger \'o\')')
+                        help='highlight DISTANCE meters around each car on map')
+    parser.add_argument('--trips', action='store_true',
+                        help='show lines indicating vehicles\' trips')
+    parser.add_argument('--speeds', action='store_true',
+                        help='show vehicles\' speeds in addition to locations')
+    parser.add_argument('--symbol', type=str, default='.',
+                        help='matplotlib symbol to indicate vehicles on the images' +
+                             ' (default \'.\', larger \'o\')')
 
     args = parser.parse_args()
     params = vars(args)
@@ -36,7 +36,7 @@ def process_commandline():
 
     animate_command_text, generated_images = video.make_video_frames(
         result_dict, output_filename_prefix,
-        params['distance'], params['show_move_lines'], params['show_speeds'],
+        params['distance'], params['trips'], params['speeds'],
         params['symbol'], params['tz_offset'])
 
     # print animation information

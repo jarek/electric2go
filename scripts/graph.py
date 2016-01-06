@@ -15,15 +15,15 @@ from electric2go.analysis import cmdline, graph
 
 def process_commandline():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-symbol', type=str, default='.',
-                        help='matplotlib symbol to indicate vehicles on the images '
-                             '(default \'.\', larger \'o\')')
     parser.add_argument('-ap', '--all-positions-image', action='store_true',
                         help='create image of all vehicle positions in the dataset')
     parser.add_argument('-atl', '--all-trips-lines-image', action='store_true',
                         help='create image of all trips in the dataset')
     parser.add_argument('-atp', '--all-trips-points-image', action='store_true',
                         help='create image of all trips in the dataset')
+    parser.add_argument('--symbol', type=str, default='.',
+                        help='matplotlib symbol to indicate vehicles on the images' +
+                             ' (default \'.\', larger \'o\')')
 
     args = parser.parse_args()
     params = vars(args)
