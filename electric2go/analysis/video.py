@@ -1,5 +1,7 @@
 # coding=utf-8
 
+from datetime import timedelta
+
 from . import generate, graph
 from ..systems import get_background_as_image
 
@@ -10,8 +12,10 @@ def make_graph_from_frame(result_dict, data, filename_prefix, symbol,
 
     image_filename = '{file}_{i:05d}.png'.format(file=filename_prefix, i=index)
 
+    printed_time = turn + timedelta(0, tz_offset*3600)
+
     graph.make_graph(result_dict, current_positions, current_trips, image_filename,
-                     turn, show_speeds, distance, symbol, tz_offset)
+                     printed_time, show_speeds, distance, symbol)
 
     return image_filename
 
