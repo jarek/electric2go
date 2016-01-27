@@ -9,7 +9,7 @@ import sys
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from electric2go.cars import output_file_name
+from electric2go import output_file_name
 from electric2go.analysis import cmdline, graph
 
 

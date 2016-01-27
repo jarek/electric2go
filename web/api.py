@@ -6,11 +6,10 @@ from __future__ import print_function
 import json
 
 import web_helper
-from web_helper import cars
 
 
 def fill_in_distance(car, query_ll):
-    car['distance'] = cars.dist((car['lat'], car['lng']), query_ll)
+    car['distance'] = web_helper.dist((car['lat'], car['lng']), query_ll)
     return car
 
 

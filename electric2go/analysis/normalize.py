@@ -9,7 +9,7 @@ import glob
 import tarfile
 
 from .cmdline import json  # will be either simplejson or json
-from .. import cars, systems
+from .. import dist, files, systems
 
 
 def calculate_parking(data):
@@ -23,7 +23,7 @@ def calculate_trip(trip_data):
     Calculates a trip's distance, duration, speed, and fuel use.
     """
 
-    current_trip_distance = cars.dist(trip_data['to'], trip_data['from'])
+    current_trip_distance = dist(trip_data['to'], trip_data['from'])
     current_trip_duration = (trip_data['ending_time'] - trip_data['starting_time']).total_seconds()
 
     trip_data['distance'] = current_trip_distance
@@ -234,13 +234,13 @@ class Electric2goDataArchive():
             # are in alphabetical/chronological order. This assumption
             # holds for my data scripts
             first_file = all_files_tarinfos[0].name
-            self.first_file_time = cars.get_time_from_filename(first_file)
+            self.first_file_time = files.get_time_from_filename(first_file)
 
             last_file = all_files_tarinfos[-1].name
-            self.last_file_time = cars.get_time_from_filename(last_file)
+            self.last_file_time = files.get_time_from_filename(last_file)
 
             # dict mapping datetimes to tarinfos
-            self.tarinfos = {cars.get_time_from_filename(t.name): t
+            self.tarinfos = {files.get_time_from_filename(t.name): t
                              for t in all_files_tarinfos}
 
         else:
@@ -260,18 +260,18 @@ class Electric2goDataArchive():
             # There doesn't seem to be an easier/faster way to do this as
             # Python's directory lists all return in arbitrary order.
 
-            mask = cars.FILENAME_MASK.format(city=self.city)
+            mask = files.FILENAME_MASK.format(city=self.city)
             matching_files = glob.glob(os.path.join(self.directory, mask))
             sorted_files = sorted(matching_files)
 
             first_file = sorted_files[0]
-            self.first_file_time = cars.get_time_from_filename(first_file)
+            self.first_file_time = files.get_time_from_filename(first_file)
 
             last_file = sorted_files[-1]
-            self.last_file_time = cars.get_time_from_filename(last_file)
+            self.last_file_time = files.get_time_from_filename(last_file)
 
     def file_loader(self, t):
-        filename = cars.get_file_name(self.city, t)
+        filename = files.get_file_name(self.city, t)
         filepath_to_load = os.path.join(self.directory, filename)
 
         try:
@@ -312,7 +312,7 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
-    city, starting_file_time = cars.get_city_and_time_from_filename(file_name)
+    city, starting_file_time = files.get_city_and_time_from_filename(file_name)
 
     data_archive = Electric2goDataArchive(city, starting_filename)
 
