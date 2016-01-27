@@ -7,7 +7,7 @@ import time
 
 import requests
 
-from . import cars, systems
+from . import files, systems
 
 
 def head_url(url, session, extra_headers):
@@ -62,15 +62,15 @@ def save_one_city(city, timestamp_to_save, should_archive, session):
     cars_text, session = download_one_city(city, session=session)
 
     # ensure data directory exists; writing a file would fail otherwise
-    data_dir = cars.get_data_dir(city)
+    data_dir = files.get_data_dir(city)
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
-    with open(cars.get_current_file_path(city), 'wb') as f:
+    with open(files.get_current_file_path(city), 'wb') as f:
         f.write(cars_text)
 
     if should_archive:
-        with open(cars.get_file_path(city, timestamp_to_save), 'wb') as f:
+        with open(files.get_file_path(city, timestamp_to_save), 'wb') as f:
             f.write(cars_text)
 
     return session
@@ -85,7 +85,7 @@ def get_current(city_data, max_cache_age):
     cache = False
 
     # see if it's already cached
-    cached_data_filename = cars.get_current_file_path(city_data)
+    cached_data_filename = files.get_current_file_path(city_data)
     if os.path.exists(cached_data_filename):
         cached_data_timestamp = os.path.getmtime(cached_data_filename)
         cached_data_age = time.time() - cached_data_timestamp

@@ -9,7 +9,7 @@ import sys
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from electric2go import cars
+from electric2go import files
 from electric2go.analysis import cmdline
 from electric2go.analysis.normalize import batch_load_data
 
@@ -43,13 +43,13 @@ def process_commandline():
 
     if params['starting_time']:
         try:
-            params['starting_time'] = cars.parse_date(params['starting_time'])
+            params['starting_time'] = files.parse_date(params['starting_time'])
         except ValueError:
             sys.exit('time format not recognized: ' + params['starting_time'])
 
     if params['ending_time']:
         try:
-            params['ending_time'] = cars.parse_date(params['ending_time'])
+            params['ending_time'] = files.parse_date(params['ending_time'])
         except ValueError:
             sys.exit('time format not recognized: ' + params['ending_time'])
 

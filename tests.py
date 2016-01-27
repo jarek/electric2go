@@ -10,7 +10,7 @@ import csv
 from subprocess import Popen, PIPE
 from datetime import datetime
 
-from electric2go import cars, download, systems
+from electric2go import files, download, systems
 from electric2go.analysis import normalize, merge, generate
 from electric2go.analysis import graph as process_graph
 from electric2go.analysis import stats as process_stats
@@ -48,8 +48,8 @@ class DownloadTest(unittest.TestCase):
 
             t, _ = download.save(city[0], city[1], should_archive=True)
 
-            file_absolute = cars.get_file_path(city_data, t)
-            file_current = cars.get_current_file_path(city_data)
+            file_absolute = files.get_file_path(city_data, t)
+            file_current = files.get_current_file_path(city_data)
 
             self.assertTrue(os.path.exists(file_absolute))
             self.assertTrue(os.path.exists(file_current))
@@ -60,7 +60,7 @@ class DownloadTest(unittest.TestCase):
         import shutil
 
         city_data = {'system': 'sharengo', 'name': 'milano'}
-        data_dir = cars.get_data_dir(city_data)
+        data_dir = files.get_data_dir(city_data)
 
         # delete if already exists
         if os.path.exists(data_dir):
@@ -68,7 +68,7 @@ class DownloadTest(unittest.TestCase):
 
         # download
         t, _ = download.save(city_data['system'], city_data['name'], False)
-        file_current = cars.get_current_file_path(city_data)
+        file_current = files.get_current_file_path(city_data)
 
         # test it was downloaded
         self.assertTrue(os.path.exists(file_current))
