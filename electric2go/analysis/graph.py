@@ -1,6 +1,5 @@
 # coding=utf-8
 
-from datetime import timedelta
 from collections import defaultdict, OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
@@ -255,8 +254,8 @@ def graph_wrapper(city_data, plot_function, image_name, background=None):
     plt.close(f)
 
 
-def make_graph(result_dict, positions, trips, image_filename, turn,
-               show_speeds, highlight_distance, symbol, tz_offset):
+def make_graph(result_dict, positions, trips, image_filename, printed_time,
+               show_speeds, highlight_distance, symbol):
     """ Creates and saves matplotlib figure for provided positions and trips. """
 
     city_data = get_city_by_result_dict(result_dict)
@@ -286,8 +285,6 @@ def make_graph(result_dict, positions, trips, image_filename, turn,
             ax = plot_trips(ax, city_data, trips)
 
         # add labels
-        printed_time = turn + timedelta(0, tz_offset*3600)
-
         coords = city_data['LABELS']['lines']
         fontsizes = city_data['LABELS']['fontsizes']
 
