@@ -107,9 +107,6 @@ def plot_points(ax, points, colour, symbol):
 
 
 def plot_geopoints(ax, city_data, geopoints_dict, symbol):
-    # TODO: basically all invocations pass through filter_positions_to_bounds.
-    # might be worth doing so in here instead? i don't see why we would want to plot
-    # points outside the bounds, or even how that would work
     for colour in geopoints_dict:
         if len(geopoints_dict[colour]):
             lats, lngs = zip(*geopoints_dict[colour])
@@ -155,6 +152,10 @@ def filter_positions_to_bounds(city_data, positions):
     """
     Filters the list of positions to only include those that in graphing bounds for the given city
     """
+
+    # TODO: I don't think this function is actually necessary, if we're outside of bounds
+    # I think it'll just try to draw it offscreen and not include in final render.
+    # Confirm and if so, remove this function.
 
     return [p for p in positions if is_latlng_in_bounds(city_data, p['coords'])]
 
