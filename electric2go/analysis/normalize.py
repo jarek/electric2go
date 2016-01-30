@@ -4,9 +4,10 @@ import os
 import sys
 import codecs
 from collections import defaultdict
-from datetime import timedelta
+import datetime
 import glob
 import tarfile
+import zipfile
 
 from .cmdline import json  # will be either simplejson or json
 from .. import dist, files, systems
@@ -209,6 +210,8 @@ class Electric2goDataArchive():
 
     load_data_point = None  # will be dynamically assigned
 
+    handle_to_close = None  # will be assigned if we need to close something at the end
+
     def __init__(self, city, filename):
         if os.path.isfile(filename) and tarfile.is_tarfile(filename):
             # Handle being provided a tar file.
@@ -225,6 +228,7 @@ class Electric2goDataArchive():
             # as we ultimately fetch the data with the timestamp.
 
             self.tarfile = tarfile.open(filename)
+            self.handle_to_close = self.tarfile
 
             # tarfile.getmembers() is in same order as files in the tarfile
             all_files_tarinfos = self.tarfile.getmembers()
@@ -242,6 +246,36 @@ class Electric2goDataArchive():
             # dict mapping datetimes to tarinfos
             self.tarinfos = {files.get_time_from_filename(t.name): t
                              for t in all_files_tarinfos}
+
+        elif os.path.isfile(filename) and filename.endswith('.zip'):
+            # see comments for tarfile logic above, the logic here is the same
+            # only translated to zipfile module's idioms
+
+            self.load_data_point = self.zip_loader
+
+            # Performance comments:
+            # If provided a filename in the constructor, ZipFile module will
+            # open the archive separately each time we request a file inside.
+            # If provided a file handle, it will use it. Do that to avoid
+            # reopening the archive 1440 times for a day's data.
+            # zipfile.infolist() returns a list that was created when
+            # the archive was opened. Calling it repeatedly has no penalty,
+            # but it will be easier to call it once and construct the dict
+            # mapping times to filenames during initialization here.
+
+            self.handle_to_close = open(filename, 'rb')
+            self.zipfile = zipfile.ZipFile(self.handle_to_close, 'r')
+
+            all_files_zipinfos = self.zipfile.infolist()
+
+            first_file = all_files_zipinfos[0].filename
+            self.first_file_time = files.get_time_from_filename(first_file)
+
+            last_file = all_files_zipinfos[-1].filename
+            self.last_file_time = files.get_time_from_filename(last_file)
+
+            self.zipinfos = {files.get_time_from_filename(z.filename): z
+                             for z in all_files_zipinfos}
 
         else:
             # Handle files in a directory, not zipped or tarred.
@@ -270,6 +304,10 @@ class Electric2goDataArchive():
             last_file = sorted_files[-1]
             self.last_file_time = files.get_time_from_filename(last_file)
 
+    def close(self):
+        if self.handle_to_close:
+            self.handle_to_close.close()
+
     def file_loader(self, t):
         filename = files.get_file_name(self.city, t)
         filepath_to_load = os.path.join(self.directory, filename)
@@ -284,7 +322,9 @@ class Electric2goDataArchive():
 
     def tar_loader(self, t):
         if t in self.tarinfos:
-            # extractfile doesn't support "with" syntax :(
+            # tarfile.extractfile() doesn't support context managers
+            # on Python 2 :(
+
             f = self.tarfile.extractfile(self.tarinfos[t])
 
             reader = codecs.getreader('utf-8')
@@ -302,6 +342,22 @@ class Electric2goDataArchive():
             # return False if file is not in the archive
             return False
 
+    def zip_loader(self, t):
+        if t in self.zipinfos:
+            with self.zipfile.open(self.zipinfos[t]) as f:
+                reader = codecs.getreader('utf-8')
+
+                try:
+                    result = json.load(reader(f))
+                except ValueError:
+                    # return False if file is not valid JSON
+                    result = False
+
+            return result
+        else:
+            # return False if file is not in the archive
+            return False
+
 
 def batch_load_data(system, starting_filename, starting_time, ending_time, time_step):
     # get parser functions for the correct system
@@ -312,14 +368,21 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
-    city, starting_file_time = files.get_city_and_time_from_filename(file_name)
+    city = files.get_city_from_filename(file_name)
+
+    # if we were provided with a file, not an archive, get its starting time
+    try:
+        starting_file_time = files.get_time_from_filename(file_name)
+    except ValueError:
+        # for archives, use low value so it is not chosen in max() below
+        starting_file_time = datetime.datetime(year=1, month=1, day=1)
 
     data_archive = Electric2goDataArchive(city, starting_filename)
 
     if not starting_time:
         # If starting_time is provided, use it.
         # If it is not provided, use the later of:
-        # 1) starting time parsed from starting_filename
+        # 1) starting time parsed from starting_filename, if that was a file
         # 2) data_archive.first_file_time
         starting_time = max(starting_file_time, data_archive.first_file_time)
 
@@ -400,7 +463,9 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
             missing_data_points.append(t)
 
         # get next data time according to provided time_step
-        t += timedelta(seconds=time_step)
+        t += datetime.timedelta(seconds=time_step)
+
+    data_archive.close()
 
     # actual_ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found and analyzed.
