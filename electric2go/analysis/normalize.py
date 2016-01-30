@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import timedelta
 import glob
 import tarfile
+import zipfile
 
 from .cmdline import json  # will be either simplejson or json
 from .. import dist, files, systems
@@ -243,6 +244,36 @@ class Electric2goDataArchive():
             self.tarinfos = {files.get_time_from_filename(t.name): t
                              for t in all_files_tarinfos}
 
+        elif os.path.isfile(filename) and filename.endswith('.zip'):
+            # see comments for tarfile logic above, the logic here is the same
+            # only translated to zipfile module's idioms
+
+            self.load_data_point = self.zip_loader
+
+            # Performance comments:
+            # If provided a filename in the constructor, ZipFile module will
+            # open the archive separately each time we request a file inside.
+            # If provided a file handle, it will use it. Do that to avoid
+            # reopening the archive 1440 times for a day's data.
+            # zipfile.infolist() returns a list that was created when
+            # the archive was opened. Calling it repeatedly has no penalty,
+            # but it will be easier to call it once and construct the dict
+            # mapping times to filenames during initialization here.
+
+            self.zipfile_handle = open(filename, 'rb')
+            self.zipfile = zipfile.ZipFile(self.zipfile_handle, 'r')
+
+            all_files_zipinfos = self.zipfile.infolist()
+
+            first_file = all_files_zipinfos[0].filename
+            self.first_file_time = files.get_time_from_filename(first_file)
+
+            last_file = all_files_zipinfos[-1].filename
+            self.last_file_time = files.get_time_from_filename(last_file)
+
+            self.zipinfos = {files.get_time_from_filename(z.filename): z
+                             for z in all_files_zipinfos}
+
         else:
             # Handle files in a directory, not zipped or tarred.
 
@@ -302,6 +333,22 @@ class Electric2goDataArchive():
             # return False if file is not in the archive
             return False
 
+    def zip_loader(self, t):
+        if t in self.zipinfos:
+            with self.zipfile.open(self.zipinfos[t]) as f:
+                reader = codecs.getreader('utf-8')
+
+                try:
+                    result = json.load(reader(f))
+                except ValueError:
+                    # return False if file is not valid JSON
+                    result = False
+
+            return result
+        else:
+            # return False if file is not in the archive
+            return False
+
 
 def batch_load_data(system, starting_filename, starting_time, ending_time, time_step):
     # get parser functions for the correct system
@@ -312,6 +359,10 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
+    if file_name.endswith('.zip'):
+        # handle zip files of whole months.
+        # TODO: this is increasingly hacky, should just use first_file_time if not provided by user
+        file_name = file_name.replace('.zip', '-01--00-00')
     city, starting_file_time = files.get_city_and_time_from_filename(file_name)
 
     data_archive = Electric2goDataArchive(city, starting_filename)

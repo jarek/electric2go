@@ -289,6 +289,50 @@ class StatsTest(unittest.TestCase):
                     ],
                     "time_step": 60
                 }
+            },
+            "vancouver_zipfile": {
+                # test normalizing files contained in a ZIP file
+                "params": {
+                    "system": "car2go",
+                    "starting_filename": "/home/jarek/car2go-vancouver/vancouver_2015-01.zip",
+                    "starting_time": datetime(2015, 1, 4, 0, 0, 0),
+                    "ending_time": datetime(2015, 1, 4, 23, 59, 0),
+                    "time_step": 60
+                },
+                "expected_stats": {
+                    "total vehicles": 673,
+                    "missing data ratio": 0.0,
+                    "trips per car quartile 75": 14.0,
+                    "distance per trip median": 1.76005701,
+                    "duration per trip quartile 25": 15.0,
+                    "weird trip ratio": 0.04648681603
+                },
+                "expected_dataframes": {
+                    0: {
+                        "index": 0,
+                        "turn": "2015-01-04T00:00:00",
+                        "len_trips": 0,
+                        "len_cars": 563
+                    },
+                    720: {
+                        "index": 720,
+                        "turn": "2015-01-04T12:00:00",
+                        "len_cars": 444
+                    },
+                    -1: {
+                        "index": 1439,
+                        "turn": "2015-01-04T23:59:00",
+                        "len_cars": 578
+                    }
+                },
+                "expected_metadata": {
+                    "time_step": 60,
+                    "starting_time": datetime(2015, 1, 4, 0, 0, 0),
+                    "ending_time": datetime(2015, 1, 4, 23, 59, 0),
+                    "city": "vancouver",
+                    "system": "car2go",
+                    "missing": []
+                }
             }
     }
 
