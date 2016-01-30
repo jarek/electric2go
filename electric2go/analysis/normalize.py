@@ -4,7 +4,7 @@ import os
 import sys
 import codecs
 from collections import defaultdict
-from datetime import timedelta
+import datetime
 import glob
 import tarfile
 import zipfile
@@ -359,18 +359,21 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
-    if file_name.endswith('.zip'):
-        # handle zip files of whole months.
-        # TODO: this is increasingly hacky, should just use first_file_time if not provided by user
-        file_name = file_name.replace('.zip', '-01--00-00')
-    city, starting_file_time = files.get_city_and_time_from_filename(file_name)
+    city = files.get_city_from_filename(file_name)
+
+    # if we were provided with a file, not an archive, get its starting time
+    try:
+        starting_file_time = files.get_time_from_filename(file_name)
+    except ValueError:
+        # for archives, use low value so it is not chosen in max() below
+        starting_file_time = datetime.datetime(year=1, month=1, day=1)
 
     data_archive = Electric2goDataArchive(city, starting_filename)
 
     if not starting_time:
         # If starting_time is provided, use it.
         # If it is not provided, use the later of:
-        # 1) starting time parsed from starting_filename
+        # 1) starting time parsed from starting_filename, if that was a file
         # 2) data_archive.first_file_time
         starting_time = max(starting_file_time, data_archive.first_file_time)
 
@@ -451,7 +454,7 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
             missing_data_points.append(t)
 
         # get next data time according to provided time_step
-        t += timedelta(seconds=time_step)
+        t += datetime.timedelta(seconds=time_step)
 
     # actual_ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found and analyzed.
