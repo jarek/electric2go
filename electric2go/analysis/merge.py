@@ -119,8 +119,11 @@ def merge_all_dicts(dicts):
     return result_dict
 
 
-def merge_all_files(files):
-    file_objs = (cmdline.read_json(fp=open(file_to_load))
-                 for file_to_load in files)
+def load_all_files(files):
+    for file_to_load in files:
+        with open(file_to_load) as fp:
+            yield cmdline.read_json(fp)
 
-    return merge_all_dicts(file_objs)
+
+def merge_all_files(files):
+    return merge_all_dicts(load_all_files(files))

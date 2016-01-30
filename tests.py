@@ -465,16 +465,18 @@ class IntegrationTest(unittest.TestCase):
         data_dir_part_1 = '/home/jarek/'
         data_dir_part_2 = 'car2go-columbus/'
 
-        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-01.tgz'],
-              cwd=data_dir,
-              stdout=open(os.path.join(data_dir, 'columbus_2015-06-01.json'), 'w')).wait()
-        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-02.tgz'],
-              cwd=data_dir,
-              stdout=open(os.path.join(data_dir, 'columbus_2015-06-02.json'), 'w')).wait()
+        with open(os.path.join(data_dir, 'columbus_2015-06-01.json'), 'w') as outfile:
+            Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-01.tgz'],
+                  cwd=data_dir, stdout=outfile).wait()
+
+        with open(os.path.join(data_dir, 'columbus_2015-06-02.json'), 'w') as outfile:
+            Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', 'columbus_2015-06-02.tgz'],
+                  cwd=data_dir, stdout=outfile).wait()
+
         # test call using a directory name to make sure this is being parsed properly
-        Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', data_dir_part_2 + 'columbus_2015-06-03.tgz'],
-              cwd=data_dir_part_1,
-              stdout=open(os.path.join(data_dir, 'columbus_2015-06-03.json'), 'w')).wait()
+        with open(os.path.join(data_dir, 'columbus_2015-06-03.json'), 'w') as outfile:
+            Popen([os.path.join(script_dir, 'normalize.py'), 'car2go', data_dir_part_2 + 'columbus_2015-06-03.tgz'],
+                  cwd=data_dir_part_1, stdout=outfile).wait()
 
         p1 = Popen([os.path.join(script_dir, 'merge.py'),
                     'columbus_2015-06-01.json', 'columbus_2015-06-02.json', 'columbus_2015-06-03.json'],

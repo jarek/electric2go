@@ -210,6 +210,8 @@ class Electric2goDataArchive():
 
     load_data_point = None  # will be dynamically assigned
 
+    handle_to_close = None  # will be assigned if we need to close something at the end
+
     def __init__(self, city, filename):
         if os.path.isfile(filename) and tarfile.is_tarfile(filename):
             # Handle being provided a tar file.
@@ -226,6 +228,7 @@ class Electric2goDataArchive():
             # as we ultimately fetch the data with the timestamp.
 
             self.tarfile = tarfile.open(filename)
+            self.handle_to_close = self.tarfile
 
             # tarfile.getmembers() is in same order as files in the tarfile
             all_files_tarinfos = self.tarfile.getmembers()
@@ -260,8 +263,8 @@ class Electric2goDataArchive():
             # but it will be easier to call it once and construct the dict
             # mapping times to filenames during initialization here.
 
-            self.zipfile_handle = open(filename, 'rb')
-            self.zipfile = zipfile.ZipFile(self.zipfile_handle, 'r')
+            self.handle_to_close = open(filename, 'rb')
+            self.zipfile = zipfile.ZipFile(self.handle_to_close, 'r')
 
             all_files_zipinfos = self.zipfile.infolist()
 
@@ -301,6 +304,10 @@ class Electric2goDataArchive():
             last_file = sorted_files[-1]
             self.last_file_time = files.get_time_from_filename(last_file)
 
+    def close(self):
+        if self.handle_to_close:
+            self.handle_to_close.close()
+
     def file_loader(self, t):
         filename = files.get_file_name(self.city, t)
         filepath_to_load = os.path.join(self.directory, filename)
@@ -315,7 +322,9 @@ class Electric2goDataArchive():
 
     def tar_loader(self, t):
         if t in self.tarinfos:
-            # extractfile doesn't support "with" syntax :(
+            # tarfile.extractfile() doesn't support context managers
+            # on Python 2 :(
+
             f = self.tarfile.extractfile(self.tarinfos[t])
 
             reader = codecs.getreader('utf-8')
@@ -455,6 +464,8 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
         # get next data time according to provided time_step
         t += datetime.timedelta(seconds=time_step)
+
+    data_archive.close()
 
     # actual_ending_time is the actual ending time of the resulting dataset,
     # that is, the last valid data point found and analyzed.
