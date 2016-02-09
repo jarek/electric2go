@@ -54,24 +54,18 @@ def build_data_frame(result_dict, turn, include_trips):
 def build_data_frames(result_dict, include_trips=True):
     # start from the starting time
     turn = result_dict['metadata']['starting_time']
-    index = 0
-
-    # TODO: consider not returning index in the dataframe below.
-    # It is only used by video.py and maybe video.py should keep track on its own instead?
-    # Unlike turn, the index isn't any inherent part of the data.
 
     while turn <= result_dict['metadata']['ending_time']:
         current_positions, current_trips = build_data_frame(result_dict, turn, include_trips)
 
-        data_frame = (index, turn, current_positions, current_trips)
+        data_frame = (turn, current_positions, current_trips)
         yield data_frame
 
-        index += 1
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
 def build_json(data_frame, write_car_data, write_cars_to_json):
-    _, turn, current_positions, _ = data_frame
+    turn, current_positions, _ = data_frame
 
     formatted_cars = (write_car_data(car) for car in current_positions)
 

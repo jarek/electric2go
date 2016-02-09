@@ -129,7 +129,6 @@ class StatsTest(unittest.TestCase):
                         "len_cars": 270
                     },
                     -1: {
-                        "index": 2879,
                         "turn": "2015-04-30T07:59:00",
                         "len_cars": 285
                     }
@@ -163,12 +162,10 @@ class StatsTest(unittest.TestCase):
                 },
                 "expected_dataframes": {
                     0: {
-                        "index": 0,
                         "turn": "2015-05-16T11:00:00",
                         "len_trips": 0
                     },
                     250: {
-                        "index": 250,
                         "turn": "2015-05-16T15:10:00",
                         "len_cars": 215
                     },
@@ -216,13 +213,11 @@ class StatsTest(unittest.TestCase):
                 },
                 "expected_dataframes": {
                     0: {
-                        "index": 0,
                         "turn": "2015-06-19T00:00:00",
                         "len_trips": 0,
                         "len_cars": 162
                     },
                     -1: {
-                        "index": 1439,
                         "turn": "2015-06-19T23:59:00",
                         "len_cars": 165
                     }
@@ -266,13 +261,11 @@ class StatsTest(unittest.TestCase):
                 },
                 "expected_dataframes": {
                     0: {
-                        "index": 0,
                         "turn": "2015-06-19T00:00:00",
                         "len_trips": 0,
                         "len_cars": 162
                     },
                     -1: {
-                        "index": 1439,
                         "turn": "2015-06-19T23:59:00",
                         "len_cars": 165
                     }
@@ -309,18 +302,15 @@ class StatsTest(unittest.TestCase):
                 },
                 "expected_dataframes": {
                     0: {
-                        "index": 0,
                         "turn": "2015-01-04T00:00:00",
                         "len_trips": 0,
                         "len_cars": 563
                     },
                     720: {
-                        "index": 720,
                         "turn": "2015-01-04T12:00:00",
                         "len_cars": 444
                     },
                     -1: {
-                        "index": 1439,
                         "turn": "2015-01-04T23:59:00",
                         "len_cars": 578
                     }
@@ -375,26 +365,21 @@ class StatsTest(unittest.TestCase):
 
             for i in exp_dataframes:
                 exp_frame = exp_dataframes[i]
-                if 'index' in exp_frame:
-                    self.assertEqual(exp_frame['index'], data_frames[i][0],
-                                     "{name} {frame} turn: expected {exp}, got {got}".format(
-                                         name=dataset_name, frame=i,
-                                         exp=exp_frame['index'], got=data_frames[i][0]))
                 if 'turn' in exp_frame:
-                    self.assertEqual(exp_frame['turn'], data_frames[i][1].isoformat(),
+                    self.assertEqual(exp_frame['turn'], data_frames[i][0].isoformat(),
                                      "{name} {frame} turn: expected {exp}, got {got}".format(
                                          name=dataset_name, frame=i,
-                                         exp=exp_frame['turn'], got=data_frames[i][1].isoformat()))
+                                         exp=exp_frame['turn'], got=data_frames[i][0].isoformat()))
                 if 'len_cars' in exp_frame:
-                    self.assertEqual(exp_frame['len_cars'], len(data_frames[i][2]),
+                    self.assertEqual(exp_frame['len_cars'], len(data_frames[i][1]),
                                      "{name} {frame} len_cars: expected {exp}, got {got}".format(
                                          name=dataset_name, frame=i,
-                                         exp=exp_frame['len_cars'], got=len(data_frames[i][2])))
+                                         exp=exp_frame['len_cars'], got=len(data_frames[i][1])))
                 if 'len_trips' in exp_frame:
-                    self.assertEqual(exp_frame['len_trips'], len(data_frames[i][3]),
+                    self.assertEqual(exp_frame['len_trips'], len(data_frames[i][2]),
                                      "{name} {frame} len_trips: expected {exp}, got {got}".format(
                                          name=dataset_name, frame=i,
-                                         exp=exp_frame['len_trips'], got=len(data_frames[i][3])))
+                                         exp=exp_frame['len_trips'], got=len(data_frames[i][2])))
 
     def test_metadata_for_sample_datasets(self):
         for dataset_name in self.datasets:
