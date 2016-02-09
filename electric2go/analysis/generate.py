@@ -18,6 +18,23 @@ def build_data_frame(result_dict, turn, include_trips):
     unfinished_parkings = result_dict['unfinished_parkings']
 
     # flatten and filter parking list
+
+    # The condition of `p['starting_time'] <= turn <= p['ending_time']`
+    # (with the two less-than-or-equal) in the statement to get
+    # current_positions is correct.
+
+    # I was initially afraid it was wrong because parking periods
+    # are defined in normalize.process_data as follows:
+    #   "A parking period starts on data_time and ends on prev_data_time."
+    # and so I thought this had to be `turn < p['ending_time']`
+
+    # But actually the equals on both ends is fine. process_data does the
+    # logical filtering as to when a parking starts and ends. With this,
+    # in process_data output, cars are still available when
+    # `turn == p['ending_time']`. Trying to do `turn < p['ending_time']`
+    # would be double-filtering.
+    # (Confirmed with actually looking at source data.)
+
     current_positions = [p for vin in fin_parkings for p in fin_parkings[vin]
                          if p['starting_time'] <= turn <= p['ending_time']]
 
@@ -40,22 +57,6 @@ def build_data_frames(result_dict, include_trips=True):
     index = 0
 
     while turn <= result_dict['metadata']['ending_time']:
-        # The condition of `p['starting_time'] <= turn <= p['ending_time']`
-        # (with the two less-than-or-equal) in the statement to get
-        # current_positions is correct.
-
-        # I was initially afraid it was wrong because parking periods
-        # are defined in process_data as follows:
-        #   "A parking period starts on data_time and ends on prev_data_time."
-        # and so I thought this had to be `turn < p['ending_time']`
-
-        # But actually the equals on both ends is fine. process_data does the
-        # logical filtering as to when a parking starts and ends. With this,
-        # in process_data output, cars are still available when
-        # `turn == p['ending_time']`. Trying to do `turn < p['ending_time']`
-        # would be double-filtering.
-        # (Confirmed with actually looking at source data.)
-
         current_positions, current_trips = build_data_frame(result_dict, turn, include_trips)
 
         data_frame = (index, turn, current_positions, current_trips)
@@ -65,6 +66,8 @@ def build_data_frames(result_dict, include_trips=True):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
+# TODO: split this into build_file() that will process one data frame
+# for easier parallelization/list comprehension/functionalization
 def build_files(result_dict):
     parse_module = systems.get_parser(result_dict['metadata']['system'])
 
