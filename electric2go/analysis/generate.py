@@ -56,6 +56,10 @@ def build_data_frames(result_dict, include_trips=True):
     turn = result_dict['metadata']['starting_time']
     index = 0
 
+    # TODO: consider not returning index in the dataframe below.
+    # It is only used by video.py and maybe video.py should keep track on its own instead?
+    # Unlike turn, the index isn't any inherent part of the data.
+
     while turn <= result_dict['metadata']['ending_time']:
         current_positions, current_trips = build_data_frame(result_dict, turn, include_trips)
 
