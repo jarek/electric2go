@@ -66,29 +66,35 @@ def build_data_frames(result_dict, include_trips=True):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-# TODO: split this into build_file() that will process one data frame
-# for easier parallelization/list comprehension/functionalization
-def build_files(result_dict):
+def build_json(data_frame, write_car_data, write_cars_to_json):
+    _, turn, current_positions, _ = data_frame
+
+    formatted_cars = (write_car_data(car) for car in current_positions)
+
+    formatted_json = write_cars_to_json(formatted_cars)
+
+    return turn, formatted_json
+
+
+def build_jsons(result_dict):
     parse_module = systems.get_parser(result_dict['metadata']['system'])
 
     write_car_data = getattr(parse_module, 'write_car_data')
     write_cars_to_json = getattr(parse_module, 'write_cars_to_json')
 
-    # source files don't include trip info, so don't ask build_data_frames for that
-    for data_frame in build_data_frames(result_dict, include_trips=False):
-        index, turn, current_positions, current_trips = data_frame
+    # source files don't include trip info,
+    # so tell build_data_frames we don't need that
+    data_frames = build_data_frames(result_dict, False)
 
-        formatted_cars = [write_car_data(car) for car in current_positions]
-
-        formatted_json = write_cars_to_json(formatted_cars)
-
-        yield turn, formatted_json
+    # process each data frame and return as generator
+    return (build_json(data_frame, write_car_data, write_cars_to_json)
+            for data_frame in data_frames)
 
 
 def write_files(result_dict):
     city = result_dict['metadata']['city']
-    for data_time, data_dict in build_files(result_dict):
-        file_name = cars.get_file_name(city, data_time)
+    for data_time, data_dict in build_jsons(result_dict):
+        file_name = files.get_file_name(city, data_time)
         # TODO: output dir? as param?
         with open(file_name, 'w') as f:
             json.dump(data_dict, f)
