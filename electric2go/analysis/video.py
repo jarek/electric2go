@@ -8,9 +8,9 @@ from . import generate, graph
 from ..systems import get_background_as_image
 
 
-def make_graph_from_frame(result_dict, data, filename_prefix, symbol,
+def make_graph_from_frame(result_dict, index, data, filename_prefix, symbol,
                           show_speeds, distance, tz_offset):
-    index, turn, current_positions, current_trips = data
+    turn, current_positions, current_trips = data
 
     image_filename = '{file}_{i:05d}.png'.format(file=filename_prefix,
                                                  i=index)
@@ -54,9 +54,10 @@ def make_video_frames(result_dict, filename_prefix, distance, include_trips,
     # all ultimately go to matplotlib which is parallel-safe
     # according to http://stackoverflow.com/a/4662511/1265923
     generated_images = [
-        make_graph_from_frame(result_dict, data, filename_prefix, symbol,
-                              show_speeds, distance, tz_offset)
-        for data in generate.build_data_frames(result_dict, include_trips)
+        make_graph_from_frame(result_dict, index, data, filename_prefix,
+                              symbol, show_speeds, distance, tz_offset)
+        for index, data
+        in enumerate(generate.build_data_frames(result_dict, include_trips))
     ]
 
     animate_command_text = make_animate_command(result_dict, filename_prefix,
