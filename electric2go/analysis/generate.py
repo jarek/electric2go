@@ -48,7 +48,7 @@ def build_data_frame(result_dict, turn, include_trips):
     else:
         current_trips = None
 
-    return current_positions, current_trips
+    return turn, current_positions, current_trips
 
 
 def build_data_frames(result_dict, include_trips=True):
@@ -56,9 +56,8 @@ def build_data_frames(result_dict, include_trips=True):
     turn = result_dict['metadata']['starting_time']
 
     while turn <= result_dict['metadata']['ending_time']:
-        current_positions, current_trips = build_data_frame(result_dict, turn, include_trips)
+        data_frame = build_data_frame(result_dict, turn, include_trips)
 
-        data_frame = (turn, current_positions, current_trips)
         yield data_frame
 
         turn += timedelta(seconds=result_dict['metadata']['time_step'])

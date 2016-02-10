@@ -247,7 +247,7 @@ class Electric2goDataArchive():
             self.tarinfos = {files.get_time_from_filename(t.name): t
                              for t in all_files_tarinfos}
 
-        elif os.path.isfile(filename) and filename.endswith('.zip'):
+        elif os.path.isfile(filename) and zipfile.is_zipfile(filename):
             # see comments for tarfile logic above, the logic here is the same
             # only translated to zipfile module's idioms
 
