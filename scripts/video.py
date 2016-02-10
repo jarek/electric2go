@@ -6,6 +6,8 @@ import argparse
 import os
 import sys
 
+from tqdm import tqdm
+
 # ask script to look for the electric2go package in one directory up
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -32,14 +34,24 @@ def process_commandline():
 
     result_dict = cmdline.read_json()
 
-    output_filename_prefix = output_file_name(result_dict['metadata']['city'])
+    metadata = result_dict['metadata']
 
-    animate_command_text, generated_images = video.make_video_frames(
+    output_filename_prefix = output_file_name(metadata['city'])
+
+    images_generator = video.make_video_frames(
         result_dict, output_filename_prefix,
         params['distance'], params['trips'], params['speeds'],
         params['symbol'], params['tz_offset'])
 
+    # evaluate the generator to actually generate the images;
+    # use tqdm to display a progress bar
+    exp_timespan = metadata['ending_time'] - metadata['starting_time']
+    exp_frames = exp_timespan.total_seconds() / metadata['time_step']
+    generated_images = list(tqdm(images_generator, total=exp_frames))
+
     # print animation information
+    animate_command_text = video.make_animate_command(
+        result_dict, output_filename_prefix, len(generated_images))
     print('\nto animate:')
     print(animate_command_text)
 

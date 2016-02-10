@@ -1,7 +1,5 @@
 # coding=utf-8
 
-from __future__ import print_function
-import sys
 from datetime import timedelta
 
 from . import generate, graph
@@ -12,17 +10,12 @@ def make_graph_from_frame(result_dict, index, data, filename_prefix, symbol,
                           show_speeds, distance, tz_offset):
     turn, current_positions, current_trips = data
 
-    image_filename = '{file}_{i:05d}.png'.format(file=filename_prefix,
-                                                 i=index)
+    image_filename = '{file}_{i:05d}.png'.format(file=filename_prefix, i=index)
 
     printed_time = turn + timedelta(0, tz_offset*3600)
 
     graph.make_graph(result_dict, current_positions, current_trips, image_filename,
                      printed_time, show_speeds, distance, symbol)
-
-    # TODO: figure out a way to report progress better
-    print('{t} generated as {i}'.format(t=turn, i=image_filename),
-          file=sys.stderr)
 
     return image_filename
 
@@ -47,20 +40,22 @@ def make_animate_command(result_dict, filename_prefix, frame_count):
 
 def make_video_frames(result_dict, filename_prefix, distance, include_trips,
                       show_speeds, symbol, tz_offset):
+    """
+    :return: Generator that knows how to create the images. It is not actually
+    evaluated, so you must evaluate it (e.g. list(make_video_frames(...))
+    to create the images.
+    """
+
     # make_graph_from_frame is currently fairly slow (~2 seconds per frame).
     # The map can be fairly easily parallelized, e.g. http://stackoverflow.com/a/5237665/1265923
     # TODO: parallelize
     # It appears graph functions will be safe to parallelize, they
     # all ultimately go to matplotlib which is parallel-safe
     # according to http://stackoverflow.com/a/4662511/1265923
-    generated_images = [
+
+    return (
         make_graph_from_frame(result_dict, index, data, filename_prefix,
                               symbol, show_speeds, distance, tz_offset)
         for index, data
         in enumerate(generate.build_data_frames(result_dict, include_trips))
-    ]
-
-    animate_command_text = make_animate_command(result_dict, filename_prefix,
-                                                len(generated_images))
-
-    return animate_command_text, generated_images
+    )
