@@ -34,10 +34,6 @@ def process_commandline():
     args = parser.parse_args()
     params = vars(args)
 
-    # indent is only used in this script, not passed through to package code
-    json_indent = args.indent
-    del params['indent']
-
     if not os.path.exists(params['starting_filename']):
         sys.exit('file not found: ' + params['starting_filename'])
 
@@ -53,7 +49,9 @@ def process_commandline():
         except ValueError:
             sys.exit('time format not recognized: ' + params['ending_time'])
 
-    result = batch_load_data(**params)
+    result = batch_load_data(params['system'], params['starting_filename'],
+                             params['starting_time'], params['ending_time'],
+                             params['time_step'])
 
     if params['ending_time']\
             and params['ending_time'] > result['metadata']['ending_time']:
@@ -61,7 +59,7 @@ def process_commandline():
               format(et=params['ending_time'], at=result['metadata']['ending_time']),
               file=sys.stderr)
 
-    cmdline.write_json(result, indent=json_indent)
+    cmdline.write_json(result, indent=params['indent'])
 
 
 if __name__ == '__main__':
