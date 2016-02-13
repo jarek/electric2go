@@ -3,8 +3,8 @@
 from __future__ import unicode_literals
 
 
-def get_cars_from_json(json_data):
-    all_markers = json_data.get('marker', [])
+def get_cars(system_data_dict):
+    all_markers = system_data_dict.get('marker', [])
 
     all_cars = [car for car in all_markers if car['hal2option']['objectname'] == 'multicitymarker']
 
@@ -24,14 +24,14 @@ def get_license_plate(car):
     return plate
 
 
-def extract_car_basics(car):
+def get_car_basics(car):
     return car['hal2option']['id'], float(car['lat']), float(car['lng'])
 
 
-def extract_car_data(car):
+def get_car(car):
     result = {}
 
-    vin, lat, lng = extract_car_basics(car)
+    vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
     result['lat'] = lat
@@ -55,7 +55,7 @@ def extract_car_data(car):
 
 def get_range(car):
     if 'fuel' not in car:
-        car = extract_car_data(car)
+        car = get_car(car)
 
     # Multicity quotes a full charge range of 150 km (NEDC).
     # Multicity policy is that cars cannot be parked with less than 10 km range

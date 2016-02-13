@@ -1,21 +1,21 @@
 # coding=utf-8
 
 
-def get_cars_from_json(json_data):
-    if 'Vehicules' in json_data:
-        return json_data['Vehicules']
+def get_cars(system_data_dict):
+    if 'Vehicules' in system_data_dict:
+        return system_data_dict['Vehicules']
     else:
         return []
 
 
-def extract_car_basics(car):
+def get_car_basics(car):
     return car['Id'], car['Position']['Lat'], car['Position']['Lon']
 
 
-def extract_car_data(car):
+def get_car(car):
     result = {}
 
-    vin, lat, lng = extract_car_basics(car)
+    vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
     result['name'] = car['Name']
@@ -38,7 +38,7 @@ def extract_car_data(car):
 def get_range(car):
     if 'fuel' not in car:
         # means we got a verbatim JSON object, not yet parsed to common format
-        car = extract_car_data(car)
+        car = get_car(car)
 
     # Wikipedia quotes 120 km EPA or 200 km NEDC. Use 120 km to be safe.
     # Communauto policy requires 15 km range remaining when ending trip,
