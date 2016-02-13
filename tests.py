@@ -37,7 +37,7 @@ class DownloadTest(unittest.TestCase):
             session.close()
 
             # could throw exception if JSON is malformed, test if it does
-            info = json.loads(text.decode('utf-8'))
+            info = json.loads(text)
 
             # assert there is something
             self.assertGreater(len(info), 0)
@@ -46,7 +46,9 @@ class DownloadTest(unittest.TestCase):
         for city in self.test_cities:
             city_data = systems.get_city_by_name(city[0], city[1])
 
-            t, _ = download.save(city[0], city[1], should_archive=True)
+            t, failures = download.save(city[0], city[1], should_archive=True)
+
+            self.assertEqual(len(failures), 0)
 
             file_absolute = files.get_file_path(city_data, t)
             file_current = files.get_current_file_path(city_data)
@@ -67,10 +69,11 @@ class DownloadTest(unittest.TestCase):
             shutil.rmtree(data_dir)
 
         # download
-        t, _ = download.save(city_data['system'], city_data['name'], False)
+        t, failures = download.save(city_data['system'], city_data['name'], False)
         file_current = files.get_current_file_path(city_data)
 
         # test it was downloaded
+        self.assertEqual(len(failures), 0)
         self.assertTrue(os.path.exists(file_current))
 
     def test_cache(self):
@@ -83,9 +86,9 @@ class DownloadTest(unittest.TestCase):
             text, cache = download.get_current(city_data, max_cache_age=30)
 
             # check we've gotten a cached file
-            self.assertTrue(cache != False and cache > 0)
+            self.assertGreater(cache, 0)
 
-            info = json.loads(text.decode('utf-8'))  # check the json can be parsed
+            info = json.loads(text)  # check the json can be parsed
 
             self.assertGreater(len(info), 0)  # check there is something
 
