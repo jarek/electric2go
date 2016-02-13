@@ -1,18 +1,18 @@
 # coding=utf-8
 
 
-def get_cars_from_json(json_data):
-    return json_data
+def get_cars(system_data_dict):
+    return system_data_dict
 
 
-def extract_car_basics(car):
+def get_car_basics(car):
     return car['virtual_rental_id'], car['lat'], car['lon']
 
 
-def extract_car_data(car):
+def get_car(car):
     result = {}
 
-    vin, lat, lng = extract_car_basics(car)
+    vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
     result['lat'] = lat

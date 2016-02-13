@@ -1,21 +1,21 @@
 # coding=utf-8
 
 
-def get_cars_from_json(json_data):
-    if 'cars' in json_data and 'items' in json_data['cars']:
-        return json_data['cars']['items']
+def get_cars(system_data_dict):
+    if 'cars' in system_data_dict and 'items' in system_data_dict['cars']:
+        return system_data_dict['cars']['items']
     else:
         return []
 
 
-def extract_car_basics(car):
+def get_car_basics(car):
     return car['id'], car['latitude'], car['longitude']
 
 
-def extract_car_data(car):
+def get_car(car):
     result = {}
 
-    vin, lat, lng = extract_car_basics(car)
+    vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
     result['name'] = car['name']
@@ -44,7 +44,7 @@ def extract_car_data(car):
 def get_range(car):
     if 'fuel' not in car:
         # means we got a verbatim JSON object, not yet parsed to common format
-        car = extract_car_data(car)
+        car = get_car(car)
 
     # Wikipedia quotes 130-160 km range (NEDC), Drivenow claims up to 160 km.
     # Use 130 km exactly.

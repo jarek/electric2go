@@ -59,8 +59,8 @@ def get_electric_cars(city):
     api_text, cache = download.get_current(city, CACHE_PERIOD)
 
     parse = systems.get_parser(city['system'])
-    all_cars = parse.get_cars_from_json(json.loads(api_text))
-    parsed_cars = [parse.extract_car_data(car) for car in all_cars]
+    all_cars = parse.get_cars(json.loads(api_text))
+    parsed_cars = [parse.get_car(car) for car in all_cars]
 
     electric_cars = [car for car in parsed_cars if car['electric']]
 

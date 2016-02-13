@@ -1,21 +1,21 @@
 # coding=utf-8
 
 
-def get_cars_from_json(json_data):
-    if 'placemarks' in json_data:
-        return json_data['placemarks']
+def get_cars(system_data_dict):
+    if 'placemarks' in system_data_dict:
+        return system_data_dict['placemarks']
     else:
         return []
 
 
-def extract_car_basics(car):
+def get_car_basics(car):
     return car['vin'], car['coordinates'][1], car['coordinates'][0]
 
 
-def extract_car_data(car):
+def get_car(car):
     result = {}
 
-    vin, lat, lng = extract_car_basics(car)
+    vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
     result['license_plate'] = car['name']
@@ -42,7 +42,7 @@ def extract_car_data(car):
 
 def get_range(car):
     if 'fuel' not in car:
-        car = extract_car_data(car)
+        car = get_car(car)
 
     # Wikipedia quotes full charge range 135 km (NEDC), car2go quotes 130 km.
     # Use 130 km.

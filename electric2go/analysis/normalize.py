@@ -36,14 +36,14 @@ def calculate_trip(trip_data):
     return trip_data
 
 
-def process_data(parse_module, data_time, prev_data_time, new_availability_json, unfinished_trips, unfinished_parkings):
+def process_data(parse_module, data_time, prev_data_time, new_availability_data, unfinished_trips, unfinished_parkings):
     # get parser functions for the system
-    get_cars_from_json = getattr(parse_module, 'get_cars_from_json')
-    extract_car_basics = getattr(parse_module, 'extract_car_basics')
-    extract_car_data = getattr(parse_module, 'extract_car_data')
+    get_cars = getattr(parse_module, 'get_cars')
+    get_car_basics = getattr(parse_module, 'get_car_basics')
+    get_car = getattr(parse_module, 'get_car')
 
     # handle outer JSON structure and get a list we can loop through
-    available_cars = get_cars_from_json(new_availability_json)
+    available_cars = get_cars(new_availability_data)
 
     # keys that are handled explicitly within the loop
     RECOGNIZED_KEYS = ['vin', 'lat', 'lng', 'fuel']
@@ -53,7 +53,7 @@ def process_data(parse_module, data_time, prev_data_time, new_availability_json,
 
     if len(available_cars):
         # assume all cars will have same key structure (otherwise we'd have merged systems), and look at first one
-        OTHER_KEYS = [key for key in extract_car_data(available_cars[0]).keys()
+        OTHER_KEYS = [key for key in get_car(available_cars[0]).keys()
                       if key not in RECOGNIZED_KEYS and key not in IGNORED_KEYS]
 
     # unfinished_trips and unfinished_parkings come from params, are updated, then returned
@@ -63,7 +63,7 @@ def process_data(parse_module, data_time, prev_data_time, new_availability_json,
 
     # called by start_parking, end_trip, and end_unstarted_trip
     def process_car(car_info):
-        new_car_data = extract_car_data(car_info)  # get full car info
+        new_car_data = get_car(car_info)  # get full car info
         result = {'vin': new_car_data['vin'],
                   'coords': (new_car_data['lat'], new_car_data['lng']),
                   'fuel': new_car_data['fuel']}
@@ -161,7 +161,7 @@ def process_data(parse_module, data_time, prev_data_time, new_availability_json,
     available_vins = set()
     for car in available_cars:
 
-        vin, lat, lng = extract_car_basics(car)
+        vin, lat, lng = get_car_basics(car)
         available_vins.add(vin)
 
         # most of the time, none of these conditionals will be processed - most cars park for much more than one cycle

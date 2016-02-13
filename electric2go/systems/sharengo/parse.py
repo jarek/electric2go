@@ -1,18 +1,18 @@
 # coding=utf-8
 
 
-def get_cars_from_json(json_data):
-    return json_data['data'] if 'data' in json_data else json_data
+def get_cars(system_data_dict):
+    return system_data_dict['data'] if 'data' in system_data_dict else system_data_dict
 
 
-def extract_car_basics(car):
+def get_car_basics(car):
     return car['imei'], car['latitude'], car['longitude']
 
 
-def extract_car_data(car):
+def get_car(car):
     result = {}
 
-    vin, lat, lng = extract_car_basics(car)
+    vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
     result['lat'] = lat
@@ -36,7 +36,7 @@ def extract_car_data(car):
 
 def get_range(car):
     if 'fuel' not in car:
-        car = extract_car_data(car)
+        car = get_car(car)
 
     # Figures returned on API and website give a fairly linear 1% = 1.66 km ratio
 
