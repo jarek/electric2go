@@ -25,7 +25,7 @@ def get_url(url, session, extra_headers):
 
     r = session.get(url, headers=extra_headers)
 
-    return r.content, session
+    return r.text, session
 
 
 def download_one_city(city_data, session=None):
@@ -45,33 +45,31 @@ def download_one_city(city_data, session=None):
         suffix1 = ');'
         suffix2 = ')'
 
-        api_text = api_text.decode('utf-8')
-
         if api_text.startswith(prefix):
             if api_text.endswith(suffix1):
                 api_text = api_text[len(prefix):-len(suffix1)]
             elif api_text.endswith(suffix2):
                 api_text = api_text[len(prefix):-len(suffix2)]
 
-        api_text = api_text.encode('utf-8')
-
     return api_text, session
 
 
 def save_one_city(city, timestamp_to_save, should_archive, session):
-    cars_text, session = download_one_city(city, session=session)
+    api_text, session = download_one_city(city, session=session)
 
     # ensure data directory exists; writing a file would fail otherwise
     data_dir = files.get_data_dir(city)
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
+    api_bytes = api_text.encode('utf-8')
+
     with open(files.get_current_file_path(city), 'wb') as f:
-        f.write(cars_text)
+        f.write(api_bytes)
 
     if should_archive:
         with open(files.get_file_path(city, timestamp_to_save), 'wb') as f:
-            f.write(cars_text)
+            f.write(api_bytes)
 
     return session
 
@@ -91,7 +89,7 @@ def get_current(city_data, max_cache_age):
         cached_data_age = time.time() - cached_data_timestamp
         if cached_data_age < max_cache_age:
             cache = cached_data_timestamp
-            with open(cached_data_filename, 'rb') as f:
+            with open(cached_data_filename, 'r') as f:
                 api_text = f.read()
 
     if not api_text:
