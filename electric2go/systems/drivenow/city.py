@@ -98,8 +98,5 @@ API_AVAILABLE_VEHICLES_URL = 'https://api2.drive-now.com/cities/{loc}?expand=ful
 for city, city_data in CITIES.items():
     city_data['of_interest'] = True  # we want everything for now
 
-    if 'API_AVAILABLE_VEHICLES_URL' not in city_data:
-        city_data['API_AVAILABLE_VEHICLES_URL'] = API_AVAILABLE_VEHICLES_URL.format(loc=city_data['loc_key'])
-
-    if 'API_AVAILABLE_VEHICLES_HEADERS' not in city_data:
-        city_data['API_AVAILABLE_VEHICLES_HEADERS'] = {'X-Api-Key': API_KEY, 'User-Agent': 'electric2go'}
+    city_data['API_AVAILABLE_VEHICLES_URL'] = API_AVAILABLE_VEHICLES_URL.format(loc=city_data['loc_key'])
+    city_data['API_AVAILABLE_VEHICLES_HEADERS'] = {'X-Api-Key': API_KEY, 'User-Agent': 'electric2go'}

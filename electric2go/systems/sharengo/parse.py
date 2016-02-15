@@ -2,7 +2,7 @@
 
 
 def get_cars(system_data_dict):
-    return system_data_dict['data'] if 'data' in system_data_dict else system_data_dict
+    return system_data_dict.get('data', system_data_dict)
 
 
 def get_car_basics(car):
@@ -29,7 +29,7 @@ def get_car(car):
     result['cleanliness_interior'] = car['intCleanliness']
     result['cleanliness_exterior'] = car['extCleanliness']
 
-    result['charging'] = car['charging'] if 'charging' in car else False
+    result['charging'] = car.get('charging', False)
 
     return result
 

@@ -28,8 +28,5 @@ API_URL = 'http://api.translink.ca/rttiapi/v1/buses?routeNo={route}&apikey={key}
 
 # fill in data that is constant for all routes
 for route_number, route_data in CITIES.items():
-    if 'API_AVAILABLE_VEHICLES_URL' not in route_data:
-        route_data['API_AVAILABLE_VEHICLES_URL'] = API_URL.format(key=API_KEY, route=route_number)
-
-    if 'API_AVAILABLE_VEHICLES_HEADERS' not in route_data:
-        route_data['API_AVAILABLE_VEHICLES_HEADERS'] = {'Accept': 'application/json'}
+    route_data['API_AVAILABLE_VEHICLES_URL'] = API_URL.format(key=API_KEY, route=route_number)
+    route_data['API_AVAILABLE_VEHICLES_HEADERS'] = {'Accept': 'application/json'}

@@ -2,10 +2,7 @@
 
 
 def get_cars(system_data_dict):
-    if 'Vehicules' in system_data_dict:
-        return system_data_dict['Vehicules']
-    else:
-        return []
+    system_data_dict.get('Vehicules', [])
 
 
 def get_car_basics(car):
@@ -45,8 +42,8 @@ def get_range(car):
     # use 12% as indicator for minimum charge level.
 
     if car['fuel'] > 12:
-        range = int(1.2 * (car['fuel']-12))
+        car_range = int(1.2 * (car['fuel']-12))
     else:
-        range = 0
+        car_range = 0
 
-    return range
+    return car_range

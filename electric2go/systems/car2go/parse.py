@@ -2,10 +2,7 @@
 
 
 def get_cars(system_data_dict):
-    if 'placemarks' in system_data_dict:
-        return system_data_dict['placemarks']
-    else:
-        return []
+    return system_data_dict.get('placemarks', [])
 
 
 def get_car_basics(car):
@@ -30,7 +27,7 @@ def get_car(car):
     result['fuel'] = car['fuel']
     result['fuel_type'] = car['engineType']
     result['electric'] = (car['engineType'] == 'ED')
-    result['charging'] = car['charging'] if 'charging' in car else False
+    result['charging'] = car.get('charging', False)
 
     result['transmission'] = 'A'
 
@@ -50,11 +47,11 @@ def get_range(car):
     # trip at a charging point. Use 20% as indicator for minimum charge level.
 
     if car['fuel'] > 20:
-        range = int(1.3 * (car['fuel']-20))
+        car_range = int(1.3 * (car['fuel']-20))
     else:
-        range = 0
+        car_range = 0
 
-    return range
+    return car_range
 
 
 def put_car(car):

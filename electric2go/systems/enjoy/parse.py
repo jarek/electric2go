@@ -26,6 +26,6 @@ def get_car(car):
 
     result['model'] = car['car_name']
 
-    result['charging'] = car['charging'] if 'charging' in car else False
+    result['charging'] = car.get('charging', False)
 
     return result
