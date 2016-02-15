@@ -53,8 +53,8 @@ def get_range(car):
     # for minimum charge level.
 
     if car['fuel'] > 12:
-        range = int(1.3 * (car['fuel']-12))
+        car_range = int(1.3 * (car['fuel']-12))
     else:
-        range = 0
+        car_range = 0
 
-    return range
+    return car_range
