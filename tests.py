@@ -499,16 +499,28 @@ class IntegrationTest(unittest.TestCase):
 
 
 class GenerateTest(unittest.TestCase):
+    def assertExpectedInObj(self, obj, expected):
+        """
+        Verifies that values for all keys in `expected` are the same as in `obj`.
+        If value is a dict, recurses into the dict.
+        Unlike assertDictEqual, doesn't raise error when a key in `obj` is not found in `expected`.
+        """
+        for key in expected:
+            if isinstance(expected[key], dict):
+                self.assertExpectedInObj(obj[key], expected[key])
+            else:
+                self.assertEqual(expected[key], obj[key])
+
     def test_generate_round_trip_stats(self):
-        first_data_dict = normalize.batch_load_data('car2go', '/home/jarek/personal/vancouver_2016-02-07.tgz',
-                                                    None, datetime(2016, 2, 7, 3, 0), 60)
+        first_data_dict = normalize.batch_load_data('car2go', '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz',
+                                                    None, datetime(2016, 2, 9, 3, 0), 60)
 
         first_stats = process_stats.stats_dict(first_data_dict)
 
-        generate.write_files(first_data_dict, '/home/jarek/personal/generate_test/')
+        generate.write_files(first_data_dict, '/home/jarek/projects/electric2go/generate_test/')
 
-        second_data_dict = normalize.batch_load_data('car2go', '/home/jarek/personal/generate_test/vancouver_2016-02-07--00-00',
-                                                     None, datetime(2016, 2, 7, 3, 0), 60)
+        second_data_dict = normalize.batch_load_data('car2go', '/home/jarek/projects/electric2go/generate_test/vancouver_2016-02-09--00-00',
+                                                     None, datetime(2016, 2, 9, 3, 0), 60)
 
         second_stats = process_stats.stats_dict(second_data_dict)
 
@@ -522,8 +534,20 @@ class GenerateTest(unittest.TestCase):
                                  test_key=test_key,
                                  exp=first_stats[test_key], got=second_stats[test_key]))
 
-        # TODO: load an original file and a newly generated file and ensure everything
+        # load an original file and a newly generated file, and ensure everything
         # in original file is also in new file
+
+        test_date = datetime(2016, 2, 9, 2, 0)
+
+        original_data_archive = normalize.Electric2goDataArchive('vancouver', '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz')
+        expected_file = original_data_archive.load_data_point(test_date)
+        expected_cars = {car['vin']: car for car in expected_file['placemarks']}
+
+        generated_data_archive = normalize.Electric2goDataArchive('vancouver', '/home/jarek/projects/electric2go/generate_test/')
+        actual_file = generated_data_archive.load_data_point(test_date)
+        actual_cars = {car['vin']: car for car in actual_file['placemarks']}
+
+        self.assertExpectedInObj(actual_cars, expected_cars)
 
 
 class HelperFunctionsTest(unittest.TestCase):
