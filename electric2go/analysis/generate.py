@@ -69,15 +69,15 @@ def build_obj(data_frame, put_car, put_cars):
 
     def undo_normalize(car):
         # undoes normalize.process_data.process_car
-        if 'coords' in car:
-            car['lat'] = car['coords'][0]
-            car['lng'] = car['coords'][1]
-            del car['coords']
+        test = dict.copy(car)
+        test['lat'] = car['coords'][0]
+        test['lng'] = car['coords'][1]
+        del test['coords']
 
         # TODO: derp: result_dict will never contain a car's "name" or "license_plate"
         # or "fuel_type" or "transmission" or anything else in IGNORED_KEYS
 
-        return car
+        return test
 
     system_cars = (put_car(undo_normalize(car)) for car in current_positions)
 
