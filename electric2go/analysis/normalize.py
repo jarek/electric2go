@@ -51,6 +51,7 @@ def process_data(parse_module, data_time, prev_data_time, new_availability_data,
     # ignored keys that should not be tracked for trips - stuff that won't change during a trip
     # TODO: this throws away this information - it never makes it into result_dict - cannot recreate files
     IGNORED_KEYS = ['name', 'license_plate', 'address', 'model', 'color', 'fuel_type', 'transmission']
+    IGNORED_KEYS = []
 
     if len(available_cars):
         # assume all cars will have same key structure (otherwise we'd have merged systems), and look at first one
