@@ -38,7 +38,15 @@ def calculate_trip(trip_data):
 
 # These are things used explicitly by process_data.process_car
 # We need to account for them in a few places
-BASIC_VEHICLE_KEYS = ('vin', 'lat', 'lng', 'fuel')
+BASIC_VEHICLE_KEYS = {'vin', 'lat', 'lng', 'fuel'}
+
+
+# Ignored keys that should not be tracked for trips - stuff that
+# won't change during a trip
+UNCHANGING_KEYS = {'name', 'license_plate', 'model',
+                   'color', 'fuel_type', 'transmission',
+                   'app_required'}
+# technically also 'electric' but we want it for easier filtering
 
 
 def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_time, available_cars, result_dict):
@@ -458,17 +466,9 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
         # assume all cars will have same key structure (otherwise we'd
         # have merged systems), and look at first one
         first_car = get_car(first_available_cars[0])
+        first_car_keys = set(first_car.keys())
 
-        # ignored keys that should not be tracked for trips - stuff that
-        # won't change during a trip
-        unchanging_keys = ('name', 'license_plate', 'model',
-                           'color', 'fuel_type', 'transmission',
-                           'app_required')
-        # technically also 'electric' but we want it for easier filtering
-
-        changing_keys = [key for key in first_car.keys()
-                         if key not in BASIC_VEHICLE_KEYS
-                         and key not in unchanging_keys]
+        changing_keys = first_car_keys - BASIC_VEHICLE_KEYS - UNCHANGING_KEYS
     else:
         raise ValueError('First file found is invalid or contains no cars.'
                          'Provide starting_time for first valid dataset.')

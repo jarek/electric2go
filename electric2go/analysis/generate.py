@@ -83,6 +83,7 @@ def build_obj(data_frame, put_car, put_cars, cars_details):
 
         return test
 
+    # TODO: this implicitly assumes that system always returns a list, rather than e.g. a dict
     system_cars = (put_car(undo_normalize(car)) for car in current_positions)
 
     system_obj = put_cars(list(system_cars))  # TODO: otherwise json cannot serialize, lame
@@ -106,6 +107,7 @@ def build_objs(result_dict):
 
 
 def write_files(result_dict, location):
+    # TODO: depending on how it's being used, this function might not belong here
     city = result_dict['metadata']['city']
     for data_time, data_dict in build_objs(result_dict):
         file_name = files.get_file_name(city, data_time)
