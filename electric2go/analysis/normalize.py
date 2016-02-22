@@ -36,6 +36,11 @@ def calculate_trip(trip_data):
     return trip_data
 
 
+# These are things used explicitly by process_data.process_car
+# We need to account for them in a few places
+BASIC_VEHICLE_KEYS = ('vin', 'lat', 'lng', 'fuel')
+
+
 def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_time, available_cars, result_dict):
     # declare local variable names for easier access
     unfinished_trips = result_dict['unfinished_trips']
@@ -43,6 +48,10 @@ def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_ti
     unstarted_potential_trips = result_dict['unstarted_trips']
     finished_parkings = result_dict['finished_parkings']
     finished_trips = result_dict['finished_trips']
+    vehicles = result_dict['vehicles']
+
+    # internal, not returned
+    original_car_data = {}
 
     # called by start_parking, end_trip, and end_unstarted_trip
     def process_car(car_info):
@@ -152,6 +161,9 @@ def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_ti
         if vin not in unfinished_parkings and vin not in unfinished_trips:
             # returning from an unknown trip, the first time we're seeing the car
 
+            # save original raw info
+            original_car_data[vin] = car
+
             unstarted_potential_trips[vin] = end_unstarted_trip(data_time, car)
 
             unfinished_parkings[vin] = start_parking(data_time, car)
@@ -176,6 +188,17 @@ def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_ti
             # end trip right away and start 'new' parking period in new position
             finished_trips[vin].append(end_trip(data_time, car, trip_data))
             unfinished_parkings[vin] = start_parking(data_time, car)
+
+    new_vins = available_vins - set(vehicles.keys())
+    for vin in new_vins:
+        # save info about a car that doesn't change over time
+        # (e.g. car model), we will only hit this once per car per dataset
+
+        parsed_car = get_car(original_car_data[vin])
+
+        for key in parsed_car.keys():
+            if key not in BASIC_VEHICLE_KEYS and key not in changing_keys:
+                vehicles[vin][key] = parsed_car[key]
 
     vins_that_just_became_unavailable = set(unfinished_parkings.keys()) - available_vins
     for vin in vins_that_just_became_unavailable:
@@ -404,7 +427,15 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
         'finished_trips': defaultdict(list),
         'finished_parkings': defaultdict(list),
         'unstarted_trips': {},  # a car can have only one unstarted trip -
-        #                         so we don't need a list here
+                                # so we don't need a list here
+
+        # Stores information about cars which we expect to not change
+        # during the duration of the dataset. This can be stuff like
+        # car model or automatic/manual transmission.
+        # Note: Unexpected things will happen if a property changes during
+        # the dataset duration. However, it will still be better than
+        # throwing out this data altogether, which we were doing previously.
+        'vehicles': defaultdict(dict),
 
         # Metadata about the dataset
         'metadata': {
@@ -428,19 +459,15 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
         # have merged systems), and look at first one
         first_car = get_car(first_available_cars[0])
 
-        # keys that are handled explicitly in process_data
-        recognized_keys = ['vin', 'lat', 'lng', 'fuel']
-
         # ignored keys that should not be tracked for trips - stuff that
         # won't change during a trip
-        # TODO: this throws away this information - it never makes it into
-        # result_dict - cannot fully recreate files
-        unchanging_keys = ['name', 'license_plate', 'address', 'model',
-                           'color', 'fuel_type', 'transmission']
-        unchanging_keys = []  # temp override
+        unchanging_keys = ('name', 'license_plate', 'model',
+                           'color', 'fuel_type', 'transmission',
+                           'app_required')
+        # technically also 'electric' but we want it for easier filtering
 
         changing_keys = [key for key in first_car.keys()
-                         if key not in recognized_keys
+                         if key not in BASIC_VEHICLE_KEYS
                          and key not in unchanging_keys]
     else:
         raise ValueError('First file found is invalid or contains no cars.'

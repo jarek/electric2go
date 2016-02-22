@@ -522,6 +522,9 @@ class GenerateTest(unittest.TestCase):
                                  test_key=test_key,
                                  exp=first_stats[test_key], got=second_stats[test_key]))
 
+        # TODO: load an original file and a newly generated file and ensure everything
+        # in original file is also in new file
+
 
 class HelperFunctionsTest(unittest.TestCase):
     def test_is_latlng_in_bounds(self):

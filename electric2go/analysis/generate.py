@@ -64,18 +64,22 @@ def build_data_frames(result_dict, include_trips=True):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-def build_obj(data_frame, put_car, put_cars):
+def build_obj(data_frame, put_car, put_cars, cars_details):
     turn, current_positions, _ = data_frame
 
     def undo_normalize(car):
         # undoes normalize.process_data.process_car
-        test = dict.copy(car)
+        test = dict.copy(car)  # need to copy because I am deleting keys below
         test['lat'] = car['coords'][0]
         test['lng'] = car['coords'][1]
         del test['coords']
 
-        # TODO: derp: result_dict will never contain a car's "name" or "license_plate"
-        # or "fuel_type" or "transmission" or anything else in IGNORED_KEYS
+        # add in stuff that doesn't change between data frames,
+        # it is stored separately in cars_details
+        car_details = cars_details.get(test['vin'], {})
+
+        for car_key in car_details:
+            test[car_key] = car_details[car_key]
 
         return test
 
@@ -97,7 +101,7 @@ def build_objs(result_dict):
     data_frames = build_data_frames(result_dict, False)
 
     # process each data frame and return as generator
-    return (build_obj(data_frame, put_car, put_cars)
+    return (build_obj(data_frame, put_car, put_cars, result_dict['vehicles'])
             for data_frame in data_frames)
 
 

@@ -34,6 +34,8 @@ def get_car(car):
     result['cleanliness_interior'] = car['interior']
     result['cleanliness_exterior'] = car['exterior']
 
+    result['app_required'] = car['smartPhoneRequired']
+
     return result
 
 
@@ -67,7 +69,9 @@ def put_car(car):
         'charging': car['charging'],
 
         'interior': car['cleanliness_interior'],
-        'exterior': car['cleanliness_exterior']
+        'exterior': car['cleanliness_exterior'],
+
+        'smartPhoneRequired': car['app_required']
     }
 
     return formatted_car
