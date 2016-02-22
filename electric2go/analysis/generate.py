@@ -1,8 +1,9 @@
 # coding=utf-8
 
 from datetime import timedelta
-
+import os
 import json
+
 from .. import files, systems
 
 
@@ -66,9 +67,21 @@ def build_data_frames(result_dict, include_trips=True):
 def build_obj(data_frame, put_car, put_cars):
     turn, current_positions, _ = data_frame
 
-    system_cars = (put_car(car) for car in current_positions)
+    def undo_normalize(car):
+        # undoes normalize.process_data.process_car
+        if 'coords' in car:
+            car['lat'] = car['coords'][0]
+            car['lng'] = car['coords'][1]
+            del car['coords']
 
-    system_obj = put_cars(system_cars)
+        # TODO: derp: result_dict will never contain a car's "name" or "license_plate"
+        # or "fuel_type" or "transmission" or anything else in IGNORED_KEYS
+
+        return car
+
+    system_cars = (put_car(undo_normalize(car)) for car in current_positions)
+
+    system_obj = put_cars(list(system_cars))  # TODO: otherwise json cannot serialize, lame
 
     return turn, system_obj
 
@@ -88,10 +101,11 @@ def build_objs(result_dict):
             for data_frame in data_frames)
 
 
-def write_files(result_dict):
+def write_files(result_dict, location):
     city = result_dict['metadata']['city']
     for data_time, data_dict in build_objs(result_dict):
         file_name = files.get_file_name(city, data_time)
-        # TODO: output dir? as param?
-        with open(file_name, 'w') as f:
+        file_path = os.path.join(location, file_name)
+
+        with open(file_path, 'w') as f:
             json.dump(data_dict, f)

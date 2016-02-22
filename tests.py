@@ -498,6 +498,31 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(get_data('distance per trip quartile 75'), '3.362357622')
 
 
+class GenerateTest(unittest.TestCase):
+    def test_generate_round_trip_stats(self):
+        first_data_dict = normalize.batch_load_data('car2go', '/home/jarek/personal/vancouver_2016-02-07.tgz',
+                                                    None, datetime(2016, 2, 7, 3, 0), 60)
+
+        first_stats = process_stats.stats_dict(first_data_dict)
+
+        generate.write_files(first_data_dict, '/home/jarek/personal/generate_test/')
+
+        second_data_dict = normalize.batch_load_data('car2go', '/home/jarek/personal/generate_test/vancouver_2016-02-07--00-00',
+                                                     None, datetime(2016, 2, 7, 3, 0), 60)
+
+        second_stats = process_stats.stats_dict(second_data_dict)
+
+        test_keys = ["total vehicles", "missing data ratio", "trips per car quartile 75",
+                     "distance per trip median", "duration per trip quartile 25",
+                     "weird trip ratio"]
+
+        for test_key in test_keys:
+            self.assertEqual(first_stats[test_key], second_stats[test_key],
+                             "{test_key}: expected {exp}, got {got}".format(
+                                 test_key=test_key,
+                                 exp=first_stats[test_key], got=second_stats[test_key]))
+
+
 class HelperFunctionsTest(unittest.TestCase):
     def test_is_latlng_in_bounds(self):
         VALUES = {

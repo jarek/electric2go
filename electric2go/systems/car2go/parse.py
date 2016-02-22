@@ -15,21 +15,21 @@ def get_car(car):
     vin, lat, lng = get_car_basics(car)
 
     result['vin'] = vin
-    result['license_plate'] = car['name']
+    #result['license_plate'] = car['name']
 
     result['model'] = 'smart fortwo'
 
     result['lat'] = lat
     result['lng'] = lng
 
-    result['address'] = car['address']
+    #result['address'] = car['address']
 
     result['fuel'] = car['fuel']
-    result['fuel_type'] = car['engineType']
-    result['electric'] = (car['engineType'] == 'ED')
+    #result['fuel_type'] = car['engineType']
+    #result['electric'] = (car['engineType'] == 'ED')
     result['charging'] = car.get('charging', False)
 
-    result['transmission'] = 'A'
+    #result['transmission'] = 'A'
 
     result['cleanliness_interior'] = car['interior']
     result['cleanliness_exterior'] = car['exterior']
@@ -59,11 +59,11 @@ def put_car(car):
     formatted_car = {
         'vin': car['vin'],
         'coordinates': (car['lng'], car['lat'], 0),
-        'name': car['license_plate'],
-        'address': car['address'],
+        #'name': car['license_plate'],
+        #'address': car['address'],
 
         'fuel': car['fuel'],
-        'engineType': car['fuel_type'],
+        #'engineType': car['fuel_type'],
         'charging': car['charging'],
 
         'interior': car['cleanliness_interior'],
