@@ -441,7 +441,7 @@ class IntegrationTest(unittest.TestCase):
         # comprehensive test using command-line interfaces:
         # - normalize.py three files in a row, directing output to JSON files
         # - merge.py the three JSON files, directing output to PIPE
-        # - process.py the output of the PIPE to get usage stats
+        # - stats.py reads the output of the PIPE to get usage stats
         # - check a few of the stats values to make sure they're the expected numbers for the dataset
 
         # note, this will always use python3 to run the scripts even if tests.py

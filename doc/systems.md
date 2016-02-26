@@ -4,12 +4,11 @@ Carshare systems
 Systems are automatically found if a package with their name is included
 in the `electric2go/systems` directory. They are imported in the
 `_get_carshare_system_module()` function in `electric2go/systems/__init__.py`.
-As of December 2015, a system must provide the the following:
+As of February 2016, a system must provide the the following:
 
 - `[system].CITIES` dictionary
-- `[system].parse` providing get_cars_from_json(), extract_car_basics(), and
-  extract_car_data(). get_range() is also required if system is to be
-  used on the web.
+- `[system].parse` providing get_cars(), get_car_basics(), and get_car().
+  get_range() is also required if system is to be used on the web.
 
 Check back from references to `_get_carshare_system_module()` if in doubt.
 
