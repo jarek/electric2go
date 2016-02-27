@@ -30,7 +30,6 @@ def process_commandline():
                              ' (default \'.\', larger \'o\')')
 
     args = parser.parse_args()
-    params = vars(args)
 
     result_dict = cmdline.read_json()
 
@@ -40,8 +39,8 @@ def process_commandline():
 
     images_generator = video.make_video_frames(
         result_dict, output_filename_prefix,
-        params['distance'], params['trips'], params['speeds'],
-        params['symbol'], params['tz_offset'])
+        args.distance, args.trips, args.speeds,
+        args.symbol, args.tz_offset)
 
     # evaluate the generator to actually generate the images;
     # use tqdm to display a progress bar
