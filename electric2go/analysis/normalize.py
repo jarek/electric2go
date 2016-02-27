@@ -1,7 +1,6 @@
 # coding=utf-8
 
 import os
-import sys
 import codecs
 from collections import defaultdict
 import datetime
@@ -364,7 +363,8 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
     try:
         parse_module = systems.get_parser(system)
     except ImportError:
-        sys.exit('unsupported system {system_name}'.format(system_name=system))
+        msg = 'Unrecognized system "{sys}" (unable to import "{sys}.parse")'
+        raise ValueError(msg.format(sys=system))
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
