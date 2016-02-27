@@ -49,9 +49,15 @@ def process_commandline():
         except ValueError:
             sys.exit('time format not recognized: ' + params['ending_time'])
 
-    result = batch_load_data(params['system'], params['starting_filename'],
-                             params['starting_time'], params['ending_time'],
-                             params['time_step'])
+    try:
+        result = batch_load_data(
+            params['system'], params['starting_filename'],
+            params['starting_time'], params['ending_time'],
+            params['time_step'])
+    except ValueError as e:
+        # raised when an invalid system is encountered
+        # or the first data file is invalid
+        sys.exit(e)
 
     if params['ending_time']\
             and params['ending_time'] > result['metadata']['ending_time']:
