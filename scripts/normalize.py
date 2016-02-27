@@ -32,40 +32,37 @@ def process_commandline():
                         help='indent for output JSON (default none)')
 
     args = parser.parse_args()
-    params = vars(args)
 
-    if not os.path.exists(params['starting_filename']):
-        sys.exit('file not found: ' + params['starting_filename'])
+    if not os.path.exists(args.starting_filename):
+        sys.exit('file not found: ' + args.starting_filename)
 
-    if params['starting_time']:
+    if args.starting_time:
         try:
-            params['starting_time'] = files.parse_date(params['starting_time'])
+            args.starting_time = files.parse_date(args.starting_time)
         except ValueError:
-            sys.exit('time format not recognized: ' + params['starting_time'])
+            sys.exit('time format not recognized: ' + args.starting_time)
 
-    if params['ending_time']:
+    if args.ending_time:
         try:
-            params['ending_time'] = files.parse_date(params['ending_time'])
+            args.ending_time = files.parse_date(args.ending_time)
         except ValueError:
-            sys.exit('time format not recognized: ' + params['ending_time'])
+            sys.exit('time format not recognized: ' + args.ending_time)
 
     try:
-        result = batch_load_data(
-            params['system'], params['starting_filename'],
-            params['starting_time'], params['ending_time'],
-            params['time_step'])
+        result = batch_load_data(args.system, args.starting_filename,
+                                 args.starting_time, args.ending_time,
+                                 args.time_step)
     except ValueError as e:
         # raised when an invalid system is encountered
         # or the first data file is invalid
         sys.exit(e)
 
-    if params['ending_time']\
-            and params['ending_time'] > result['metadata']['ending_time']:
+    if args.ending_time and args.ending_time > result['metadata']['ending_time']:
         print('warning: requested ending_time was {et}, but only found data up to {at}; using {at}'.
-              format(et=params['ending_time'], at=result['metadata']['ending_time']),
+              format(et=args.ending_time, at=result['metadata']['ending_time']),
               file=sys.stderr)
 
-    cmdline.write_json(result, indent=params['indent'])
+    cmdline.write_json(result, indent=args.indent)
 
 
 if __name__ == '__main__':

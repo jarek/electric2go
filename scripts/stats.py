@@ -19,13 +19,12 @@ def process_commandline():
                         help='offset times when days are split by TZ_OFFSET hours')
 
     args = parser.parse_args()
-    params = vars(args)
 
     result_dict = cmdline.read_json()
 
     output_file = output_file_name('stats', 'csv')
 
-    stats.stats(result_dict, output_file, params['tz_offset'])
+    stats.stats(result_dict, output_file, args.tz_offset)
 
     print(output_file)  # provide output name for easier reuse
 

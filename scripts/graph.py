@@ -22,29 +22,29 @@ def process_commandline():
     parser.add_argument('-atp', '--all-trips-points-image', action='store_true',
                         help='create image of all trips in the dataset')
     parser.add_argument('--symbol', type=str, default='.',
-                        help='matplotlib symbol to indicate vehicles on the images' +
+                        help='matplotlib symbol to indicate vehicles on the images'
                              ' (default \'.\', larger \'o\')')
 
     args = parser.parse_args()
-    params = vars(args)
 
     result_dict = cmdline.read_json()
 
-    if params['all_positions_image']:
+    if args.all_positions_image:
         output_file = output_file_name('all_positions', 'png')
-        graph.make_positions_graph(result_dict, output_file, params['symbol'])
+        graph.make_positions_graph(result_dict, output_file, args.symbol)
 
         print(output_file)
 
-    if params['all_trips_lines_image']:
+    if args.all_trips_lines_image:
         output_file = output_file_name('all_trips', 'png')
         graph.make_trips_graph(result_dict, output_file)
 
         print(output_file)
 
-    if params['all_trips_points_image']:
+    if args.all_trips_points_image:
         output_file = output_file_name('all_trips_points', 'png')
-        graph.make_trip_origin_destination_graph(result_dict, output_file, params['symbol'])
+        graph.make_trip_origin_destination_graph(result_dict, output_file,
+                                                 args.symbol)
 
         print(output_file)
 
