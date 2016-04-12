@@ -2,11 +2,11 @@
 # there are requirements-download.txt and requirements-web.txt
 # if you only use those parts.
 
-Jinja2==2.7.3
+Jinja2>=2.7.3, <3.0
 MarkupSafe==0.23
-requests>=2.4.1
+requests>=2.3.0
 wsgiref==0.1.2
-matplotlib
-numpy
-tqdm
+matplotlib==1.4.3
+numpy==1.9.2
+tqdm~=3.7.1  # tqdm 4.0 defaults to leave=True, otherwise compatible up to 4.4
 # simplejson is optional but usually speeds up normalize/merge/analysis scripts a bit
