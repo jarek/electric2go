@@ -5,7 +5,6 @@
 Jinja2>=2.7.3, <3.0
 MarkupSafe==0.23
 requests>=2.3.0
-wsgiref==0.1.2
 matplotlib==1.4.3
 numpy==1.9.2
 tqdm~=3.7.1  # tqdm 4.0 defaults to leave=True, otherwise compatible up to 4.4
