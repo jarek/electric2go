@@ -7,5 +7,5 @@ MarkupSafe==0.23
 requests>=2.3.0
 matplotlib==1.4.3
 numpy==1.9.2
-tqdm~=3.7.1  # tqdm 4.0 defaults to leave=True, otherwise compatible up to 4.4
+tqdm>=3.7.1, <5.0  # tested up to 4.4.0
 # simplejson is optional but usually speeds up normalize/merge/analysis scripts a bit
