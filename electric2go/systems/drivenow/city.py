@@ -15,7 +15,32 @@ except IOError:
 CITIES = {
     'berlin': {
         'loc_key': 6099,
-        'electric': 'some'
+        'electric': 'some',
+        'BOUNDS': {
+            # actual bounds based on operation areas are
+            # 52.572632, 52.389571, 13.565218, 13.183849
+
+            # use slightly wider values to allow for GPS wobble
+            'NORTH': 52.573,
+            'SOUTH': 52.389,
+            'EAST': 13.566,
+            'WEST': 13.183
+        },
+        'DEGREE_LENGTHS': {
+            # for latitude 52.52
+            'LENGTH_OF_LATITUDE': 111277.17,
+            'LENGTH_OF_LONGITUDE': 67879.39
+        },
+        'MAP_LIMITS': {
+            # Fit Berlin's car2go and Drivenow in one 16:9 image.
+            # Before expanding to 16:9, the limits were 52.576767, 52.38927, 13.565218, 13.181448
+            # At 1920x1080 pixels, 16:9, the map is:
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=13.099773,52.38927,13.646893,52.576767&scale=113281&format=png
+            'NORTH': 52.576767,
+            'SOUTH': 52.38927,
+            'EAST': 13.646893,
+            'WEST': 13.099773
+        }
     },
     'kobenhavn': {
         'loc_key': 41369,

@@ -37,7 +37,7 @@ aren't on the very edge of the map.
 Paste the bounds into 'BOUNDS' key in the city info dict in city.py.
 
 
-2. Get map dimensions
+2. Get map limits / map dimensions
 
 For esthetics, I make the generated image in 16:9 ratio so that
 it will look good on Youtube (and in fullscreen playback on most screens).
@@ -50,6 +50,8 @@ Start with this URL:
 http://render.openstreetmap.org/cgi-bin/export?bbox=WEST,SOUTH,EAST,NORTH&scale=69333&format=png
 
 Plug in values for WEST,SOUTH,EAST,NORTH from the BOUNDS dict from part 1.
+(The BOUNDS and MAP_LIMITS keys are independent - they don't have to be
+adjusted in sync or have to center on the same point.)
 
 Check the size of the image you get back, then adjust scale parameter to get
 desired size in the limiting dimension. (If you want to do 16:9 ratio,
