@@ -1,60 +1,100 @@
-Currently this is best developed for car2go. Other systems are more manual until I write helper functions.
+Here is how to generate images and videos for new cities:
 
 
-get bounds of operational areas:
+1. Get bounds of operational areas to determine map bounds
+
+car2go, Drivenow, and Multicity have helper functions to do this for you:
 
 jarek@x1:~/projects/electric2go$ python
->>> from car2go import city
+>>> from electric2go.systems.car2go import city
 >>> city.get_latlng_extent('milano')
 (9.27821, 9.066236, 45.535522, 45.398983)
 
-(some cities have operational 'islands' that would inconveniently stretch visualization, particularly north-south - city.print_operation_areas() can help you find them)
+jarek@x1:~/projects/electric2go$ python
+>>> from electric2go.systems.drivenow import city
+>>> city.get_latlng_extent('berlin')
+(52.572632, 52.389571, 13.565218, 13.183849)
+
+>>> from electric2go.systems import multicity
+>>> multicity.get_latlng_extent()
+(52.55798, 52.449909, 13.48569, 13.26054)
+
+Some cities have operational 'islands' that would inconveniently stretch
+the visualization, particularly in the north-south direction.
+For car2go and Drivenow, city.print_operation_areas() can help you find them
+and you can exclude their bounds from consideration if you wish.
+
+For other systems, you have to get the bounds manually.
+I recommend checking the HTML/DOM source for the service's website and seeing
+how it builds the map. If the website uses KML, you might be able to reuse
+some of Drivenow and Multicity work - read through
+systems/drivenow/city.py and systems/multicity/__init__.py for details.
+
+I like to add padding to map by rounding up all latitudes/longitudes
+to 3 decimal digits, or by adding about 0.003 padding, so that points
+aren't on the very edge of the map.
+
+Paste the bounds into 'BOUNDS' key in the city info dict in city.py.
 
 
-Non-car2go systems do not yet have get_latlng_extent() implemented so you'd have to do it manually.
+2. Get map dimensions
 
-For Drivenow, get the file https://api2.drive-now.com/geodata/{loc_key}/{loc_key}.kml
-(e.g. https://api2.drive-now.com/geodata/40758/40758.kml) and in it, find the node:
-    <kml><Document><Folder><Folder><Folder><name>allowedParkingAreas</name>
-Its <kml><Document><Folder><Folder><Folder><Placemark><Polygon><outerBoundaryIs><LinearRing><coordinates> contains a string that looks like:
--0.121107,51.530953,0 -0.12156,51.53088,0 -0.122024,51.53085,0 -0.122228,51.530843,0 -0.122346,51.530913,0 ...
-so space-separated objects then comma-separated lng,lat,elevation
-Process them, e.g.
->>> pairs = stringcoords.split(' ')
->>> lats = [float(pair.split(',')[1]) for pair in pairs]
->>> lngs = [float(pair.split(',')[0]) for pair in pairs]
->>> max(lats)
->>> min(lats)
->>> max(lngs)
->>> min(lngs)
+For esthetics, I make the generated image in 16:9 ratio so that
+it will look good on Youtube (and in fullscreen playback on most screens).
+I usually go with 1920x1080 for precision.
 
+Finding desired map coordinates for this takes some trial and error.
 
-Paste the bounds into city.py BOUNDS dict for the city, optionally adding some padding to allow for GPS inaccuracies
-
-
-unfortunately OSM seems to have changed their PNG export interface so finding correct dimensions for the map will take a bit of trial and error
-
-start with this URL:
+Start with this URL:
 
 http://render.openstreetmap.org/cgi-bin/export?bbox=WEST,SOUTH,EAST,NORTH&scale=69333&format=png
 
+Plug in values for WEST,SOUTH,EAST,NORTH from the BOUNDS dict from part 1.
+
+Check the size of the image you get back, then adjust scale parameter to get
+desired size in the limiting dimension. (If you want to do 16:9 ratio,
+the north-south dimension will almost always be the limiting one,
+so adjust scale until the height of the exported image is 1080px)
+
+Then, symmetrically expand the limits in the other dimension to get
+its dimension correct. For example, assuming we're expanding east-west:
+
+- divide desired horizontal dimension of the image by the current one:
+  e.g. you got an image 653px wide and you want 1920px: 1920/653 = 2.940275651
+- find the center longitude, and +/- to get to the east/west bounds:
+  e.g. (-73.662 + -73.548)/2 = -73.605, so center is at -73.605 with +/- 0.057
+- scale the +/- value: 2.940275651×0.057 = 0.167595712
+- new dimensions will be -73.605 with +/- 0.167595712,
+  so (-73.772595712, -73.437404288)
+- you might need to adjust these longitudes a tiny bit to get the right pixel
+  dimension, e.g. I got 1922x1080 with the exact numbers and had to trim
+  to -73.7725, -73.4375. Try to keep the centre in the same position, notice
+  how (-73.7725 + -73.4375)/2 is -73.605.
+
+Put the adjusted limits into 'MAP_LIMITS' key in city info dict in city.py.
+Put the scale and the direct URL for the image in a comment for reference.
+
+If you don't specify a 'MAP_SIZES' key, systems._fill_in_city_information()
+will default it to 1920x1080.
 
 
-check the size of the exported image, then adjust scale to get desired size in the limiting dimension. (if you want to do 16:9 ratio, the north-south dimension will almost always be the limiting one)
+3. Process image
 
-then symmetrically expand the limits in the other dimension to get the pixel direction correct.
-
-assuming we're expanding east-west:
-- divide desired horizontal dimension of the image by the current one: e.g. 1920/653 = 2.940275651
-- find the midpoint with (EAST_LONG+WEST_LONG)/2, and how much longitude is on either side: e.g. (-73.662 + -73.548) / 2 = -73.605 with +/- 0.057
-- scale either side: 2.940275651×0.057 = 0.167595712
-- new dimensions will be -73.605 with +/- 0.167595712 => -73.772595712, -73.437404288
-- might need to adjust this a tiny bit to get the right pixel dimension, I got 1922x1080 with the exact numbers and had to trim to -73.7725, -73.4375. try to keep the centre in the same position (-73.7725 + -73.4375)/2 = -73.605
-
-
-put the adjusted limits into city.py MAP_LIMITS dict for the city. put the scale and the direct URL in a comment
-
-greyscale the map image: in gimp, do hue/lightness/saturation and change lightness = 100, saturation = -100
+Greyscale the map image: in gimp, use hue/lightness/saturation and change
+lightness = 100, saturation = -100
 
 then pngcrush to make the file size smaller
 
+
+4. Labels
+
+Label params are specified in 'LABELS' key in the city info dict.
+This is only required for graphs created in a loop (used to make videos
+automatically, this is done in analysis.graph.make_graph()).
+
+Labels are created with a `matplotlib.axes.Axes.text()` call, and you need
+to specify the following in a dict:
+- 'fontsizes' takes a list of 4 integers that are used for size of font
+  to print city name, date, time, and number of currently available cars
+- 'lines' locates these 4 lines of text on the image, this is a list
+  of 4 X,Y tuples, with 0,0 being at bottom left of image.
