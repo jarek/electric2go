@@ -41,3 +41,21 @@ def dist(ll1, ll2):
     c = 2 * asin(sqrt(a))
 
     return earth_radius * c
+
+
+def degree_lengths(latitude):
+    # see http://gis.stackexchange.com/questions/75528/length-of-a-degree
+    lat = radians(latitude)
+
+    m1 = 111132.92
+    m2 = -559.82
+    m3 = 1.175
+    m4 = -0.0023
+    latlen = m1 + (m2 * cos(2*lat)) + (m3 * cos(4*lat)) + (m4 * cos(6*lat))
+
+    p1 = 111412.84
+    p2 = -93.5
+    p3 = 0.118
+    longlen = (p1 * cos(lat)) + (p2 * cos(3*lat)) + (p3 * cos(5*lat))
+
+    return latlen, longlen
