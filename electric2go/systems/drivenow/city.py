@@ -31,6 +31,10 @@ CITIES = {
             'LENGTH_OF_LATITUDE': 111277.17,
             'LENGTH_OF_LONGITUDE': 67879.39
         },
+        'MAP_SIZES': {
+            'MAP_X': 1920,
+            'MAP_Y': 1080
+        },
         'MAP_LIMITS': {
             # Fit Berlin's car2go and Drivenow in one 16:9 image.
             # Before expanding to 16:9, the limits were 52.576767, 52.38927, 13.565218, 13.181448

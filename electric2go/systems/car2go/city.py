@@ -88,6 +88,10 @@ CITIES = {
             'SOUTH': 52.38927,
             'EAST': 13.646893,
             'WEST': 13.099773
+        },
+        'MAP_SIZES': {
+            'MAP_X': 1920,
+            'MAP_Y': 1080
         }
     },
     'calgary': {'of_interest': True, 'number_first_address': True,
