@@ -288,7 +288,7 @@ def make_graph(result_dict, positions, trips, image_filename, printed_time,
         ax = plot_geopoints(ax, city_data, positions_by_colour, symbol)
 
         # add in lines for moving vehicles
-        if len(trips) > 0:
+        if trips:
             ax = plot_trips(ax, city_data, trips)
 
         # add labels
@@ -347,7 +347,7 @@ def make_trips_graph(result_dict, image_name):
     trips = _get_trips(result_dict)
 
     def plotter(f, ax):
-        if len(trips) > 0:
+        if trips:
             plot_trips(ax, city_data, trips)
 
     graph_wrapper(city_data, plotter, image_name, background=None)

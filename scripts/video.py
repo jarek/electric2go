@@ -46,7 +46,8 @@ def process_commandline():
     # use tqdm to display a progress bar
     exp_timespan = metadata['ending_time'] - metadata['starting_time']
     exp_frames = exp_timespan.total_seconds() / metadata['time_step']
-    generated_images = list(tqdm(images_generator, total=exp_frames))
+    generated_images = list(tqdm(images_generator,
+                                 total=exp_frames, leave=False))
 
     # print animation information
     animate_command_text = video.make_animate_command(

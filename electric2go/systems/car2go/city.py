@@ -65,18 +65,33 @@ CITIES = {
     'berlin': {
         'of_interest': True,
         'BOUNDS': {
-            # rudimentary values for testing is_latlng_in_bounds function
-            'NORTH': 53,
-            'SOUTH': 52,
-            'EAST': 14,
-            'WEST': 13
+            # actual bounds based on operation areas are
+            # 52.576767, 52.38927, 13.54876, 13.181448
+
+            # use slightly wider values to allow for GPS wobble
+            'NORTH': 52.577,
+            'SOUTH': 52.389,
+            'EAST': 13.549,
+            'WEST': 13.181
+        },
+        'DEGREE_LENGTHS': {
+            # for latitude 52.52
+            'LENGTH_OF_LATITUDE': 111277.17,
+            'LENGTH_OF_LONGITUDE': 67879.39
         },
         'MAP_LIMITS': {
-            # rudimentary values for testing is_latlng_in_bounds function
-            'NORTH': 53,
-            'SOUTH': 52,
-            'EAST': 14,
-            'WEST': 13
+            # Fit Berlin's car2go and Drivenow in one 16:9 image.
+            # Before expanding to 16:9, the limits were 52.576767, 52.38927, 13.565218, 13.181448
+            # At 1920x1080 pixels, 16:9, the map is:
+            # http://render.openstreetmap.org/cgi-bin/export?bbox=13.099773,52.38927,13.646893,52.576767&scale=113281&format=png
+            'NORTH': 52.576767,
+            'SOUTH': 52.38927,
+            'EAST': 13.646893,
+            'WEST': 13.099773
+        },
+        'MAP_SIZES': {
+            'MAP_X': 1920,
+            'MAP_Y': 1080
         }
     },
     'calgary': {'of_interest': True, 'number_first_address': True,
