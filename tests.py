@@ -511,19 +511,32 @@ class GenerateTest(unittest.TestCase):
             else:
                 self.assertEqual(expected[key], obj[key])
 
+    @classmethod
+    def setUpClass(cls):
+        # read in data just once
+        cls.original_data = normalize.batch_load_data(
+            'car2go',
+            '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz',
+            None, datetime(2016, 2, 9, 3, 0), 60)
+
+        # generate 181 files covering from midnight to 3:00 every minute
+        generate.write_files(cls.original_data,
+                             '/home/jarek/projects/electric2go/generate_test/')
+
     def test_generate_round_trip_stats(self):
-        first_data_dict = normalize.batch_load_data('car2go', '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz',
-                                                    None, datetime(2016, 2, 9, 3, 0), 60)
+        # stats for original data
+        first_stats = process_stats.stats_dict(self.original_data)
 
-        first_stats = process_stats.stats_dict(first_data_dict)
+        # get read the generated data back in
+        generated_data = normalize.batch_load_data(
+            'car2go',
+            '/home/jarek/projects/electric2go/generate_test/vancouver_2016-02-09--00-00',
+            None, datetime(2016, 2, 9, 3, 0), 60)
 
-        generate.write_files(first_data_dict, '/home/jarek/projects/electric2go/generate_test/')
+        # get stats for data generated from the original data
+        second_stats = process_stats.stats_dict(generated_data)
 
-        second_data_dict = normalize.batch_load_data('car2go', '/home/jarek/projects/electric2go/generate_test/vancouver_2016-02-09--00-00',
-                                                     None, datetime(2016, 2, 9, 3, 0), 60)
-
-        second_stats = process_stats.stats_dict(second_data_dict)
-
+        # test that they are the same
         test_keys = ["total vehicles", "missing data ratio", "trips per car quartile 75",
                      "distance per trip median", "duration per trip quartile 25",
                      "weird trip ratio"]
@@ -534,8 +547,11 @@ class GenerateTest(unittest.TestCase):
                                  test_key=test_key,
                                  exp=first_stats[test_key], got=second_stats[test_key]))
 
+    def test_vehicles_equal(self):
         # load an original file and a newly generated file, and ensure everything
         # in original file is also in new file
+
+        # depends on the files being generated in setUpClass
 
         test_date = datetime(2016, 2, 9, 2, 0)
 
