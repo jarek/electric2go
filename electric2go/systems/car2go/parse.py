@@ -66,13 +66,16 @@ def put_car(car):
 
         'fuel': car['fuel'],
         'engineType': car['fuel_type'],
-        'charging': car['charging'],
 
         'interior': car['cleanliness_interior'],
         'exterior': car['cleanliness_exterior'],
 
         'smartPhoneRequired': car['app_required']
     }
+
+    if car['fuel_type'] != 'CE':
+        # in the API, 'charging' key is only present on non-CE cars
+        formatted_car['charging'] = car['charging']
 
     return formatted_car
 
