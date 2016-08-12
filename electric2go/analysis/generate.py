@@ -81,7 +81,21 @@ def build_obj(data_frame, put_car, put_cars, cars_details):
 
         return test
 
-    # TODO: this implicitly assumes that system always returns a list, rather than e.g. a dict
+    # This implicitly assumes that system always returns a list,
+    # rather than e.g. a dict.
+    # But that seems fine logically, I haven't seen a dict yet.
+    # Also that assumption is in other parts of the code,
+    # e.g. normalize.process_data where I do "for car in available_cars".
+
+    # Verified manually that the cars-in-a-list assumption holds for:
+    # - car2go (no non-car content in the API JSON result)
+    # - drivenow (kind of a lot of non-car content, need to analyze if we need to keep any of it)
+    # - communauto (marginal non-car content: "{"ExtensionData":{},"UserPosition":{"ExtensionData":{},"Lat":0,"Lon":0},"
+    # - evo (marginal non-car content: "{"success":true,"error":false,")
+    # - enjoy is broken so I dunno
+    # - multicity has that hacky API with lots of stuff so might be annoying to implement. but cars are indeed a list
+    # - sharengo (marginal non-car content: "{"status":200,"reason":"",)
+    # - translink whole thing is a list so put_cars will just return its param. that works too I guess
     system_cars = (put_car(undo_normalize(car)) for car in current_positions)
 
     system_obj = put_cars(list(system_cars))  # TODO: otherwise json cannot serialize, lame

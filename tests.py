@@ -523,7 +523,7 @@ class GenerateTest(unittest.TestCase):
         generate.write_files(cls.original_data,
                              '/home/jarek/projects/electric2go/generate_test/')
 
-    def test_generate_round_trip_stats(self):
+    def test_stats_equal(self):
         # stats for original data
         first_stats = process_stats.stats_dict(self.original_data)
 
@@ -553,6 +553,10 @@ class GenerateTest(unittest.TestCase):
 
         # depends on the files being generated in setUpClass
 
+        # all code below doesn't go into parsing code at all, but
+        # the hardcoded strings ("placemarks", "vin") are car2go-specific.
+        # TODO: test different systems
+
         test_date = datetime(2016, 2, 9, 2, 0)
 
         original_data_archive = normalize.Electric2goDataArchive('vancouver', '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz')
@@ -563,7 +567,13 @@ class GenerateTest(unittest.TestCase):
         actual_file = generated_data_archive.load_data_point(test_date)
         actual_cars = {car['vin']: car for car in actual_file['placemarks']}
 
-        self.assertExpectedInObj(actual_cars, expected_cars)
+        # For car2go we can test dictionaries for exact equality.
+        # In some other systems, we can't (e.g. Drivenow has a lot of extra
+        # info we might not want to recreate), so we might want to instead use
+        # assertExpectedInObj(actual_cars, expected_cars) for those systems.
+        # Also note that in the case of Translink the result is not a dict
+        # at all, but a list. Hence we do assertEqual and not assertDictEqual.
+        self.assertEqual(expected_cars, actual_cars)
 
 
 class HelperFunctionsTest(unittest.TestCase):
