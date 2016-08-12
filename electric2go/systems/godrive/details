@@ -1,10 +1,13 @@
-https://api.go-drive.com/api/areas to get operation areas (not included in general response)
-https://api.go-drive.com/api/car_types to get car types (not included in general response)
+https://api.go-drive.com/api/areas to get operation areas (not included for_areas response)
+https://api.go-drive.com/api/car_types to get car types (not included in for_areas response)
 https://api.go-drive.com/api/cars/for_areas to get free-floating cars
 https://api.go-drive.com/api/hubs.json to get cars in hubs
 
-hub api endpoint scheme is bonkers. it doesn't tell me all the available cars, just if there is one... if there's two or more, it doesn't tell me their IDs
-
+hub api endpoint scheme is interesting
+- it doesn't give all the available cars, just their amount
+- if there's 2+ available cars, it only has information for one of them
+  (one longest there? not sure)
+- if there are none, it adds a dummy car instead
 
 In [1]: import requests
 
