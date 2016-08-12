@@ -77,9 +77,7 @@ def build_obj(data_frame, put_car, put_cars, cars_details):
         # add in stuff that doesn't change between data frames,
         # it is stored separately in cars_details
         car_details = cars_details.get(test['vin'], {})
-
-        for car_key in car_details:
-            test[car_key] = car_details[car_key]
+        test.update(car_details)
 
         return test
 

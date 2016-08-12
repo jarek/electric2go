@@ -6,7 +6,7 @@ def get_cars(system_data_dict):
 
 
 def get_car_basics(car):
-    return car['imei'], car['latitude'], car['longitude']
+    return car['imei'], float(car['latitude']), float(car['longitude'])
 
 
 def get_car(car):
