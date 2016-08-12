@@ -1,0 +1,26 @@
+https://api.go-drive.com/api/areas to get operation areas (not included in general response)
+https://api.go-drive.com/api/car_types to get car types (not included in general response)
+https://api.go-drive.com/api/cars/for_areas to get free-floating cars
+https://api.go-drive.com/api/hubs.json to get cars in hubs
+
+hub api endpoint scheme is bonkers. it doesn't tell me all the available cars, just if there is one... if there's two or more, it doesn't tell me their IDs
+
+
+In [1]: import requests
+
+In [2]: r = requests.get('https://api.go-drive.com/api/hubs.json')
+
+In [3]: j = r.json()
+
+In [4]: sum(h['cars']['petrol']['availability'] for h in j)
+Out[4]: 14
+
+In [5]: sum(h['cars']['electric']['availability'] for h in j)
+Out[5]: 18
+
+In [7]: [h['cars']['electric']['availability'] for h in j if h['cars']['electric']['availability'] > 1]
+Out[7]: [2, 2, 2]
+
+In [8]: [h['cars']['petrol']['availability'] for h in j if h['cars']['petrol']['availability'] > 1]
+Out[8]: []
+
