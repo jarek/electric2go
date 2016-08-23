@@ -499,6 +499,29 @@ class IntegrationTest(unittest.TestCase):
 
 
 class GenerateTest(unittest.TestCase):
+    # NOTES:
+    # I am getting test failures on Drivenow because I don't handle
+    # charging electric vehicles properly.
+    # From the API, over time the vehicle comes back with the same
+    # lat/long position but with different:
+    # - estimatedRange
+    # - fuelLevel, fuelLevelInPercent
+    # - isCharging (once it finishes charging - in the example
+    #   I've seen, it finished at 99% full)
+
+    # This might also apply to car2go cities that have electric cars.
+
+    # Further, I have seen the estimatedRange drift/change during parking
+    # even when not charging, though only by a kilometer or two
+    # (temperature changing battery reporting, presumably?)
+
+    # I have also seen a isOfferDrivePriceActive change, presumably
+    # offer is active during the night or some other low-demand time.
+
+    # This causes test failures as analysis.normalize currently assumes
+    # everything stays the same as long as car position doesn't change.
+    # It might require a significant amount of code to handle properly :(
+
     def assertExpectedInObj(self, obj, expected):
         """
         Verifies that values for all keys in `expected` are the same as in `obj`.
@@ -577,30 +600,32 @@ class GenerateTest(unittest.TestCase):
         self._compare_system_independent(system, 'duesseldorf', input_file, generated_data_dir,
                                          datetime(2016, 8, 20, 3, 0))
 
-    def _compare_system_independent(self, system, city, first_location, second_location, comparison_time):
+    def _compare_system_independent(self, system, city, expected_location, actual_location, comparison_time):
         parser = systems.get_parser(system)
 
-        original_data_archive = normalize.Electric2goDataArchive(city, first_location)
-        # data_archive.first_file_time, data_archive.last_file_time
-        expected_file = original_data_archive.load_data_point(comparison_time)
+        expected_data_archive = normalize.Electric2goDataArchive(city, expected_location)
+        expected_file = expected_data_archive.load_data_point(comparison_time)
 
-        generated_data_archive = normalize.Electric2goDataArchive(city, second_location)
-        actual_file = generated_data_archive.load_data_point(comparison_time)
+        actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
+        actual_file = actual_data_archive.load_data_point(comparison_time)
 
         # TODO: instead of using comparison_time, loop over all time from first_file_time to last_file_time
 
-        # test cars equivalency
+        # test cars equivalency. we have to do it separately because
+        # it comes from API as a list, but we don't store the list order.
         expected_cars = parser.get_cars_dict(expected_file)
         actual_cars = parser.get_cars_dict(actual_file)
 
-        # the following block is more manual than self.assertEqual but gives more useful error messages
+        # the following block is more manual than self.assertEqual but gives
+        # more useful error messages
         old_max_diff = self.maxDiff
         self.maxDiff = None
         for vin, car in expected_cars.items():
             self.assertEqual(car, actual_cars[vin])
         self.maxDiff = old_max_diff
 
-        # now run self.assertEqual in case I'd missed anything doing the manual check
+        # now run self.assertEqual in case I'd somehow missed anything
+        # during the manual check
         self.assertEqual(expected_cars, actual_cars)
 
         # test exact equivalency of everything but the cars list
