@@ -232,6 +232,17 @@ def stats_dict(data_dict):
                                                    collection_round(duration(trips_good), 5),
                                                    over=[2*60, 5*60, 10*60])))
 
+    parking_durations = duration(trip for vin in data_dict['finished_trips']
+                                 for trip in data_dict['finished_trips'][vin])
+    stats.update(format_stats('duration per parking',
+                              stats_for_collection(parking_durations,
+                                                   collection_round(parking_durations, 5),
+                                                   over=[2*60, 6*60, 12*60, 36*60])))
+    # TODO: It might be more informative to calculate
+    # (total length of parkings over 2 hours) / (total length of all parkings) instead of
+    # (number of parkings over 2 hours) / (number of all parkings) as we're doing now
+    # - or at least in addition to
+
     stats.update(format_stats('fuel use stats',
                               stats_for_collection(fuel(trips_good),
                                                    fuel(trips_good),
