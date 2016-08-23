@@ -547,33 +547,66 @@ class GenerateTest(unittest.TestCase):
                                  test_key=test_key,
                                  exp=first_stats[test_key], got=second_stats[test_key]))
 
-    def test_vehicles_equal(self):
+    def test_vehicles_equal_car2go(self):
         # load an original file and a newly generated file, and ensure everything
         # in original file is also in new file
 
         # depends on the files being generated in setUpClass
 
-        # all code below doesn't go into parsing code at all, but
-        # the hardcoded strings ("placemarks", "vin") are car2go-specific.
-        # TODO: test different systems
+        self._compare_system_independent('car2go', 'vancouver',
+                                         '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz',
+                                         '/home/jarek/projects/electric2go/generate_test/',
+                                         datetime(2016, 2, 9, 3, 0))
 
-        test_date = datetime(2016, 2, 9, 2, 0)
+    def test_vehicles_equal_drivenow(self):
+        system = 'drivenow'
+        input_file = '/home/jarek/projects/electric2go/duesseldorf_2016-08-20.tgz'
 
-        original_data_archive = normalize.Electric2goDataArchive('vancouver', '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz')
-        expected_file = original_data_archive.load_data_point(test_date)
-        expected_cars = {car['vin']: car for car in expected_file['placemarks']}
+        # read in data
+        drivenow_original_data = normalize.batch_load_data(
+            system, input_file,
+            None, datetime(2016, 8, 20, 3, 0), 60)
 
-        generated_data_archive = normalize.Electric2goDataArchive('vancouver', '/home/jarek/projects/electric2go/generate_test/')
-        actual_file = generated_data_archive.load_data_point(test_date)
-        actual_cars = {car['vin']: car for car in actual_file['placemarks']}
+        generated_data_dir = '/home/jarek/projects/electric2go/generate_test_drivenow/'  # TODO: use something in /tmp
+        if not os.path.exists(generated_data_dir):
+            os.makedirs(generated_data_dir)
 
-        # For car2go we can test dictionaries for exact equality.
-        # In some other systems, we can't (e.g. Drivenow has a lot of extra
-        # info we might not want to recreate), so we might want to instead use
-        # assertExpectedInObj(actual_cars, expected_cars) for those systems.
-        # Also note that in the case of Translink the result is not a dict
-        # at all, but a list. Hence we do assertEqual and not assertDictEqual.
+        # generate 181 files covering from midnight to 3:00 every minute
+        generate.write_files(drivenow_original_data, generated_data_dir)
+
+        self._compare_system_independent(system, 'duesseldorf', input_file, generated_data_dir,
+                                         datetime(2016, 8, 20, 3, 0))
+
+    def _compare_system_independent(self, system, city, first_location, second_location, comparison_time):
+        parser = systems.get_parser(system)
+
+        original_data_archive = normalize.Electric2goDataArchive(city, first_location)
+        # data_archive.first_file_time, data_archive.last_file_time
+        expected_file = original_data_archive.load_data_point(comparison_time)
+
+        generated_data_archive = normalize.Electric2goDataArchive(city, second_location)
+        actual_file = generated_data_archive.load_data_point(comparison_time)
+
+        # TODO: instead of using comparison_time, loop over all time from first_file_time to last_file_time
+
+        # test cars equivalency
+        expected_cars = parser.get_cars_dict(expected_file)
+        actual_cars = parser.get_cars_dict(actual_file)
+
+        # the following block is more manual than self.assertEqual but gives more useful error messages
+        old_max_diff = self.maxDiff
+        self.maxDiff = None
+        for vin, car in expected_cars.items():
+            self.assertEqual(car, actual_cars[vin])
+        self.maxDiff = old_max_diff
+
+        # now run self.assertEqual in case I'd missed anything doing the manual check
         self.assertEqual(expected_cars, actual_cars)
+
+        # test exact equivalency of everything but the cars list
+        expected_remainder = parser.get_everything_except_cars(expected_file)
+        actual_remainder = parser.get_everything_except_cars(actual_file)
+        self.assertEqual(expected_remainder, actual_remainder)
 
 
 class HelperFunctionsTest(unittest.TestCase):

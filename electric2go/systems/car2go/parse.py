@@ -5,6 +5,18 @@ def get_cars(system_data_dict):
     return system_data_dict.get('placemarks', [])
 
 
+def get_cars_dict(system_data_dict):
+    # This 'vin' key must match the first item returned from get_car_basics()
+    return {car['vin']: car
+            for car in get_cars(system_data_dict)}
+
+
+def get_everything_except_cars(system_data_dict):
+    result = system_data_dict.copy()
+    del result['placemarks']
+    return result
+
+
 def get_car_basics(car):
     return car['vin'], car['coordinates'][1], car['coordinates'][0]
 
@@ -58,28 +70,42 @@ def get_range(car):
 
 def put_car(car):
     # inverse of get_car
-    formatted_car = {
-        'vin': car['vin'],
-        'coordinates': (car['lng'], car['lat'], 0),
-        'name': car['license_plate'],
-        'address': car['address'],
 
-        'fuel': car['fuel'],
-        'engineType': car['fuel_type'],
-
-        'interior': car['cleanliness_interior'],
-        'exterior': car['cleanliness_exterior'],
-
-        'smartPhoneRequired': car['app_required']
+    mapped_keys = {
+        'vin': 'vin',
+        'license_plate': 'name',
+        'address': 'address',
+        'fuel': 'fuel',
+        'fuel_type': 'engineType',
+        'cleanliness_interior': 'interior',
+        'cleanliness_exterior': 'exterior',
+        'app_required': 'smartPhoneRequired'
     }
+
+    # everything else is assumed to be directly mapped
+    directly_mapped_keys = car.keys() - mapped_keys.keys() - {
+        'starting_time', 'ending_time', 'lat', 'lng',  # rewritten keys
+        'transmission', 'model', 'electric'  # derived and assumed keys
+    }
+
+    formatted_car = {mapped_keys[key]: car[key] for key in mapped_keys}
+    formatted_car.update({key: car[key] for key in directly_mapped_keys})
+
+    # minor changes
+    formatted_car['coordinates'] = (car['lng'], car['lat'], 0)
 
     if car['fuel_type'] != 'CE':
         # in the API, 'charging' key is only present on non-CE cars
         formatted_car['charging'] = car['charging']
+    else:
+        formatted_car.pop('charging', None)
 
     return formatted_car
 
 
-def put_cars(cars):
+def put_cars(cars, result_dict):
     # inverse of get_cars
+
+    # car2go has nothing else in the API result,
+    # so the result_dict param is ignored
     return {'placemarks': cars}

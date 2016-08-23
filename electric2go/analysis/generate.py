@@ -64,7 +64,7 @@ def build_data_frames(result_dict, include_trips=True):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-def build_obj(data_frame, put_car, put_cars, cars_details):
+def build_obj(data_frame, put_car, put_cars, result_dict):
     turn, current_positions, _ = data_frame
 
     def undo_normalize(car):
@@ -75,8 +75,8 @@ def build_obj(data_frame, put_car, put_cars, cars_details):
         del test['coords']
 
         # add in stuff that doesn't change between data frames,
-        # it is stored separately in cars_details
-        car_details = cars_details.get(test['vin'], {})
+        # it is stored separately in 'vehicles' key
+        car_details = result_dict['vehicles'].get(test['vin'], {})
         test.update(car_details)
 
         return test
@@ -98,7 +98,7 @@ def build_obj(data_frame, put_car, put_cars, cars_details):
     # - translink whole thing is a list so put_cars will just return its param. that works too I guess
     system_cars = (put_car(undo_normalize(car)) for car in current_positions)
 
-    system_obj = put_cars(list(system_cars))  # TODO: otherwise json cannot serialize, lame
+    system_obj = put_cars(list(system_cars), result_dict)  # TODO: otherwise json cannot serialize, lame
 
     return turn, system_obj
 
@@ -114,7 +114,7 @@ def build_objs(result_dict):
     data_frames = build_data_frames(result_dict, False)
 
     # process each data frame and return as generator
-    return (build_obj(data_frame, put_car, put_cars, result_dict['vehicles'])
+    return (build_obj(data_frame, put_car, put_cars, result_dict)
             for data_frame in data_frames)
 
 

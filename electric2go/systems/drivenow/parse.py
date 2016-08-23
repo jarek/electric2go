@@ -8,6 +8,18 @@ def get_cars(system_data_dict):
         return []
 
 
+def get_cars_dict(system_data_dict):
+    # This 'id' key must match the first item returned from get_car_basics()
+    return {car['id']: car
+            for car in get_cars(system_data_dict)}
+
+
+def get_everything_except_cars(system_data_dict):
+    result = system_data_dict.copy()
+    del result['cars']['items']
+    return result
+
+
 def get_car_basics(car):
     return car['id'], car['latitude'], car['longitude']
 
@@ -29,14 +41,23 @@ def get_car(car):
 
     result['address'] = ', '.join(car['address'])
 
-    result['fuel'] = car['fuelLevel'] * 100
+    result['fuel'] = car['fuelLevelInPercent']
     result['fuel_type'] = car['fuelType']
     result['electric'] = (car['fuelType'] == 'E')
-    result['charging'] = False
+    result['charging'] = car['isCharging']
 
     result['transmission'] = car['transmission']
 
     result['cleanliness_interior'] = car['innerCleanliness']
+
+    result['api_estimated_range'] = car['estimatedRange']  # TODO: drivenow api returns this for petrol cars as well, not sure how to handle
+    result['parkingSpaceId'] = car['parkingSpaceId']
+    result['isInParkingSpace'] = car['isInParkingSpace']
+
+    unchanging_keys = {'make', 'group', 'series', 'modelIdentifier', 'equipment',
+                       'carImageUrl', 'carImageBaseUrl', 'routingModelName', 'variant', 'rentalPrice', 'isPreheatable'}
+    for key in unchanging_keys:
+        result[key] = car[key]
 
     return result
 
@@ -58,3 +79,51 @@ def get_range(car):
         car_range = 0
 
     return car_range
+
+
+def put_car(car):
+    # inverse of get_car
+
+    mapped_keys = {
+        'vin': 'id',
+        'lat': 'latitude',
+        'lng': 'longitude',
+        'name': 'name',
+        'license_plate': 'licensePlate',
+        'address': 'address',
+
+        'model': 'modelName',
+        'color': 'color',
+
+        'fuel': 'fuelLevelInPercent',
+        'fuel_type': 'fuelType',
+        'charging': 'isCharging',
+
+        'transmission': 'transmission',
+
+        'cleanliness_interior': 'innerCleanliness',
+
+        'api_estimated_range': 'estimatedRange',
+        'parkingSpaceId': 'parkingSpaceId',
+        'isInParkingSpace': 'isInParkingSpace'
+    }
+    directly_mapped_keys = car.keys() - mapped_keys.keys() - {
+        'electric',  # because 'electric' is a derived field
+        'starting_time', 'ending_time'  # computed fields
+    }
+
+    formatted_car = {mapped_keys[key]: car[key] for key in mapped_keys}
+    formatted_car.update({key: car[key] for key in directly_mapped_keys})
+
+    # minor changes
+    formatted_car['fuelLevel'] = formatted_car['fuelLevelInPercent'] / 100
+    formatted_car['address'] = formatted_car['address'].split(', ')
+
+    return formatted_car
+
+
+def put_cars(cars, result_dict):
+    # inverse of get_cars
+    result = result_dict['system'].copy()
+    result['cars']['items'] = cars
+    return result

@@ -44,7 +44,10 @@ BASIC_VEHICLE_KEYS = {'vin', 'lat', 'lng', 'fuel'}
 # won't change during a trip
 UNCHANGING_KEYS = {'name', 'license_plate', 'model',
                    'color', 'fuel_type', 'transmission',
-                   'app_required'}
+                   'app_required',
+                   # TODO: this is repeated from drivenow.parse, seems like a bad implementation
+                   'make', 'group', 'series', 'modelName', 'modelIdentifier', 'equipment',
+                   'carImageUrl', 'carImageBaseUrl', 'routingModelName', 'variant', 'rentalPrice', 'isPreheatable'}
 # technically also 'electric' but we want it for easier filtering
 
 
@@ -445,6 +448,11 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
         # throwing out this data altogether, which we were doing previously.
         'vehicles': defaultdict(dict),
 
+        # Keeps additional system info, outside the vehicles information.
+        # This is stuff like system maps and city properties.
+        # I expect this not to change within a day.
+        'system': {},
+
         # Metadata about the dataset
         'metadata': {
             'system': system,
@@ -472,6 +480,9 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
     else:
         raise ValueError('First file found is invalid or contains no cars.'
                          'Provide starting_time for first valid dataset.')
+
+    # See comment within result_dict definition above.
+    result_dict['system'] = parse_module.get_everything_except_cars(first_data)
 
     # Loop until we get to end of dataset or until the limit requested.
     while t <= ending_time:
