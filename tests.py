@@ -21,28 +21,76 @@ CITIES = systems.get_all_cities("car2go")
 
 
 class DownloadTest(unittest.TestCase):
-    # the following must be defined in system definitions
+    # The system-city pairs to test
+    # Optimally we want to test each system here.
     test_cities = [
-        ('car2go', 'wien'),  # use to test non-ASCII handling
+        ('car2go', 'wien'),  # use Vienna to test non-ASCII handling
         ('evo', 'vancouver'),
         ('drivenow', 'koeln'),
-        ('communauto', 'montreal')
+        ('enjoy', 'milano'),
+        ('communauto', 'montreal'),
+        ('multicity', 'berlin'),
+        ('sharengo', 'milano'),
+        ('translink', '020')
     ]
 
-    def test_car2go_get_text(self):
+    # For systems with several cities, name two different cities
+    # so we can check that their API output is not identical.
+    test_different_cities = [
+        ('car2go', ['wien', 'vancouver']),
+        ('drivenow', ['berlin', 'stockholm']),
+        ('enjoy', ['milano', 'firenze']),
+        ('translink', ['010', '020'])
+    ]
+
+    def _assert_api_output_is_valid_json(self, text):
+        # could throw exception if JSON is malformed, test if it does
+        info = json.loads(text)
+
+        # assert there is something in the object
+        self.assertGreater(len(info), 0)
+
+    def test_get_api_output_as_json(self):
+        """
+        Test that all systems specified successfully return a JSON object.
+
+        NOTE: this currently assumes all systems output JSON.
+        This assumption is baked fairly deeply into the project,
+        in web_helper.get_electric_cars and
+        in analysis.normalize.Electric2goDataArchive
+        """
         for city in self.test_cities:
             city_data = systems.get_city_by_name(city[0], city[1])
 
             text, session = download.download_one_city(city_data)
             session.close()
 
-            # could throw exception if JSON is malformed, test if it does
-            info = json.loads(text)
+            self._assert_api_output_is_valid_json(text)
 
-            # assert there is something
-            self.assertGreater(len(info), 0)
+    def test_output_not_identical_for_different_cities(self):
+        """
+        For selected systems, request information for two different cities
+        supported and make sure they're not the same.
+
+        Checks for silly errors like always returning data for the same city,
+        no matter which city is requested.
+        """
+        for city in self.test_different_cities:
+            first_city = systems.get_city_by_name(city[0], city[1][0])
+            first_text, session = download.download_one_city(first_city)
+
+            second_city = systems.get_city_by_name(city[0], city[1][1])
+            second_text, session = download.download_one_city(second_city,
+                                                              session=session)
+            session.close()
+
+            self.assertNotEqual(first_city, second_city)
 
     def test_download(self):
+        """
+        Test that downloading the data results in physical file being created
+        for all systems specified.
+        """
         for city in self.test_cities:
             city_data = systems.get_city_by_name(city[0], city[1])
 
@@ -57,8 +105,10 @@ class DownloadTest(unittest.TestCase):
             self.assertTrue(os.path.exists(file_current))
 
     def test_download_create_dir(self):
-        # tests that script will attempt to create data directories
-        # if they don't exist
+        """
+        Tests that downloader will attempt to create data directories
+        if they don't exist.
+        """
         import shutil
 
         city_data = {'system': 'sharengo', 'name': 'milano'}
@@ -77,6 +127,10 @@ class DownloadTest(unittest.TestCase):
         self.assertTrue(os.path.exists(file_current))
 
     def test_cache(self):
+        """
+        Tests that repeated requests to get data for a given system
+        and city result in cached data being returned.
+        """
         for city in self.test_cities:
             city_data = systems.get_city_by_name(city[0], city[1])
 
@@ -88,9 +142,7 @@ class DownloadTest(unittest.TestCase):
             # check we've gotten a cached file
             self.assertGreater(cache, 0)
 
-            info = json.loads(text)  # check the json can be parsed
-
-            self.assertGreater(len(info), 0)  # check there is something
+            self._assert_api_output_is_valid_json(text)
 
 
 class StatsTest(unittest.TestCase):
