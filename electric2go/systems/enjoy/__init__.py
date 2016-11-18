@@ -13,6 +13,9 @@ CITIES = {
     },
     'roma': {
         'of_interest': True
+    },
+    'catania': {
+        'of_interest': True
     }
 }
 
@@ -20,8 +23,8 @@ CITIES = {
 # for which data is returned changes based on current session cookie
 # set when loading a city page. Hence the API_KNOCK_URL.
 
-API_VEHICLES_URL = 'https://enjoy.eni.com/get_vetture'
-API_KNOCK_URL_FORMAT = 'https://enjoy.eni.com/it/{city}/trova_auto'
+API_VEHICLES_URL = 'https://enjoy.eni.com/ajax/retrieve_vehicles'
+API_KNOCK_URL_FORMAT = 'https://enjoy.eni.com/it/{city}/map/'
 
 for city, city_data in CITIES.items():
     city_data['API_AVAILABLE_VEHICLES_URL'] = API_VEHICLES_URL

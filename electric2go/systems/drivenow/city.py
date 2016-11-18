@@ -46,6 +46,9 @@ CITIES = {
             'WEST': 13.099773
         }
     },
+    'brussels': {
+        'loc_key': 42619
+    },
     'kobenhavn': {
         'loc_key': 41369,
         'electric': 'all',
@@ -100,6 +103,9 @@ CITIES = {
                 (250, 95)
             ]
         }
+    },
+    'milano': {
+        'loc_key': 42756,
     },
     'muenchen': {
         'loc_key': 4604,
