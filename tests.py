@@ -589,14 +589,25 @@ class GenerateTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # read in data just once
+        # this is 181 data points from midnight to 3:00 every minute
+        cls.dataset_info = {
+            'start': None,
+            'end': datetime(2016, 2, 9, 3, 0),
+            'freq': 60
+        }
+        cls.original_data_source = '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz'
         cls.original_data = normalize.batch_load_data(
             'car2go',
-            '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz',
-            None, datetime(2016, 2, 9, 3, 0), 60)
+            cls.original_data_source,
+            cls.dataset_info['start'], cls.dataset_info['end'], cls.dataset_info['freq'])
 
-        # generate 181 files covering from midnight to 3:00 every minute
-        generate.write_files(cls.original_data,
-                             '/home/jarek/projects/electric2go/generate_test/')
+        # TODO: use /tmp or something
+        cls.generated_data_dir = '/home/jarek/projects/electric2go/generate_test/'
+        if not os.path.exists(cls.generated_data_dir):
+            os.makedirs(cls.generated_data_dir)
+
+        # generate and write data to a test file
+        generate.write_files(cls.original_data, cls.generated_data_dir)
 
     def test_stats_equal(self):
         # stats for original data
@@ -605,8 +616,8 @@ class GenerateTest(unittest.TestCase):
         # get read the generated data back in
         generated_data = normalize.batch_load_data(
             'car2go',
-            '/home/jarek/projects/electric2go/generate_test/vancouver_2016-02-09--00-00',
-            None, datetime(2016, 2, 9, 3, 0), 60)
+            self.generated_data_dir + 'vancouver_2016-02-09--00-00',
+            self.dataset_info['start'], self.dataset_info['end'], self.dataset_info['freq'])
 
         # get stats for data generated from the original data
         second_stats = process_stats.stats_dict(generated_data)
@@ -629,9 +640,9 @@ class GenerateTest(unittest.TestCase):
         # depends on the files being generated in setUpClass
 
         self._compare_system_independent('car2go', 'vancouver',
-                                         '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz',
-                                         '/home/jarek/projects/electric2go/generate_test/',
-                                         datetime(2016, 2, 9, 3, 0))
+                                         self.original_data_source,
+                                         self.generated_data_dir,
+                                         self.dataset_info['end'])
 
     def test_vehicles_equal_drivenow(self):
         system = 'drivenow'
