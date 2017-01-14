@@ -9,6 +9,12 @@ def get_car_basics(car):
     return car['Id'], car['Lat'], car['Lon']
 
 
+def get_everything_except_cars(system_data_dict):
+    result = system_data_dict.copy()
+    del result['data']
+    return result
+
+
 def get_car(car):
     result = {}
 
@@ -27,3 +33,17 @@ def get_car(car):
     result['fuel'] = car['Fuel']
 
     return result
+
+
+def get_car_parking_properties(car):
+    # this must return a hashable object
+
+    # TODO: implement
+    return None
+
+
+def put_car_parking_properties(car, d):
+    # `d` will be a result of get_car_parking_properties
+
+    # TODO: implement
+    return car

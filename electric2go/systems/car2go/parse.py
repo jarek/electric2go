@@ -21,6 +21,25 @@ def get_car_basics(car):
     return car['vin'], car['coordinates'][1], car['coordinates'][0]
 
 
+def get_car_parking_properties(car):
+    # this must return a hashable object
+
+    # I believe 'charging' key is only present on electric cars
+    # TODO: check if it's present at all times (and sometimes false), or only when actually charging? look at Amsterdam
+    charging = car.get('charging', None)
+
+    return (car['fuel'], charging)
+
+
+def put_car_parking_properties(car, d):
+    car['fuel'] = d[0]
+
+    if d[1] is not None:
+        car['charging'] = d[1]
+
+    return car
+
+
 def get_car(car):
     result = {}
 

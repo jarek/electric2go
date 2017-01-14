@@ -24,6 +24,23 @@ def get_car_basics(car):
     return car['id'], car['latitude'], car['longitude']
 
 
+def get_car_parking_properties(car):
+    # this must return a hashable object
+    return (car['estimatedRange'], car['fuelLevel'], car['fuelLevelInPercent'], car['isCharging'],
+            car['rentalPrice']['isOfferDrivePriceActive'])
+
+
+def put_car_parking_properties(car, d):
+    # `d` will be a result of get_car_parking_properties
+    car['estimatedRange'] = d[0]
+    car['fuelLevel'] = d[1]
+    car['fuelLevelInPercent'] = d[2]
+    car['isCharging'] = d[3]
+    car['rentalPrice']['isOfferDrivePriceActive'] = d[4]
+
+    return car
+
+
 def get_car(car):
     result = {}
 
@@ -126,4 +143,5 @@ def put_cars(cars, result_dict):
     # inverse of get_cars
     result = result_dict['system'].copy()
     result['cars']['items'] = cars
+    result['cars']['count'] = len(cars)
     return result

@@ -51,7 +51,8 @@ UNCHANGING_KEYS = {'name', 'license_plate', 'model',
 # technically also 'electric' but we want it for easier filtering
 
 
-def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_time, available_cars, result_dict):
+def process_data(get_car_basics, get_car, get_car_parking_changing,
+                 changing_keys, data_time, prev_data_time, available_cars, result_dict):
     # declare local variable names for easier access
     unfinished_trips = result_dict['unfinished_trips']
     unfinished_parkings = result_dict['unfinished_parkings']
@@ -66,10 +67,15 @@ def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_ti
     # called by start_parking, end_trip, and end_unstarted_trip
     def process_car(car_info):
         new_car_data = get_car(car_info)  # get full car info
+
         result = {'vin': new_car_data['vin'],
                   'coords': (new_car_data['lat'], new_car_data['lng']),
-                  'fuel': new_car_data['fuel']}
+                  'fuel': new_car_data['fuel'],
+                  'changing_data': []}
 
+        # TODO: see if this is a problem when new_car_data[key] is mutable
+        # e.g. for instance what happens if key='charge',
+        # and new_car_data['charge']['history'] == [10, 20, 30]
         for key in changing_keys:
             result[key] = new_car_data[key]
 
@@ -81,6 +87,11 @@ def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_ti
         # car properties will not change during a parking period, so we don't need to save any
         # starting/ending pairs except for starting_time and ending_time
         result['starting_time'] = curr_time
+
+        # store initial version of changing data to compare against later
+        result['changing_data'].append(
+            (curr_time, get_car_parking_changing(car))
+        )
 
         return result
 
@@ -198,6 +209,25 @@ def process_data(get_car_basics, get_car, changing_keys, data_time, prev_data_ti
             # end trip right away and start 'new' parking period in new position
             finished_trips[vin].append(end_trip(data_time, car, trip_data))
             unfinished_parkings[vin] = start_parking(data_time, car)
+
+        else:
+            # if we're here, we have an unfinished parking.
+            # test one more thing: if a car is parked and charging at the same time,
+            # its properties can change during the parking period.
+            # compare current data with last-stored data for the parking.
+            current_data = get_car_parking_changing(car)
+
+            # note, 'changing_data' is guaranteed to have at least one item
+            # because that's added in start_parking()
+            (previous_data_timestamp, previous_data) = unfinished_parkings[vin]['changing_data'][-1]
+
+            if previous_data != current_data:
+                unfinished_parkings[vin]['changing_data'].append(
+                    # TODO: should this be data_time or prev_data_time? note also same thing in start_parking
+                    # To find out, run GenerateTests by comparing all of the dataset's files,
+                    # not just at comparison_time
+                    (prev_data_time, current_data)
+                )
 
     new_vins = available_vins - set(vehicles.keys())
     for vin in new_vins:
@@ -389,6 +419,11 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
     get_cars = getattr(parse_module, 'get_cars')
     get_car_basics = getattr(parse_module, 'get_car_basics')
     get_car = getattr(parse_module, 'get_car')
+    # TODO: this function needs a better, more descriptive name
+    # It is supposed to return all properties that would be expected to change
+    # *during* a parking period (e.g. charge level for electric cars that
+    # are charging while parked).
+    get_car_parking_changing = getattr(parse_module, 'get_car_parking_properties')
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
@@ -500,7 +535,8 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
             # handle outer JSON structure and get a list we can loop through
             available_cars = get_cars(data)
 
-            result_dict = process_data(get_car_basics, get_car, changing_keys,
+            result_dict = process_data(get_car_basics, get_car,
+                                       get_car_parking_changing, changing_keys,
                                        t, prev_t, available_cars, result_dict)
 
             # update last valid data timestamp
