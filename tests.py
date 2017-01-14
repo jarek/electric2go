@@ -551,28 +551,14 @@ class IntegrationTest(unittest.TestCase):
 
 
 class GenerateTest(unittest.TestCase):
-    # NOTES:
-    # I am getting test failures on Drivenow because I don't handle
-    # charging electric vehicles properly.
-    # From the API, over time the vehicle comes back with the same
-    # lat/long position but with different:
-    # - estimatedRange
-    # - fuelLevel, fuelLevelInPercent
-    # - isCharging (once it finishes charging - in the example
-    #   I've seen, it finished at 99% full)
-
-    # This might also apply to car2go cities that have electric cars.
-
-    # Further, I have seen the estimatedRange drift/change during parking
-    # even when not charging, though only by a kilometer or two
-    # (temperature changing battery reporting, presumably?)
-
-    # I have also seen a isOfferDrivePriceActive change, presumably
-    # offer is active during the night or some other low-demand time.
-
-    # This causes test failures as analysis.normalize currently assumes
-    # everything stays the same as long as car position doesn't change.
-    # It might require a significant amount of code to handle properly :(
+    # TODO:
+    # - Test on more Drivenow cities than just Duesseldorf
+    #   (although Duesseldorf looks to contain all types of cars that
+    #    Drivenow has, so might not be crucial)
+    # - Test on car2go city with electric cars, e.g. Amsterdam,
+    #   and on city with a few electric cars (Stuttgart maybe?)
+    # - In _compare_system_independent, test in loop over the whole dataset
+    #   rather than querying just one timepoint
 
     def assertExpectedInObj(self, obj, expected):
         """
