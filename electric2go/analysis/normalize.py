@@ -224,8 +224,8 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
             if previous_data != current_data:
                 unfinished_parkings[vin]['changing_data'].append(
                     # TODO: should this be data_time or prev_data_time? note also same thing in start_parking
-                    # To find out, run GenerateTests by comparing all of the dataset's files,
-                    # not just at comparison_time
+                    # and corresponding comparison to `turn` in generate.roll_out_changing_data
+                    # Think about it a bit and see what makes more sense.
                     (prev_data_time, current_data)
                 )
 

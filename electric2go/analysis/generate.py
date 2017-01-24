@@ -74,6 +74,9 @@ def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_
         test['lng'] = car['coords'][1]
         del test['coords']
 
+        if 'duration' in test:
+            del test['duration']  # this is added in normalize end_parking
+
         # add in stuff that doesn't change between data frames,
         # it is stored separately in 'vehicles' key
         car_details = result_dict['vehicles'].get(test['vin'], {})
@@ -88,7 +91,7 @@ def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_
             # find update to apply
             data_update = None
             for update in result['changing_data']:
-                if update[0] <= turn:
+                if update[0] < turn:
                     data_update = update[1]
 
             # actually apply it

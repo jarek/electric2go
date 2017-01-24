@@ -8,7 +8,7 @@ import numpy as np
 import json
 import csv
 from subprocess import Popen, PIPE
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from electric2go import files, download, systems
 from electric2go.analysis import normalize, merge, generate
@@ -625,19 +625,27 @@ class GenerateTest(unittest.TestCase):
 
         # depends on the files being generated in setUpClass
 
-        self._compare_system_independent('car2go', 'vancouver',
-                                         self.original_data_source,
-                                         self.generated_data_dir,
-                                         self.dataset_info['end'])
+        # test that all the files are the same
+        # TODO: full test takes too long, look at first 40 minutes for now
+        # TODO: I previously saw a test fail at 00:37, so that one would be covered, but of course
+        # TODO: it would be better to test the whole set
+        self._compare_system_from_to('car2go', 'vancouver',
+                                     self.original_data_source,
+                                     self.generated_data_dir,
+                                     self.original_data['metadata']['starting_time'],
+                                     datetime(2016, 2, 9, 0, 40),  # TODO: use self.dataset_info['end']
+                                     self.dataset_info['freq'])
 
     def test_vehicles_equal_drivenow(self):
         system = 'drivenow'
         input_file = '/home/jarek/projects/electric2go/duesseldorf_2016-08-20.tgz'
 
         # read in data
-        drivenow_original_data = normalize.batch_load_data(
-            system, input_file,
-            None, datetime(2016, 8, 20, 3, 0), 60)
+        start = datetime(2016, 8, 20, 0, 0)
+        end = datetime(2016, 8, 20, 3, 0)
+        freq = 60
+
+        drivenow_original_data = normalize.batch_load_data(system, input_file, None, end, freq)
 
         generated_data_dir = '/home/jarek/projects/electric2go/generate_test_drivenow/'  # TODO: use something in /tmp
         if not os.path.exists(generated_data_dir):
@@ -646,8 +654,20 @@ class GenerateTest(unittest.TestCase):
         # generate 181 files covering from midnight to 3:00 every minute
         generate.write_files(drivenow_original_data, generated_data_dir)
 
-        self._compare_system_independent(system, 'duesseldorf', input_file, generated_data_dir,
-                                         datetime(2016, 8, 20, 3, 0))
+        # test that all the files are the same
+        # TODO: full test takes too long, look at first 15 minutes for now
+        # TODO: I previously saw a test fail at 00:11, so that one would be covered, but of course
+        # TODO: it would be better to test the whole set
+        self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
+                                     start, datetime(2016, 8, 20, 0, 15), freq)  # TODO: use `end` instead of hardcode
+
+    def _compare_system_from_to(self, system, city, expected_location, actual_location,
+                                start_time, end_time, time_step):
+        comparison_time = start_time
+        while comparison_time <= end_time:
+            self._compare_system_independent(system, city, expected_location, actual_location, comparison_time)
+
+            comparison_time += timedelta(seconds=time_step)
 
     def _compare_system_independent(self, system, city, expected_location, actual_location, comparison_time):
         parser = systems.get_parser(system)
@@ -658,29 +678,29 @@ class GenerateTest(unittest.TestCase):
         actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
         actual_file = actual_data_archive.load_data_point(comparison_time)
 
-        # TODO: instead of using comparison_time, loop over all time from first_file_time to last_file_time
-
         # test cars equivalency. we have to do it separately because
         # it comes from API as a list, but we don't store the list order.
         expected_cars = parser.get_cars_dict(expected_file)
         actual_cars = parser.get_cars_dict(actual_file)
+
+        error_msg = 'unequal at {}'.format(comparison_time)
 
         # the following block is more manual than self.assertEqual but gives
         # more useful error messages
         old_max_diff = self.maxDiff
         self.maxDiff = None
         for vin, car in expected_cars.items():
-            self.assertEqual(car, actual_cars[vin])
+            self.assertEqual(car, actual_cars[vin], msg=error_msg)
         self.maxDiff = old_max_diff
 
         # now run self.assertEqual in case I'd somehow missed anything
         # during the manual check
-        self.assertEqual(expected_cars, actual_cars)
+        self.assertEqual(expected_cars, actual_cars, msg=error_msg)
 
         # test exact equivalency of everything but the cars list
         expected_remainder = parser.get_everything_except_cars(expected_file)
         actual_remainder = parser.get_everything_except_cars(actual_file)
-        self.assertEqual(expected_remainder, actual_remainder)
+        self.assertEqual(expected_remainder, actual_remainder, msg=error_msg)
 
 
 class HelperFunctionsTest(unittest.TestCase):
