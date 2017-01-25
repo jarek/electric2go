@@ -638,10 +638,7 @@ class GenerateTest(unittest.TestCase):
 
         drivenow_original_data = normalize.batch_load_data(system, input_file, None, end, freq)
 
-        # create temporary directory, will be deleted when variable goes out of scope
-        #tempdir = tempfile.TemporaryDirectory()
-        #generated_data_dir = tempdir.name
-
+        # create temporary directory, will be deleted when context manager exits
         with tempfile.TemporaryDirectory() as generated_data_dir:
             # generate 181 files covering from midnight to 3:00 every minute
             generate.write_files(drivenow_original_data, generated_data_dir)
@@ -652,8 +649,6 @@ class GenerateTest(unittest.TestCase):
             # TODO: it would be better to test the whole set
             self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
                                          start, datetime(2016, 8, 20, 0, 15), freq)  # TODO: use `end` instead of hardcode
-
-        #tempdir.cleanup()
 
     def _compare_system_from_to(self, system, city, expected_location, actual_location,
                                 start_time, end_time, time_step):
