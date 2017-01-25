@@ -67,41 +67,40 @@ def build_data_frames(result_dict, include_trips=True):
 def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_dict):
     turn, current_positions, _ = data_frame
 
-    def undo_normalize(car):
+    def undo_normalize(car_data):
         # undoes normalize.process_data.process_car
-        test = dict.copy(car)  # need to copy because I am deleting keys below. TODO: is that so?
-        test['lat'] = car['coords'][0]
-        test['lng'] = car['coords'][1]
-        del test['coords']
 
-        if 'duration' in test:
-            del test['duration']  # this is added in normalize end_parking
+        car_data['lat'] = car_data['coords'][0]
+        car_data['lng'] = car_data['coords'][1]
+        del car_data['coords']
+
+        if 'duration' in car_data:
+            del car_data['duration']  # this is added in normalize end_parking
 
         # add in stuff that doesn't change between data frames,
         # it is stored separately in 'vehicles' key
-        car_details = result_dict['vehicles'].get(test['vin'], {})
-        test.update(car_details)
+        car_details = result_dict['vehicles'].get(car_data['vin'], {})
+        car_data.update(car_details)
 
-        return test
+        return car_data
 
     def roll_out_changing_data(car_data):
-        result = car_data  # TODO: should I dict.copy(car_data) instead?
-        if 'changing_data' in result:
+        if 'changing_data' in car_data:
 
             # find update to apply
             data_update = None
-            for update in result['changing_data']:
+            for update in car_data['changing_data']:
                 if update[0] < turn:
                     data_update = update[1]
 
             # actually apply it
             if data_update:
-                result = put_car_parking_properties(result, data_update)
+                car_data = put_car_parking_properties(car_data, data_update)
 
             # remove the info so it doesn't pollute the result
-            del result['changing_data']
+            del car_data['changing_data']
 
-        return result
+        return car_data
 
     # This implicitly assumes that system always returns a list,
     # rather than e.g. a dict.
@@ -118,7 +117,18 @@ def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_
     # - multicity has that hacky API with lots of stuff so might be annoying to implement. but cars are indeed a list
     # - sharengo (marginal non-car content: "{"status":200,"reason":"",)
     # - translink whole thing is a list so put_cars will just return its param. that works too I guess
-    system_cars = (roll_out_changing_data(put_car(undo_normalize(car))) for car in current_positions)
+
+    # `car in current_positions` here ultimately comes from a result_dict,
+    # which could be still used for other purposes - so dict.copy it first
+    # to avoid undo_normalize and roll_out_changing_data creating side-effects
+    system_cars = (
+        roll_out_changing_data(
+            put_car(
+                undo_normalize(
+                    dict.copy(car)
+                )
+            )
+        ) for car in current_positions)
 
     system_obj = put_cars(list(system_cars), result_dict)  # TODO: otherwise json cannot serialize, lame
 

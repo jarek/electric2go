@@ -7,6 +7,7 @@ import os
 import numpy as np
 import json
 import csv
+import tempfile
 from subprocess import Popen, PIPE
 from datetime import datetime, timedelta
 
@@ -560,18 +561,6 @@ class GenerateTest(unittest.TestCase):
     # - In _compare_system_independent, test in loop over the whole dataset
     #   rather than querying just one timepoint
 
-    def assertExpectedInObj(self, obj, expected):
-        """
-        Verifies that values for all keys in `expected` are the same as in `obj`.
-        If value is a dict, recurses into the dict.
-        Unlike assertDictEqual, doesn't raise error when a key in `obj` is not found in `expected`.
-        """
-        for key in expected:
-            if isinstance(expected[key], dict):
-                self.assertExpectedInObj(obj[key], expected[key])
-            else:
-                self.assertEqual(expected[key], obj[key])
-
     @classmethod
     def setUpClass(cls):
         # read in data just once
@@ -587,10 +576,12 @@ class GenerateTest(unittest.TestCase):
             cls.original_data_source,
             cls.dataset_info['start'], cls.dataset_info['end'], cls.dataset_info['freq'])
 
-        # TODO: use /tmp or something
-        cls.generated_data_dir = '/home/jarek/projects/electric2go/generate_test/'
-        if not os.path.exists(cls.generated_data_dir):
-            os.makedirs(cls.generated_data_dir)
+        # Create temporary directory to generate class files into.
+        # This will be deleted when class goes out of scope.
+        # tempdir must be in cls, otherwise it would be deleted
+        # when this function finishes.
+        cls.tempdir = tempfile.TemporaryDirectory()
+        cls.generated_data_dir = cls.tempdir.name
 
         # generate and write data to a test file
         generate.write_files(cls.original_data, cls.generated_data_dir)
@@ -602,7 +593,7 @@ class GenerateTest(unittest.TestCase):
         # get read the generated data back in
         generated_data = normalize.batch_load_data(
             'car2go',
-            self.generated_data_dir + 'vancouver_2016-02-09--00-00',
+            os.path.join(self.generated_data_dir, 'vancouver_2016-02-09--00-00'),
             self.dataset_info['start'], self.dataset_info['end'], self.dataset_info['freq'])
 
         # get stats for data generated from the original data
@@ -647,19 +638,22 @@ class GenerateTest(unittest.TestCase):
 
         drivenow_original_data = normalize.batch_load_data(system, input_file, None, end, freq)
 
-        generated_data_dir = '/home/jarek/projects/electric2go/generate_test_drivenow/'  # TODO: use something in /tmp
-        if not os.path.exists(generated_data_dir):
-            os.makedirs(generated_data_dir)
+        # create temporary directory, will be deleted when variable goes out of scope
+        #tempdir = tempfile.TemporaryDirectory()
+        #generated_data_dir = tempdir.name
 
-        # generate 181 files covering from midnight to 3:00 every minute
-        generate.write_files(drivenow_original_data, generated_data_dir)
+        with tempfile.TemporaryDirectory() as generated_data_dir:
+            # generate 181 files covering from midnight to 3:00 every minute
+            generate.write_files(drivenow_original_data, generated_data_dir)
 
-        # test that all the files are the same
-        # TODO: full test takes too long, look at first 15 minutes for now
-        # TODO: I previously saw a test fail at 00:11, so that one would be covered, but of course
-        # TODO: it would be better to test the whole set
-        self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
-                                     start, datetime(2016, 8, 20, 0, 15), freq)  # TODO: use `end` instead of hardcode
+            # test that all the files are the same
+            # TODO: full test takes too long, look at first 15 minutes for now
+            # TODO: I previously saw a test fail at 00:11, so that one would be covered, but of course
+            # TODO: it would be better to test the whole set
+            self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
+                                         start, datetime(2016, 8, 20, 0, 15), freq)  # TODO: use `end` instead of hardcode
+
+        #tempdir.cleanup()
 
     def _compare_system_from_to(self, system, city, expected_location, actual_location,
                                 start_time, end_time, time_step):
@@ -671,6 +665,11 @@ class GenerateTest(unittest.TestCase):
 
     def _compare_system_independent(self, system, city, expected_location, actual_location, comparison_time):
         parser = systems.get_parser(system)
+
+        # Name where files have been generated might be a tempdir name
+        # like '/tmp/tmp25l2ba19', while Electric2goDataArchive expects
+        # a trailing slash if not a file name - so add a trailing slash.
+        actual_location = os.path.join(actual_location, '')
 
         expected_data_archive = normalize.Electric2goDataArchive(city, expected_location)
         expected_file = expected_data_archive.load_data_point(comparison_time)
