@@ -1,6 +1,96 @@
 # coding=utf-8
 
 
+
+"""
+uses of the keys / car data:
+
+process_data outer:
+- gets unchanging_keys, saves them to vehicles dict
+- gets parking_changing
+
+start_parking:
+- gets parking_changing
+
+process_car:
+- gets basics (vin, lat, lng)
+- get fuel
+- gets changing_keys
+
+end_trip:
+- gets fuel
+- gets changing_keys
+
+end_started_trip:
+- ditto
+
+(but fuel is a changing key, no? just special handling for that should be fine)
+(or remove the special case for starting_fuel and ending_fuel... but that can be done later on)
+
+
+
+in generate:
+
+really just needs put_car, put_car_parking_properties, put_cars
+mostly straightforward... can improve how it's implemented within parse modules, I suppose
+"""
+
+
+KEYS = {
+    'basic': {
+        'vin': 'id',
+        'lat': 'latitude',
+        'lng': 'longitude',
+        'fuel': 'fuelLevel'
+    },
+
+    # things that can change during a parking period, without interrupting the parking
+    'parking_properties': [
+        'estimatedRange',
+        'fuelLevel',
+        'fuelLevelInPercent',
+        'isCharging',
+        # TODO: the two below should be one key, arg
+        'rentalPrice', 'isOfferDrivePriceActive'
+    ],
+
+    'parking_changing_properties': {
+        'charging': 'isCharging',
+        'fuel': 'fuelLevelInPercent',
+        'api_estimated_range': 'estimatedRange'
+    },
+
+    'drive_changing_properties': {
+        # you must also include 'basic' and 'parking_changing_properties' keys
+        'cleanliness_interior': 'innerCleanliness',
+        'parkingSpaceId': 'parkingSpaceId',
+        'isInParkingSpace': 'isInParkingSpace'
+    },
+
+    # things that are expected to not change at all for a given car VIN/ID
+    # during a reasonable timescale (1 week to 1 month)
+    'unchanging_properties': {
+        'name': 'name',
+        'license_plate': 'licensePlate',
+
+        'model': 'modelName',
+        'color': 'color',
+
+        'fuel_type': 'fuelType',
+        #'electric'] = (car['fuelType'] == 'E'),
+
+        'transmission': 'transmission'
+    },
+
+    # things that don't change, and aren't renamed
+    'unchanging_directly_mapped_properties': [
+        'make', 'group', 'series', 'modelIdentifier', 'equipment',
+        'carImageUrl', 'carImageBaseUrl', 'routingModelName',
+        'variant', 'rentalPrice', 'isPreheatable'
+    ]
+}
+
+
 def get_cars(system_data_dict):
     if 'cars' in system_data_dict and 'items' in system_data_dict['cars']:
         return system_data_dict['cars']['items']
@@ -25,9 +115,36 @@ def get_car_basics(car):
 
 
 def get_car_parking_properties(car):
+    # things that can change during a parking period, without interrupting the parking
+
     # this must return a hashable object
+
+    # TODO: would be nice to use KEYS['parking_properties'] but for that two-level key
     return (car['estimatedRange'], car['fuelLevel'], car['fuelLevelInPercent'], car['isCharging'],
             car['rentalPrice']['isOfferDrivePriceActive'])
+
+
+def get_car_trip_changing_properties(car):
+    props = KEYS['drive_changing_properties']
+    result = {key: car[props[key]] for key in props}
+
+    props = KEYS['parking_changing_properties']
+    result.update({key: car[props[key]] for key in props})
+
+    return result
+
+
+def get_car_unchanging_properties(car):
+    # things that are expected to not change at all for a given car VIN/ID
+    # during a reasonable timescale (1 week to 1 month)
+
+    props = KEYS['unchanging_properties']
+    result = {key: car[props[key]] for key in props}
+
+    direct = KEYS['unchanging_directly_mapped_properties']
+    result.update({key: car[key] for key in direct})
+
+    return result
 
 
 def put_car_parking_properties(car, d):
@@ -80,6 +197,9 @@ def get_car(car):
 
 
 def get_range(car):
+    # TODO: could try using estimatedRange if included in API response,
+    # presumably Drivenow has a better estimate than we could calculate
+
     if 'fuel' not in car:
         # means we got a verbatim JSON object, not yet parsed to common format
         car = get_car(car)
