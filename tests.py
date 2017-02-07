@@ -585,6 +585,7 @@ class GenerateTest(unittest.TestCase):
     #   and on city with a few electric cars (Stuttgart maybe?)
     # - In _compare_system_independent, test in loop over the whole dataset
     #   rather than querying just one timepoint
+    # - Verify parking periods longer than a day are handled fine in generator
 
     @classmethod
     def setUpClass(cls):
