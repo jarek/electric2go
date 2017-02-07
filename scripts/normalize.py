@@ -36,6 +36,11 @@ def process_commandline():
     if not os.path.exists(args.starting_filename):
         sys.exit('file not found: ' + args.starting_filename)
 
+    # TODO: also support more standard YYYY-mm-DDTHH-MM (ISO 8601)
+    # in addition to YYYY-mm-DD--HH-MM when parsing dates here.
+    # I guess changing the file naming to match would be a bit of a big
+    # and breaking change... hmm.
+
     if args.starting_time:
         try:
             args.starting_time = files.parse_date(args.starting_time)
