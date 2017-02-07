@@ -9,7 +9,7 @@ import tarfile
 import zipfile
 
 from .cmdline import json  # will be either simplejson or json
-from .. import dist, files, systems
+from .. import dist, current_git_revision, files, systems
 
 
 def calculate_parking(data):
@@ -490,6 +490,9 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
         # Metadata about the dataset
         'metadata': {
+            'electric2go_revision': current_git_revision(),
+            'processing_started': datetime.datetime.utcnow(),
+
             'system': system,
             'city': city,
             'starting_time': starting_time,

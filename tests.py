@@ -11,7 +11,7 @@ import tempfile
 from subprocess import Popen, PIPE
 from datetime import datetime, timedelta
 
-from electric2go import files, download, systems
+from electric2go import current_git_revision, files, download, systems
 from electric2go.analysis import normalize, merge, generate
 from electric2go.analysis import graph as process_graph
 from electric2go.analysis import stats as process_stats
@@ -393,6 +393,31 @@ class StatsTest(unittest.TestCase):
             result_dict = normalize.batch_load_data(**params)
 
             cls.results[dataset_name] = result_dict
+
+    def test_metadata(self):
+        """
+        Even though this doesn't test any of the stats,
+        it's piggybacked in this test as it verifies
+        the dynamic metadata (not dataset-dependent).
+        """
+        for key in self.results:
+            metadata = self.results[key]['metadata']
+
+            # Test generation date, give it 5 minutes of leeway
+            # to avoid spurious test failures around midnight.
+            now = datetime.utcnow()
+            then = metadata['processing_started']
+            self.assertLess(now - then, timedelta(minutes=5))
+
+            # Test git revision: verify 'electric2go_revision' is not empty,
+            # and verify it's the same as what the module's returns.
+            # The latter is a bit pointless, though no more pointless than
+            # reimplementing `git rev-parse HEAD` in the test...
+            # Verified experimentally that self.assertTrue('') and
+            # self.assertTrue(None) fails on pythons 2.7.8 and 3.4.2.
+            self.assertTrue(metadata['electric2go_revision'])
+            self.assertEqual(metadata['electric2go_revision'],
+                             current_git_revision())
 
     def test_stats_for_sample_datasets(self):
         for dataset_name in self.datasets:

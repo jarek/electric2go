@@ -2,6 +2,47 @@
 
 from datetime import datetime
 from math import radians, sin, cos, asin, sqrt
+from subprocess import Popen, PIPE
+
+from .files import root_dir
+
+
+def current_git_revision():
+    """
+    Gets the current git revision in the directory of the electric2go module.
+    Intended for use as metadata for information what version of the software
+    generated a given output file.
+
+    This uses `git rev-parse --verify HEAD` in the directory
+    where electric2go/__init__.py is located.
+
+    The result will usually be the current git revision of the electric2go
+    codebase. There is an edge case: the result might be the revision
+    of a different repository if electric2go is not a git repository,
+    but a parent directory is a git repository.
+    (e.g. this file is /home/user/repo/electric2go/electric2go/__init__.py,
+    /home/user/repo/electric2go/electric2go/.git/ doesn't exist,
+    but /home/user/repo/.git/ does)
+
+    Raises RuntimeError when unable to find the git revision.
+
+    This will have to be changed if electric2go is to be available as
+    a package or in other cases where the files would not be expected
+    to be versioned. Perhaps we can switch to MD5-summing a source .py file
+    to establish quasi-revision, but that decision can be done later.
+    """
+
+    cmd = Popen(["git", "rev-parse", "--verify", "HEAD"],
+                stdout=PIPE, stderr=PIPE, cwd=root_dir)
+
+    stdout_data, stderr_data = cmd.communicate()
+
+    if stderr_data:
+        raise RuntimeError('Unable to get git revision of electric2go')
+
+    rev = stdout_data.decode('utf-8').strip()
+
+    return rev
 
 
 def output_file_name(description, extension=''):
