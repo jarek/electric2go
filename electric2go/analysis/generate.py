@@ -64,7 +64,7 @@ def build_data_frames(result_dict, include_trips=True):
         turn += timedelta(seconds=result_dict['metadata']['time_step'])
 
 
-def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_dict):
+def build_obj(data_frame, parser, result_dict):
     turn, current_positions, _ = data_frame
 
     def undo_normalize(car_data):
@@ -95,7 +95,12 @@ def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_
 
             # actually apply it
             if data_update:
-                car_data = put_car_parking_properties(car_data, data_update)
+                car_data = parser.put_car_parking_drift(car_data, data_update)
+
+            # TODO: this is just the following, no?
+            # data_updates = [update for update in car_data['changing_data'] if update[0] < turn]
+            # if data_updates:
+            #    car_data = put_car_parking_drift(car_data, data_updates[-1])
 
             # remove the info so it doesn't pollute the result
             del car_data['changing_data']
@@ -123,31 +128,27 @@ def build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_
     # to avoid undo_normalize and roll_out_changing_data creating side-effects
     system_cars = (
         roll_out_changing_data(
-            put_car(
+            parser.put_car(
                 undo_normalize(
                     dict.copy(car)
                 )
             )
         ) for car in current_positions)
 
-    system_obj = put_cars(list(system_cars), result_dict)  # TODO: otherwise json cannot serialize, lame
+    system_obj = parser.put_cars(list(system_cars), result_dict)  # TODO: otherwise json cannot serialize, lame
 
     return turn, system_obj
 
 
 def build_objs(result_dict):
-    parse_module = systems.get_parser(result_dict['metadata']['system'])
-
-    put_car = getattr(parse_module, 'put_car')
-    put_car_parking_properties = getattr(parse_module, 'put_car_parking_properties')
-    put_cars = getattr(parse_module, 'put_cars')
+    parser = systems.get_parser(result_dict['metadata']['system'])
 
     # source files don't include trip info,
     # so tell build_data_frames we don't need that
     data_frames = build_data_frames(result_dict, False)
 
     # process each data frame and return as generator
-    return (build_obj(data_frame, put_car, put_car_parking_properties, put_cars, result_dict)
+    return (build_obj(data_frame, parser, result_dict)
             for data_frame in data_frames)
 
 

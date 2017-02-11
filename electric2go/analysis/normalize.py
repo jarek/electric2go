@@ -35,24 +35,7 @@ def calculate_trip(trip_data):
     return trip_data
 
 
-# These are things used explicitly by process_data.process_car
-# We need to account for them in a few places
-BASIC_VEHICLE_KEYS = {'vin', 'lat', 'lng', 'fuel'}
-
-
-# Ignored keys that should not be tracked for trips - stuff that
-# won't change during a trip
-UNCHANGING_KEYS = {'name', 'license_plate', 'model',
-                   'color', 'fuel_type', 'transmission',
-                   'app_required',
-                   # TODO: this is repeated from drivenow.parse, seems like a bad implementation
-                   'make', 'group', 'series', 'modelName', 'modelIdentifier', 'equipment',
-                   'carImageUrl', 'carImageBaseUrl', 'routingModelName', 'variant', 'rentalPrice', 'isPreheatable'}
-# technically also 'electric' but we want it for easier filtering
-
-
-def process_data(get_car_basics, get_car, get_car_parking_changing,
-                 changing_keys, data_time, prev_data_time, available_cars, result_dict):
+def process_data(parser, data_time, prev_data_time, available_cars, result_dict):
     # declare local variable names for easier access
     unfinished_trips = result_dict['unfinished_trips']
     unfinished_parkings = result_dict['unfinished_parkings']
@@ -66,18 +49,13 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
 
     # called by start_parking, end_trip, and end_unstarted_trip
     def process_car(car_info):
-        new_car_data = get_car(car_info)  # get full car info
+        p_vin, p_lat, p_lng = parser.get_car_basics(car_info)
 
-        result = {'vin': new_car_data['vin'],
-                  'coords': (new_car_data['lat'], new_car_data['lng']),
-                  'fuel': new_car_data['fuel'],
-                  'changing_data': []}
+        # TODO: this rewriting to use 'coords' is a bit messy and might not be needed anymore
+        # AFAICT only graph.py really uses it, everything else is special cases
+        result = {'vin': p_vin, 'coords': (p_lat, p_lng), 'changing_data': []}
 
-        # TODO: see if this is a problem when new_car_data[key] is mutable
-        # e.g. for instance what happens if key='charge',
-        # and new_car_data['charge']['history'] == [10, 20, 30]
-        for key in changing_keys:
-            result[key] = new_car_data[key]
+        result.update(parser.get_car_changing_properties(car_info))
 
         return result
 
@@ -90,7 +68,7 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
 
         # store initial version of changing data to compare against later
         result['changing_data'].append(
-            (curr_time, get_car_parking_changing(car))
+            (curr_time, parser.get_car_parking_drift(car))
         )
 
         return result
@@ -127,7 +105,11 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
 
         trip_data['start'] = {}
         trip_data['end'] = {}
-        for key in changing_keys:
+
+        changing = parser.get_car_changing_properties(ending_car_info)
+        # TODO: do this cleaner, super hacky
+        for key in changing:
+            if key == 'fuel': continue
             trip_data['start'][key] = unfinished_trip[key]
             trip_data['end'][key] = new_car_data[key]
             del trip_data[key]
@@ -146,7 +128,10 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
         del trip_data['fuel']
 
         trip_data['end'] = {}
-        for key in changing_keys:
+        changing = parser.get_car_changing_properties(ending_car_info)
+        # TODO: do this cleaner, super hacky
+        for key in changing:
+            if key == 'fuel': continue
             trip_data['end'][key] = trip_data[key]
             del trip_data[key]
 
@@ -174,7 +159,7 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
     available_vins = set()
     for car in available_cars:
 
-        vin, lat, lng = get_car_basics(car)
+        vin, lat, lng = parser.get_car_basics(car)
         available_vins.add(vin)
 
         # most of the time, none of these conditionals will be processed - most cars park for much more than one cycle
@@ -215,7 +200,7 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
             # test one more thing: if a car is parked and charging at the same time,
             # its properties can change during the parking period.
             # compare current data with last-stored data for the parking.
-            current_data = get_car_parking_changing(car)
+            current_data = parser.get_car_parking_drift(car)
 
             # note, 'changing_data' is guaranteed to have at least one item
             # because that's added in start_parking()
@@ -234,11 +219,7 @@ def process_data(get_car_basics, get_car, get_car_parking_changing,
         # save info about a car that doesn't change over time
         # (e.g. car model), we will only hit this once per car per dataset
 
-        parsed_car = get_car(original_car_data[vin])
-
-        for key in parsed_car.keys():
-            if key not in BASIC_VEHICLE_KEYS and key not in changing_keys:
-                vehicles[vin][key] = parsed_car[key]
+        vehicles[vin] = parser.get_car_unchanging_properties(original_car_data[vin])
 
     vins_that_just_became_unavailable = set(unfinished_parkings.keys()) - available_vins
     for vin in vins_that_just_became_unavailable:
@@ -410,20 +391,10 @@ class Electric2goDataArchive():
 def batch_load_data(system, starting_filename, starting_time, ending_time, time_step):
     # get parser functions for the correct system
     try:
-        parse_module = systems.get_parser(system)
+        parser = systems.get_parser(system)
     except ImportError:
         msg = 'Unrecognized system "{sys}" (unable to import "{sys}.parse")'
         raise ValueError(msg.format(sys=system))
-
-    # get parser functions for the system
-    get_cars = getattr(parse_module, 'get_cars')
-    get_car_basics = getattr(parse_module, 'get_car_basics')
-    get_car = getattr(parse_module, 'get_car')
-    # TODO: this function needs a better, more descriptive name
-    # It is supposed to return all properties that would be expected to change
-    # *during* a parking period (e.g. charge level for electric cars that
-    # are charging while parked).
-    get_car_parking_changing = getattr(parse_module, 'get_car_parking_properties')
 
     # get city name. split if we were provided a path including directory
     file_name = os.path.split(starting_filename)[1]
@@ -502,25 +473,16 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
         }
     }
 
-    # Get info on structure of the dataset
-    # Get this from the first datapoint
+    # With the first data point, make sure it's valid format for the system,
+    # then extract and save data other than available cars.
+    # See comment for result_dict['system'] definition above.
     # Do not increment t so that same datapoint will be read again in the loop
     first_data = data_archive.load_data_point(t)
-    first_available_cars = get_cars(first_data)
-
-    if len(first_available_cars):
-        # assume all cars will have same key structure (otherwise we'd
-        # have merged systems), and look at first one
-        first_car = get_car(first_available_cars[0])
-        first_car_keys = set(first_car.keys())
-
-        changing_keys = first_car_keys - BASIC_VEHICLE_KEYS - UNCHANGING_KEYS
-    else:
+    first_available_cars = parser.get_cars(first_data)
+    if not first_available_cars:
         raise ValueError('First file found is invalid or contains no cars.'
                          'Provide starting_time for first valid dataset.')
-
-    # See comment within result_dict definition above.
-    result_dict['system'] = parse_module.get_everything_except_cars(first_data)
+    result_dict['system'] = parser.get_everything_except_cars(first_data)
 
     # Loop until we get to end of dataset or until the limit requested.
     while t <= ending_time:
@@ -536,11 +498,10 @@ def batch_load_data(system, starting_filename, starting_time, ending_time, time_
 
         if data:
             # handle outer JSON structure and get a list we can loop through
-            available_cars = get_cars(data)
+            available_cars = parser.get_cars(data)
 
-            result_dict = process_data(get_car_basics, get_car,
-                                       get_car_parking_changing, changing_keys,
-                                       t, prev_t, available_cars, result_dict)
+            result_dict = process_data(parser, t, prev_t,
+                                       available_cars, result_dict)
 
             # update last valid data timestamp
             prev_t = t

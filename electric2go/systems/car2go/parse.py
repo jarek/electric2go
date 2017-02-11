@@ -1,6 +1,38 @@
 # coding=utf-8
 
 
+KEYS = {
+    'changing': {
+        # must be handled manually: coordinates = (lat, lng, 0), charging
+        # in the API, 'charging' key is only set on electric cars
+
+        'address': 'address',
+        'cleanliness_interior': 'interior',
+        'cleanliness_exterior': 'exterior',
+        'fuel': 'fuel'
+    },
+
+    # things that are expected to not change at all for a given car VIN/ID
+    # during a reasonable timescale (1 week to 1 month)
+    'unchanging': {
+        # must be handled manually: electric
+
+        'vin': 'vin',
+
+        'app_required': 'smartPhoneRequired',
+        'fuel_type': 'engineType',
+        'license_plate': 'name'
+    },
+
+    # these are not included in the API output, previously we'd assumed
+    # they were always the same, TODO: this is no longer the case
+    'constant': {
+        'model': 'smart fortwo',
+        'transmission': 'A'
+    }
+}
+
+
 def get_cars(system_data_dict):
     return system_data_dict.get('placemarks', [])
 
@@ -21,51 +53,54 @@ def get_car_basics(car):
     return car['vin'], car['coordinates'][1], car['coordinates'][0]
 
 
-def get_car_parking_properties(car):
-    # this must return a hashable object
+def get_car_unchanging_properties(car):
+    """
+    Gets car properties that are expected to not change at all
+    for a given car VIN/ID during a reasonable timescale (1 week to 1 month)
+    :param car: car info in original system JSON-dict format
+    :return: dict with keys mapped to common electric2go format
+    """
 
-    # I believe 'charging' key is only present on electric cars
-    # TODO: check if it's present at all times (and sometimes false), or only when actually charging? look at Amsterdam
-    charging = car.get('charging', None)
+    result = {mapped_key: car[original_key]
+              for mapped_key, original_key
+              in KEYS['unchanging'].items()}
 
-    return (car['fuel'], charging)
+    result.update({key: value for key, value in KEYS['constant'].items()})
 
+    result['electric'] = (car['engineType'] == 'ED')
 
-def put_car_parking_properties(car, d):
-    car['fuel'] = d[0]
-
-    if d[1] is not None:
-        car['charging'] = d[1]
-
-    return car
+    return result
 
 
-def get_car(car):
-    result = {}
+def get_car_changing_properties(car):
+    """
+    Gets cars properties that change during a trip
+    :param car: car info in original system JSON-dict format
+    :return: dict with keys mapped to common electric2go format
+    """
 
-    vin, lat, lng = get_car_basics(car)
+    result = {mapped_key: car[original_key]
+              for mapped_key, original_key
+              in KEYS['changing'].items()}
 
-    result['vin'] = vin
-    result['license_plate'] = car['name']
-
-    result['model'] = 'smart fortwo'
+    _, lat, lng = get_car_basics(car)
 
     result['lat'] = lat
     result['lng'] = lng
 
-    result['address'] = car['address']
-
-    result['fuel'] = car['fuel']
-    result['fuel_type'] = car['engineType']
-    result['electric'] = (car['engineType'] == 'ED')
     result['charging'] = car.get('charging', False)
 
-    result['transmission'] = 'A'
+    return result
 
-    result['cleanliness_interior'] = car['interior']
-    result['cleanliness_exterior'] = car['exterior']
 
-    result['app_required'] = car['smartPhoneRequired']
+def get_car(car):
+    # TODO: this is only used by web-related things, see if they can/should be migrated
+
+    vin, _, _ = get_car_basics(car)
+
+    result = {'vin': vin}
+    result.update(get_car_changing_properties(car))
+    result.update(get_car_unchanging_properties(car))
 
     return result
 
@@ -87,44 +122,58 @@ def get_range(car):
     return car_range
 
 
-def put_car(car):
-    # inverse of get_car
-
-    mapped_keys = {
-        'vin': 'vin',
-        'license_plate': 'name',
-        'address': 'address',
-        'fuel': 'fuel',
-        'fuel_type': 'engineType',
-        'cleanliness_interior': 'interior',
-        'cleanliness_exterior': 'exterior',
-        'app_required': 'smartPhoneRequired'
-    }
-
-    # everything else is assumed to be directly mapped
-    directly_mapped_keys = car.keys() - mapped_keys.keys() - {
-        'starting_time', 'ending_time', 'lat', 'lng',  # rewritten keys
-        'transmission', 'model', 'electric'  # derived and assumed keys
-    }
-
-    formatted_car = {mapped_keys[key]: car[key] for key in mapped_keys}
-    formatted_car.update({key: car[key] for key in directly_mapped_keys})
-
-    # minor changes
-    formatted_car['coordinates'] = (car['lng'], car['lat'], 0)
-
-    if car['fuel_type'] != 'CE':
-        # in the API, 'charging' key is only present on non-CE cars
-        formatted_car['charging'] = car['charging']
-    else:
-        formatted_car.pop('charging', None)
-
-    return formatted_car
-
-
 def put_cars(cars, result_dict):
     # inverse of get_cars
 
     # car2go has nothing else in the API result,
     # so the result_dict param is ignored
     return {'placemarks': cars}
+
+
+def put_car(car):
+    # inverse of get_car
+
+    mapped_keys = KEYS['unchanging']
+    mapped_keys.update(KEYS['changing'])
+
+    formatted_car = {original_key: car[mapped_key]
+                     for mapped_key, original_key in mapped_keys.items()}
+
+    # preserve information. TODO: this is a bit unclean
+    formatted_car['changing_data'] = car['changing_data']
+
+    # minor changes
+    formatted_car['coordinates'] = (car['lng'], car['lat'], 0)
+
+    # in the API, 'charging' key is only present on non-CE cars
+    if car['fuel_type'] != 'CE':
+        formatted_car['charging'] = car['charging']
+
+    return formatted_car
+
+
+def get_car_parking_drift(car):
+    """
+    Gets properties that can change during a parking period but aren't
+    considered to interrupt the parking.
+    These are things like a car charging while being parked.
+    :return: a hashable object
+    """
+
+    charging = car.get('charging', None)
+
+    return car['fuel'], charging
+
+
+def put_car_parking_drift(car, d):
+    """
+    Update `car`'s properties that might have changed during a parking period.
+    :param d: must be a result of get_car_parking_drift()
+    """
+
+    car['fuel'] = d[0]
+
+    if d[1] is not None:
+        car['charging'] = d[1]
+
+    return car

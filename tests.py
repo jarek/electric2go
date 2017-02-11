@@ -151,6 +151,9 @@ class StatsTest(unittest.TestCase):
     # Sorry! But it's worth it for me. Can be adapted to a dataset you have.
     # TODO: generate a sample dataset and test against that
 
+    # TODO: these tests don't verify anything to do with fuel, might help considering
+    # fuel has been a weird key. compare results with results at 81441d22 and 7b94dd0a
+
     datasets = {
             "columbus": {
                 # This is defined by specifying path to the first file.

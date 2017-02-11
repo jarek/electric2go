@@ -1,67 +1,25 @@
 # coding=utf-8
 
 
-
-"""
-uses of the keys / car data:
-
-process_data outer:
-- gets unchanging_keys, saves them to vehicles dict
-- gets parking_changing
-
-start_parking:
-- gets parking_changing
-
-process_car:
-- gets basics (vin, lat, lng)
-- get fuel
-- gets changing_keys
-
-end_trip:
-- gets fuel
-- gets changing_keys
-
-end_started_trip:
-- ditto
-
-(but fuel is a changing key, no? just special handling for that should be fine)
-(or remove the special case for starting_fuel and ending_fuel... but that can be done later on)
-
-
-
-in generate:
-
-really just needs put_car, put_car_parking_properties, put_cars
-mostly straightforward... can improve how it's implemented within parse modules, I suppose
-"""
-
-
 KEYS = {
-    'basic': {
-        'vin': 'id',
+    'changing': {
+        # must be handled manually: address
+
+        # Note: car['rentalPrice']['isOfferDrivePriceActive'] can also change.
+        # In practice I don't think it'll be a problem currently, since cars
+        # are never on offer price right after being parked,
+        # but it's technically not correct.
+
+        # properties that indicate start of new parking period:
         'lat': 'latitude',
         'lng': 'longitude',
-        'fuel': 'fuelLevel'
-    },
 
-    # things that can change during a parking period, without interrupting the parking
-    'parking_properties': [
-        'estimatedRange',
-        'fuelLevel',
-        'fuelLevelInPercent',
-        'isCharging',
-        # TODO: the two below should be one key, arg
-        'rentalPrice', 'isOfferDrivePriceActive'
-    ],
-
-    'parking_changing_properties': {
+        # properties that can change during a parking period:
         'charging': 'isCharging',
         'fuel': 'fuelLevelInPercent',
-        'api_estimated_range': 'estimatedRange'
-    },
+        'api_estimated_range': 'estimatedRange',
 
-    'drive_changing_properties': {
-        # you must also include 'basic' and 'parking_changing_properties' keys
+        # properties that can only change during a drive:
         'cleanliness_interior': 'innerCleanliness',
         'parkingSpaceId': 'parkingSpaceId',
         'isInParkingSpace': 'isInParkingSpace'
@@ -69,7 +27,11 @@ KEYS = {
 
     # things that are expected to not change at all for a given car VIN/ID
     # during a reasonable timescale (1 week to 1 month)
-    'unchanging_properties': {
+    'unchanging': {
+        # must be handled manually: electric
+
+        'vin': 'id',
+
         'name': 'name',
         'license_plate': 'licensePlate',
 
@@ -77,17 +39,24 @@ KEYS = {
         'color': 'color',
 
         'fuel_type': 'fuelType',
-        #'electric'] = (car['fuelType'] == 'E'),
 
-        'transmission': 'transmission'
-    },
+        'transmission': 'transmission',
 
-    # things that don't change, and aren't renamed
-    'unchanging_directly_mapped_properties': [
-        'make', 'group', 'series', 'modelIdentifier', 'equipment',
-        'carImageUrl', 'carImageBaseUrl', 'routingModelName',
-        'variant', 'rentalPrice', 'isPreheatable'
-    ]
+        # this is a dict and one of its properties can change, noted in a comment in 'changing'
+        'rentalPrice': 'rentalPrice',
+
+        # the below is extra info, not widely used, no keys are renamed
+        'make': 'make',
+        'group': 'group',
+        'series': 'series',
+        'modelIdentifier': 'modelIdentifier',
+        'equipment': 'equipment',
+        'carImageUrl': 'carImageUrl',
+        'carImageBaseUrl': 'carImageBaseUrl',
+        'routingModelName': 'routingModelName',
+        'variant': 'variant',
+        'isPreheatable': 'isPreheatable'
+    }
 }
 
 
@@ -96,6 +65,8 @@ def get_cars(system_data_dict):
         return system_data_dict['cars']['items']
     else:
         return []
+
+    # TODO: perhaps instead duck-type system_data_dict keys and raise "wrong system" exception in case of KeyError?
 
 
 def get_cars_dict(system_data_dict):
@@ -114,84 +85,43 @@ def get_car_basics(car):
     return car['id'], car['latitude'], car['longitude']
 
 
-def get_car_parking_properties(car):
-    # things that can change during a parking period, without interrupting the parking
-
-    # this must return a hashable object
-
-    # TODO: would be nice to use KEYS['parking_properties'] but for that two-level key
-    return (car['estimatedRange'], car['fuelLevel'], car['fuelLevelInPercent'], car['isCharging'],
-            car['rentalPrice']['isOfferDrivePriceActive'])
-
-
-def get_car_trip_changing_properties(car):
-    props = KEYS['drive_changing_properties']
-    result = {key: car[props[key]] for key in props}
-
-    props = KEYS['parking_changing_properties']
-    result.update({key: car[props[key]] for key in props})
-
-    return result
-
-
 def get_car_unchanging_properties(car):
-    # things that are expected to not change at all for a given car VIN/ID
-    # during a reasonable timescale (1 week to 1 month)
+    """
+    Gets car properties that are expected to not change at all
+    for a given car VIN/ID during a reasonable timescale (1 week to 1 month)
+    :param car: car info in original system JSON-dict format
+    :return: dict with keys mapped to common electric2go format
+    """
 
-    props = KEYS['unchanging_properties']
+    props = KEYS['unchanging']
     result = {key: car[props[key]] for key in props}
-
-    direct = KEYS['unchanging_directly_mapped_properties']
-    result.update({key: car[key] for key in direct})
 
     return result
 
 
-def put_car_parking_properties(car, d):
-    # `d` will be a result of get_car_parking_properties
-    car['estimatedRange'] = d[0]
-    car['fuelLevel'] = d[1]
-    car['fuelLevelInPercent'] = d[2]
-    car['isCharging'] = d[3]
-    car['rentalPrice']['isOfferDrivePriceActive'] = d[4]
+def get_car_changing_properties(car):
+    """
+    Gets cars properties that change during a trip
+    :param car: car info in original system JSON-dict format
+    :return: dict with keys mapped to common electric2go format
+    """
 
-    return car
+    result = {mapped_key: car[original_key]
+              for mapped_key, original_key
+              in KEYS['changing'].items()}
+
+    # minor fixes that can't be done automatically with a key mapping
+    result['address'] = ', '.join(car['address'])
+    result['electric'] = (car['fuelType'] == 'E')
+
+    return result
 
 
 def get_car(car):
-    result = {}
+    # TODO: this is only used by web-related things, see if they can/should be migrated
 
-    vin, lat, lng = get_car_basics(car)
-
-    result['vin'] = vin
-    result['name'] = car['name']
-    result['license_plate'] = car['licensePlate']
-
-    result['model'] = car['modelName']
-    result['color'] = car['color']
-
-    result['lat'] = lat
-    result['lng'] = lng
-
-    result['address'] = ', '.join(car['address'])
-
-    result['fuel'] = car['fuelLevelInPercent']
-    result['fuel_type'] = car['fuelType']
-    result['electric'] = (car['fuelType'] == 'E')
-    result['charging'] = car['isCharging']
-
-    result['transmission'] = car['transmission']
-
-    result['cleanliness_interior'] = car['innerCleanliness']
-
-    result['api_estimated_range'] = car['estimatedRange']  # TODO: drivenow api returns this for petrol cars as well, not sure how to handle
-    result['parkingSpaceId'] = car['parkingSpaceId']
-    result['isInParkingSpace'] = car['isInParkingSpace']
-
-    unchanging_keys = {'make', 'group', 'series', 'modelIdentifier', 'equipment',
-                       'carImageUrl', 'carImageBaseUrl', 'routingModelName', 'variant', 'rentalPrice', 'isPreheatable'}
-    for key in unchanging_keys:
-        result[key] = car[key]
+    result = get_car_unchanging_properties(car)
+    result.update(get_car_changing_properties(car))
 
     return result
 
@@ -218,50 +148,60 @@ def get_range(car):
     return car_range
 
 
-def put_car(car):
-    # inverse of get_car
-
-    mapped_keys = {
-        'vin': 'id',
-        'lat': 'latitude',
-        'lng': 'longitude',
-        'name': 'name',
-        'license_plate': 'licensePlate',
-        'address': 'address',
-
-        'model': 'modelName',
-        'color': 'color',
-
-        'fuel': 'fuelLevelInPercent',
-        'fuel_type': 'fuelType',
-        'charging': 'isCharging',
-
-        'transmission': 'transmission',
-
-        'cleanliness_interior': 'innerCleanliness',
-
-        'api_estimated_range': 'estimatedRange',
-        'parkingSpaceId': 'parkingSpaceId',
-        'isInParkingSpace': 'isInParkingSpace'
-    }
-    directly_mapped_keys = car.keys() - mapped_keys.keys() - {
-        'electric',  # because 'electric' is a derived field
-        'starting_time', 'ending_time'  # computed fields
-    }
-
-    formatted_car = {mapped_keys[key]: car[key] for key in mapped_keys}
-    formatted_car.update({key: car[key] for key in directly_mapped_keys})
-
-    # minor changes
-    formatted_car['fuelLevel'] = formatted_car['fuelLevelInPercent'] / 100
-    formatted_car['address'] = formatted_car['address'].split(', ')
-
-    return formatted_car
-
-
 def put_cars(cars, result_dict):
     # inverse of get_cars
     result = result_dict['system'].copy()
     result['cars']['items'] = cars
     result['cars']['count'] = len(cars)
     return result
+
+
+def put_car(car):
+    # inverse of get_car
+
+    mapped_keys = KEYS['unchanging']
+    mapped_keys.update(KEYS['changing'])
+
+    formatted_car = {original_key: car[mapped_key]
+                     for mapped_key, original_key in mapped_keys.items()}
+
+    # preserve information. TODO: this is a bit unclean
+    formatted_car['changing_data'] = car['changing_data']
+
+    # minor changes
+    formatted_car['address'] = car['address'].split(', ')
+
+    # special handling, data is duplicated in source API
+    # TODO: verify potential py2/py3 differences in int division here and in put_car_parking_properties()
+    formatted_car['fuelLevel'] = formatted_car['fuelLevelInPercent'] / 100
+
+    return formatted_car
+
+
+def get_car_parking_drift(car):
+    """
+    Gets properties that can change during a parking period but aren't
+    considered to interrupt the parking.
+    These are things like a car charging while being parked.
+    :param car: must be formatted in original system JSON-dict format
+    :return: a hashable object
+    """
+
+    return (car['estimatedRange'], car['fuelLevelInPercent'], car['isCharging'],
+            car['rentalPrice']['isOfferDrivePriceActive'])
+
+
+def put_car_parking_drift(car, d):
+    """
+    Update `car`'s properties that might have changed during a parking period.
+    :param car: must be formatted in original system JSON-dict format
+    :param d: must be a result of get_car_parking_drift()
+    """
+
+    car['estimatedRange'] = d[0]
+    car['fuelLevelInPercent'] = d[1]
+    car['fuelLevel'] = d[1] / 100  # special handling, data is duplicated in source API
+    car['isCharging'] = d[2]
+    car['rentalPrice']['isOfferDrivePriceActive'] = d[3]
+
+    return car
