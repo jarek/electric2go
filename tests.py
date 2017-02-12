@@ -151,9 +151,6 @@ class StatsTest(unittest.TestCase):
     # Sorry! But it's worth it for me. Can be adapted to a dataset you have.
     # TODO: generate a sample dataset and test against that
 
-    # TODO: these tests don't verify anything to do with fuel, might help considering
-    # fuel has been a weird key. compare results with results at 81441d22 and 7b94dd0a
-
     datasets = {
             "columbus": {
                 # This is defined by specifying path to the first file.
@@ -174,6 +171,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car median": 6.0,
                     "distance per trip quartile 25": 0.638860634765,
                     "duration per trip quartile 75": 32.0,
+                    "fuel use stats mean": -0.742084053,
+                    "fuel use stats over 5 ratio": 0.04663212435,
                     "weird trip count": 64
                 },
                 "expected_dataframes": {
@@ -217,6 +216,9 @@ class StatsTest(unittest.TestCase):
                     "trips per car per day quartile 25": 1.625564432,
                     "distance per trip quartile 25": 0.3909876034,
                     "duration per trip quartile 75": 40.0,
+                    "fuel use stats mean": 0.3960345704,
+                    "fuel use stats std": 6.485464921,
+                    "fuel use stats under 5 ratio": 0.8698525674,
                     "weird trip count": 103
                 },
                 "expected_dataframes": {
@@ -268,6 +270,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car per day quartile 25": 3.002084781,
                     "distance per trip quartile 25": 0.1563771331,
                     "duration per trip quartile 75": 37.0,
+                    "fuel use stats mean": -0.4366091523,
+                    "fuel use stats under 1 ratio": 0.647411853,
                     "weird trip count": 37
                 },
                 "expected_dataframes": {
@@ -316,6 +320,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car per day quartile 25": 3.002084781,
                     "distance per trip quartile 25": 0.1563771331,
                     "duration per trip quartile 75": 37.0,
+                    "fuel use stats mean": -0.4366091523,
+                    "fuel use stats under 1 ratio": 0.647411853,
                     "weird trip count": 37
                 },
                 "expected_dataframes": {
@@ -357,6 +363,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car quartile 75": 14.0,
                     "distance per trip median": 1.76005701,
                     "duration per trip quartile 25": 15.0,
+                    "fuel use stats std": 9.581810626,
+                    "fuel use stats over 10 ratio": 0.003516624041,
                     "weird trip ratio": 0.04648681603
                 },
                 "expected_dataframes": {
