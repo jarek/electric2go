@@ -47,15 +47,21 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
     # internal, not returned
     original_car_data = {}
 
-    # called by start_parking, end_trip, and end_unstarted_trip
+    # called by start_parking, used to be called by end_trip and end_unstarted_trip
     def process_car(car_info):
         p_vin, p_lat, p_lng = parser.get_car_basics(car_info)
 
         # TODO: this rewriting to use 'coords' is a bit messy and might not be needed anymore
         # AFAICT only graph.py really uses it, everything else is special cases
-        result = {'vin': p_vin, 'coords': (p_lat, p_lng), 'changing_data': []}
+        result = {'vin': p_vin, 'coords': (p_lat, p_lng)}
 
         result.update(parser.get_car_changing_properties(car_info))
+
+        # TODO: to make this more useful, return a tuple or dict:
+        # - vin
+        # - coords (transitional)
+        # - changing_properties
+        # then it can be used by all of start_parking, end_trip, end_unstarted_trip
 
         return result
 
@@ -66,14 +72,16 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # starting/ending pairs except for starting_time and ending_time
         result['starting_time'] = curr_time
 
-        # store initial version of changing data to compare against later
-        result['changing_data'].append(
-            (curr_time, parser.get_car_parking_drift(car))
-        )
+        # store initial version of changing data in to compare against later
+        # make it a list so new versions can be appended as needed
+        result['changing_data'] = [(curr_time, parser.get_car_parking_drift(car))]
 
         return result
 
     def end_parking(prev_time, unfinished_parking):
+        # this takes in an unfinished_parking (already processed, we can't run get_car_changing_properties() on it)
+        # because we have no current car_info when a trip is starting - car is missing from API
+
         result = dict.copy(unfinished_parking)
 
         result['ending_time'] = prev_time
@@ -81,23 +89,29 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
         return result
 
-    def start_trip(curr_time, starting_car_info):
-        result = dict.copy(starting_car_info)
+    def start_trip(curr_time, just_finished_parking):
+        # this takes in a finished_parking (already processed, we can't run get_car_changing_properties() on it)
+        # because we have no current car_info when a trip is starting - car is missing from API
 
-        result['from'] = starting_car_info['coords']
+        result = dict.copy(just_finished_parking)
+
+        result['from'] = just_finished_parking['coords']
         del result['coords']
         result['starting_time'] = curr_time
         del result['ending_time']
         result['starting_fuel'] = result['fuel']
         del result['fuel']
 
+        # TODO: create the "start" key here, with all info from get_car_changing_properties()
+        # then the "start" key doesn't have to be written in end_trip()
+
         return result
 
     def end_trip(prev_time, ending_car_info, unfinished_trip):
-        new_car_data = process_car(ending_car_info)
+        new_car_data = parser.get_car_changing_properties(ending_car_info)
 
         trip_data = unfinished_trip
-        trip_data['to'] = new_car_data['coords']
+        trip_data['to'] = (new_car_data['lat'], new_car_data['lng'])
         trip_data['ending_time'] = prev_time
         trip_data['ending_fuel'] = new_car_data['fuel']
 
@@ -106,10 +120,11 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         trip_data['start'] = {}
         trip_data['end'] = {}
 
-        changing = parser.get_car_changing_properties(ending_car_info)
-        # TODO: do this cleaner, super hacky
-        for key in changing:
-            if key == 'fuel': continue
+        for key in new_car_data:
+            # write all keys in the parser response except for fuel, lat, and lng
+            # (which are handled above) into 'start' and 'end' keys
+            if key in {'fuel', 'lat', 'lng'}:
+                continue
             trip_data['start'][key] = unfinished_trip[key]
             trip_data['end'][key] = new_car_data[key]
             del trip_data[key]
@@ -119,21 +134,22 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
     def end_unstarted_trip(prev_time, ending_car_info):
         # essentially the same as end_trip except all bits that depend on
         # unfinished_trip have been removed
-        trip_data = process_car(ending_car_info)
+        # and also we need to get vin because it's the first time we're seeing the car
 
+        p_vin, p_lat, p_lng = parser.get_car_basics(ending_car_info)
+
+        trip_data = {'vin': p_vin}
         trip_data['ending_time'] = prev_time
-        trip_data['to'] = trip_data['coords']
-        del trip_data['coords']
-        trip_data['ending_fuel'] = trip_data['fuel']
-        del trip_data['fuel']
+        trip_data['to'] = (p_lat, p_lng)
 
-        trip_data['end'] = {}
-        changing = parser.get_car_changing_properties(ending_car_info)
-        # TODO: do this cleaner, super hacky
-        for key in changing:
-            if key == 'fuel': continue
-            trip_data['end'][key] = trip_data[key]
-            del trip_data[key]
+        new_properties = parser.get_car_changing_properties(ending_car_info)
+        trip_data['ending_fuel'] = new_properties['fuel']
+
+        # write all keys in the parser response except for fuel, lat, and lng
+        # (which are handled above) into 'end' key
+        trip_data['end'] = {key: new_properties[key]
+                            for key in new_properties
+                            if key not in {'fuel', 'lat', 'lng'}}
 
         return trip_data
 
