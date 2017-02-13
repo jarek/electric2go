@@ -30,7 +30,7 @@ def calculate_trip(trip_data):
     trip_data['duration'] = current_trip_duration
     if current_trip_duration > 0:
         trip_data['speed'] = current_trip_distance / (current_trip_duration / 3600.0)
-    trip_data['fuel_use'] = trip_data['starting_fuel'] - trip_data['ending_fuel']
+    trip_data['fuel_use'] = trip_data['start']['fuel'] - trip_data['end']['fuel']
 
     return trip_data
 
@@ -106,10 +106,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         result['from'] = result['coords']
         del result['coords']
 
-        # TODO: move it into 'start' dict - needs updates elsewhere
-        result['starting_fuel'] = result['fuel']
-        del result['fuel']
-
         result['starting_time'] = curr_time
         del result['ending_time']  # that was the ending time of the parking
 
@@ -136,13 +132,12 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
             'ending_time': prev_time,
 
             'to': data['coords'],
-            'ending_fuel': new_properties['fuel'],
 
-            # write all keys in the parser response except for fuel, lat, and lng
+            # write all keys in the parser response except for lat and lng
             # (which are handled above) into 'end' key
             'end': {key: new_properties[key]
                     for key in new_properties
-                    if key not in {'fuel', 'lat', 'lng'}}
+                    if key not in {'lat', 'lng'}}
         }
 
         return trip_data
