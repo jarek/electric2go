@@ -689,24 +689,25 @@ class GenerateTest(unittest.TestCase):
 
     def _compare_system_from_to(self, system, city, expected_location, actual_location,
                                 start_time, end_time, time_step):
-        comparison_time = start_time
-        while comparison_time <= end_time:
-            self._compare_system_independent(system, city, expected_location, actual_location, comparison_time)
-
-            comparison_time += timedelta(seconds=time_step)
-
-    def _compare_system_independent(self, system, city, expected_location, actual_location, comparison_time):
-        parser = systems.get_parser(system)
-
         # Name where files have been generated might be a tempdir name
         # like '/tmp/tmp25l2ba19', while Electric2goDataArchive expects
         # a trailing slash if not a file name - so add a trailing slash.
         actual_location = os.path.join(actual_location, '')
 
         expected_data_archive = normalize.Electric2goDataArchive(city, expected_location)
+        actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
+
+        comparison_time = start_time
+        while comparison_time <= end_time:
+            self._compare_system_independent(system, expected_data_archive, actual_data_archive, comparison_time)
+
+            comparison_time += timedelta(seconds=time_step)
+
+    def _compare_system_independent(self, system, expected_data_archive, actual_data_archive, comparison_time):
+        parser = systems.get_parser(system)
+
         expected_file = expected_data_archive.load_data_point(comparison_time)
 
-        actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
         actual_file = actual_data_archive.load_data_point(comparison_time)
 
         # test cars equivalency. we have to do it separately because
@@ -777,4 +778,4 @@ class HelperFunctionsTest(unittest.TestCase):
 
  
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(module='tests')  # allow profiling, otherwise no tests are found
