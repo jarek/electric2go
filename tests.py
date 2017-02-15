@@ -654,14 +654,11 @@ class GenerateTest(unittest.TestCase):
         # depends on the files being generated in setUpClass
 
         # test that all the files are the same
-        # TODO: full test takes too long, look at first 40 minutes for now
-        # TODO: I previously saw a test fail at 00:37, so that one would be covered, but of course
-        # TODO: it would be better to test the whole set
         self._compare_system_from_to('car2go', 'vancouver',
                                      self.original_data_source,
                                      self.generated_data_dir,
                                      self.original_data['metadata']['starting_time'],
-                                     datetime(2016, 2, 9, 0, 40),  # TODO: use self.dataset_info['end']
+                                     self.dataset_info['end'],
                                      self.dataset_info['freq'])
 
     def test_vehicles_equal_drivenow(self):
@@ -681,11 +678,8 @@ class GenerateTest(unittest.TestCase):
             generate.write_files(drivenow_original_data, generated_data_dir)
 
             # test that all the files are the same
-            # TODO: full test takes too long, look at first 15 minutes for now
-            # TODO: I previously saw a test fail at 00:11, so that one would be covered, but of course
-            # TODO: it would be better to test the whole set
             self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
-                                         start, datetime(2016, 8, 20, 0, 15), freq)  # TODO: use `end` instead of hardcode
+                                         start, end, freq)
 
     def _compare_system_from_to(self, system, city, expected_location, actual_location,
                                 start_time, end_time, time_step):
