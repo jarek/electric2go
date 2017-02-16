@@ -87,7 +87,7 @@ def build_obj(data_frame, parser, result_dict):
     def roll_out_changing_data(car_data):
         if 'changing_data' in car_data:
             # find updates to apply, if some are found, apply the latest
-            data_updates = [update[1] for update in car_data['changing_data'] if update[0] < turn]
+            data_updates = [update[1] for update in car_data['changing_data'] if update[0] <= turn]
             if data_updates:
                 car_data = parser.put_car_parking_drift(car_data, data_updates[-1])
 

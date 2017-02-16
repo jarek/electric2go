@@ -248,10 +248,7 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
             if previous_data != current_data:
                 unfinished_parkings[vin]['changing_data'].append(
-                    # TODO: should this be data_time or prev_data_time? note also same thing in start_parking
-                    # and corresponding comparison to `turn` in generate.roll_out_changing_data
-                    # Think about it a bit and see what makes more sense.
-                    (prev_data_time, current_data)
+                    (data_time, current_data)
                 )
 
     new_vins = available_vins - set(vehicles.keys())
