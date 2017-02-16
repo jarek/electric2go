@@ -96,6 +96,9 @@ def get_car_unchanging_properties(car):
     props = KEYS['unchanging']
     result = {key: car[props[key]] for key in props}
 
+    # derived field that can't be done automatically with a key mapping
+    result['electric'] = (car['fuelType'] == 'E')
+
     return result
 
 
@@ -110,9 +113,8 @@ def get_car_changing_properties(car):
               for mapped_key, original_key
               in KEYS['changing'].items()}
 
-    # minor fixes that can't be done automatically with a key mapping
+    # derived field that can't be done automatically with a key mapping
     result['address'] = ', '.join(car['address'])
-    result['electric'] = (car['fuelType'] == 'E')
 
     return result
 
