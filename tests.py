@@ -661,6 +661,44 @@ class GenerateTest(unittest.TestCase):
                                      self.dataset_info['end'],
                                      self.dataset_info['freq'])
 
+    def test_vehicles_fail_when_expected(self):
+        """
+        Verify that test failures would still be caught, and
+        that _compare_system_from_to works as expected.
+        Do this by taking a result dict, removing a changing_data from
+        one of the cars' parking period (choose one that is actually changing)
+        and running the compare function, wrapped in an expectException.
+        """
+
+        result_dict = self.original_data
+
+        # vin with changing_data, determined by looking at output data
+        vin = 'WMEEJ3BA5DK704216'
+
+        # do a dict.copy to avoid modifying self.original_data in case
+        # it's needed later by some other test
+        parking = dict.copy(result_dict['finished_parkings'][vin][0])
+        result_dict['finished_parkings'][vin][0] = parking
+
+        # remove all but the first item (the first item is the default one)
+        parking['changing_data'] = parking['changing_data'][:1]
+
+        # generate files in a temporary directory
+        generated_data_dir = tempfile.TemporaryDirectory()
+        generate.write_files(result_dict, generated_data_dir.name)
+
+        with self.assertRaises(AssertionError):
+            # this call should be the same as in test_vehicles_equal_car2go
+            # except for actual_location=generated_data_dir.name
+            self._compare_system_from_to('car2go', 'vancouver',
+                                         self.original_data_source,
+                                         generated_data_dir.name,
+                                         self.original_data['metadata']['starting_time'],
+                                         self.dataset_info['end'],
+                                         self.dataset_info['freq'])
+
+        generated_data_dir.cleanup()
+
     def test_vehicles_equal_drivenow(self):
         system = 'drivenow'
         input_file = '/home/jarek/projects/electric2go/duesseldorf_2016-08-20.tgz'
