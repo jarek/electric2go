@@ -121,6 +121,15 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         result['start'] = {key: result[key] for key in result
                            if key not in keys_to_exclude}
 
+        # Need to remove all of the stuff from parking which is not applicable to trips,
+        # otherwise stuff like changing_data or electric is left over in trip definition.
+        # Exceptions are coords and starting_time since they were rewritten above.
+        # TODO: 'from' can be removed from this list once migrated into 'start' dict
+        # If we ever migrate 'starting_time' into ['start']['time'], this can become
+        # just result = {'start': dict_comp_above} :)
+        result = {key: result[key] for key in result
+                  if key in {'start', 'starting_time', 'from'}}
+
         return result
 
     def _get_ending_trip_data(prev_time, ending_car_info):
@@ -149,6 +158,13 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # update with data from the start of the trip
         trip_data = unfinished_trip
         trip_data.update(ending_trip_data)
+
+        # TODO: bug: picking up a car that had been charging while parking
+        # will calculate 'fuel_use' from the value at the start of the parking
+        # (what is in 'fuel' key) and not at the end of the charging
+        # (what is in the last item of 'changing_data' key).
+        # Need to roll out changing data when starting a trip probably.
+        # Sample: WBY1Z41070VZ77282 Duesseldorf trip 2016-08-20T17:28:00 to 18:08:00
 
         # calculate trip distance, duration, etc, based on start and end data
         trip_data = calculate_trip(trip_data)
