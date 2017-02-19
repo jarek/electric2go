@@ -84,15 +84,12 @@ def build_obj(data_frame, parser, result_dict):
 
         return car_data
 
-    def roll_out_changing_data(car_data):
-        if 'changing_data' in car_data:
+    def roll_out_changing_data(car_data, changing_data):
+        if changing_data:
             # find updates to apply, if some are found, apply the latest
-            data_updates = [update[1] for update in car_data['changing_data'] if update[0] <= turn]
+            data_updates = [update[1] for update in changing_data if update[0] <= turn]
             if data_updates:
                 car_data = parser.put_car_parking_drift(car_data, data_updates[-1])
-
-            # remove the info so it doesn't pollute the result
-            del car_data['changing_data']
 
         return car_data
 
@@ -121,7 +118,8 @@ def build_obj(data_frame, parser, result_dict):
                 undo_normalize(
                     dict.copy(car)
                 )
-            )
+            ),
+            car.get('changing_data', None)
         ) for car in current_positions)
 
     system_obj = parser.put_cars(list(system_cars), result_dict)  # TODO: otherwise json cannot serialize, lame

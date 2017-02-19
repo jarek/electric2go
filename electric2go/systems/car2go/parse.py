@@ -139,9 +139,6 @@ def put_car(car):
     formatted_car = {original_key: car[mapped_key]
                      for mapped_key, original_key in mapped_keys.items()}
 
-    # preserve information. TODO: this is a bit unclean
-    formatted_car['changing_data'] = car['changing_data']
-
     # minor changes
     formatted_car['coordinates'] = (car['lng'], car['lat'], 0)
 
