@@ -8,6 +8,7 @@ import numpy as np
 import json
 import csv
 import tempfile
+import shutil
 from subprocess import Popen, PIPE
 from datetime import datetime, timedelta
 
@@ -110,8 +111,6 @@ class DownloadTest(unittest.TestCase):
         Tests that downloader will attempt to create data directories
         if they don't exist.
         """
-        import shutil
-
         city_data = {'system': 'sharengo', 'name': 'milano'}
         data_dir = files.get_data_dir(city_data)
 
@@ -592,11 +591,12 @@ class GenerateTest(unittest.TestCase):
     # - Test on more Drivenow cities than just Duesseldorf
     #   (although Duesseldorf looks to contain all types of cars that
     #    Drivenow has, so might not be crucial)
+    # - Test how Drivenow handoff feature shows up in the API output
     # - Test on car2go city with electric cars, e.g. Amsterdam,
     #   and on city with a few electric cars (Stuttgart maybe?)
-    # - In _compare_system_independent, test in loop over the whole dataset
-    #   rather than querying just one timepoint
     # - Verify parking periods longer than a day are handled fine in generator
+
+    generated_data_dir = ''
 
     @classmethod
     def setUpClass(cls):
@@ -614,14 +614,16 @@ class GenerateTest(unittest.TestCase):
             cls.dataset_info['start'], cls.dataset_info['end'], cls.dataset_info['freq'])
 
         # Create temporary directory to generate class files into.
-        # This will be deleted when class goes out of scope.
-        # tempdir must be in cls, otherwise it would be deleted
-        # when this function finishes.
-        cls.tempdir = tempfile.TemporaryDirectory()
-        cls.generated_data_dir = cls.tempdir.name
+        # This will be deleted in tearDownClass().
+        cls.generated_data_dir = tempfile.mkdtemp()
 
         # generate and write data to a test file
         generate.write_files(cls.original_data, cls.generated_data_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.generated_data_dir:
+            shutil.rmtree(cls.generated_data_dir, ignore_errors=True)
 
     def test_stats_equal(self):
         # stats for original data
@@ -684,20 +686,20 @@ class GenerateTest(unittest.TestCase):
         parking['changing_data'] = parking['changing_data'][:1]
 
         # generate files in a temporary directory
-        generated_data_dir = tempfile.TemporaryDirectory()
-        generate.write_files(result_dict, generated_data_dir.name)
+        generated_data_dir = tempfile.mkdtemp()
+        generate.write_files(result_dict, generated_data_dir)
 
         with self.assertRaises(AssertionError):
             # this call should be the same as in test_vehicles_equal_car2go
             # except for actual_location=generated_data_dir.name
             self._compare_system_from_to('car2go', 'vancouver',
                                          self.original_data_source,
-                                         generated_data_dir.name,
+                                         generated_data_dir,
                                          self.original_data['metadata']['starting_time'],
                                          self.dataset_info['end'],
                                          self.dataset_info['freq'])
 
-        generated_data_dir.cleanup()
+        shutil.rmtree(generated_data_dir, ignore_errors=True)
 
     def test_vehicles_equal_drivenow(self):
         system = 'drivenow'
@@ -710,14 +712,15 @@ class GenerateTest(unittest.TestCase):
 
         drivenow_original_data = normalize.batch_load_data(system, input_file, None, end, freq)
 
-        # create temporary directory, will be deleted when context manager exits
-        with tempfile.TemporaryDirectory() as generated_data_dir:
-            # generate 181 files covering from midnight to 3:00 every minute
-            generate.write_files(drivenow_original_data, generated_data_dir)
+        # generate 181 files covering from midnight to 3:00 every minute
+        generated_data_dir = tempfile.mkdtemp()
+        generate.write_files(drivenow_original_data, generated_data_dir)
 
-            # test that all the files are the same
-            self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
-                                         start, end, freq)
+        # test that all the files are the same
+        self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
+                                     start, end, freq)
+
+        shutil.rmtree(generated_data_dir, ignore_errors=True)
 
     def _compare_system_from_to(self, system, city, expected_location, actual_location,
                                 start_time, end_time, time_step):

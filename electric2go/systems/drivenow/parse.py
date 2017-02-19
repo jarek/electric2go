@@ -171,8 +171,8 @@ def put_car(car):
     formatted_car['address'] = car['address'].split(', ')
 
     # special handling, data is duplicated in source API
-    # TODO: verify potential py2/py3 differences in int division here and in put_car_parking_properties()
-    formatted_car['fuelLevel'] = formatted_car['fuelLevelInPercent'] / 100
+    # note 100.0 to trigger float division in Python 2
+    formatted_car['fuelLevel'] = formatted_car['fuelLevelInPercent'] / 100.0
 
     return formatted_car
 
@@ -199,7 +199,9 @@ def put_car_parking_drift(car, d):
 
     car['estimatedRange'] = d[0]
     car['fuelLevelInPercent'] = d[1]
-    car['fuelLevel'] = d[1] / 100  # special handling, data is duplicated in source API
+    # special handling, data is duplicated in source API
+    # note 100.0 to trigger float division in Python 2
+    car['fuelLevel'] = d[1] / 100.0
     car['isCharging'] = d[2]
     car['rentalPrice']['isOfferDrivePriceActive'] = d[3]
 

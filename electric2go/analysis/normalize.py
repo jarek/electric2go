@@ -347,7 +347,7 @@ class Electric2goDataArchive():
             # Handle files in a directory, not zipped or tarred.
 
             self.city = city
-            self.directory = os.path.split(filename.lower())[0]
+            self.directory = os.path.split(filename)[0]
 
             self.load_data_point = self.file_loader
 
