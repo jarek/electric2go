@@ -595,6 +595,10 @@ class GenerateTest(unittest.TestCase):
     # - Test on car2go city with electric cars, e.g. Amsterdam,
     #   and on city with a few electric cars (Stuttgart maybe?)
     # - Verify parking periods longer than a day are handled fine in generator
+    # - Integration test using scripts/generate.py. Bonus: use py2 to generate
+    #   then py3 to read-in, and vice versa, to ensure cross-version compatibility
+    # - Test stats for fuel use in a system that has electric cars that can charge
+    #   while parked. Sample: WBY1Z41070VZ77282 Duesseldorf trip 2016-08-20T17:28:00 to 18:08:00
 
     generated_data_dir = ''
 
