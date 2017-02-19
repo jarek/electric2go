@@ -3,12 +3,7 @@
 
 KEYS = {
     'changing': {
-        # must be handled manually: address
-
-        # Note: car['rentalPrice']['isOfferDrivePriceActive'] can also change.
-        # In practice I don't think it'll be a problem currently, since cars
-        # are never on offer price right after being parked,
-        # but it's technically not correct.
+        # must be handled manually: address, price_offer
 
         # properties that indicate start of new parking period:
         'lat': 'latitude',
@@ -18,6 +13,7 @@ KEYS = {
         'charging': 'isCharging',
         'fuel': 'fuelLevelInPercent',
         'api_estimated_range': 'estimatedRange',
+        # also price_offer: car['rentalPrice']['isOfferDrivePriceActive']
 
         # properties that can only change during a drive:
         'cleanliness_interior': 'innerCleanliness',
@@ -113,8 +109,9 @@ def get_car_changing_properties(car):
               for mapped_key, original_key
               in KEYS['changing'].items()}
 
-    # derived field that can't be done automatically with a key mapping
+    # derived fields that can't be done automatically with a key mapping
     result['address'] = ', '.join(car['address'])
+    result['price_offer'] = car['rentalPrice']['isOfferDrivePriceActive']
 
     return result
 
@@ -169,6 +166,7 @@ def put_car(car):
 
     # minor changes
     formatted_car['address'] = car['address'].split(', ')
+    formatted_car['rentalPrice']['isOfferDrivePriceActive'] = car['price_offer']
 
     # special handling, data is duplicated in source API
     # note 100.0 to trigger float division in Python 2
@@ -182,27 +180,24 @@ def get_car_parking_drift(car):
     Gets properties that can change during a parking period but aren't
     considered to interrupt the parking.
     These are things like a car charging while being parked.
-    :param car: must be formatted in original system JSON-dict format
+    :param car: must be formatted in normalized electric2go dict format
     :return: a hashable object
     """
 
-    return (car['estimatedRange'], car['fuelLevelInPercent'], car['isCharging'],
-            car['rentalPrice']['isOfferDrivePriceActive'])
+    return (car['api_estimated_range'], car['fuel'],
+            car['charging'], car['price_offer'])
 
 
 def put_car_parking_drift(car, d):
     """
     Update `car`'s properties that might have changed during a parking period.
-    :param car: must be formatted in original system JSON-dict format
+    :param car: must be formatted in normalized electric2go dict format
     :param d: must be a result of get_car_parking_drift()
     """
 
-    car['estimatedRange'] = d[0]
-    car['fuelLevelInPercent'] = d[1]
-    # special handling, data is duplicated in source API
-    # note 100.0 to trigger float division in Python 2
-    car['fuelLevel'] = d[1] / 100.0
-    car['isCharging'] = d[2]
-    car['rentalPrice']['isOfferDrivePriceActive'] = d[3]
+    car['api_estimated_range'] = d[0]
+    car['fuel'] = d[1]
+    car['charging'] = d[2]
+    car['price_offer'] = d[3]
 
     return car

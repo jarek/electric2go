@@ -73,7 +73,7 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
             # store initial version of changing data in to compare against later
             # make it a list so new versions can be appended as needed
-            'changing_data': [(curr_time, parser.get_car_parking_drift(car))]
+            'changing_data': [(curr_time, parser.get_car_parking_drift(data['changing_properties']))]
         }
 
         # save the rest of properties straight in the parking object
@@ -129,6 +129,8 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # just result = {'start': dict_comp_above} :)
         result = {key: result[key] for key in result
                   if key in {'start', 'starting_time', 'from'}}
+
+        # TODO: parking drift properties need to be rolled out, see comment in end_trip
 
         return result
 
@@ -240,7 +242,8 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
             # test one more thing: if a car is parked and charging at the same time,
             # its properties can change during the parking period.
             # compare current data with last-stored data for the parking.
-            current_data = parser.get_car_parking_drift(car)
+            car_data = process_car(car)
+            current_data = parser.get_car_parking_drift(car_data['changing_properties'])
 
             # note, 'changing_data' is guaranteed to have at least one item
             # because that's added in start_parking()

@@ -113,13 +113,13 @@ def build_obj(data_frame, parser, result_dict):
     # which could be still used for other purposes - so dict.copy it first
     # to avoid undo_normalize and roll_out_changing_data creating side-effects
     system_cars = (
-        roll_out_changing_data(
-            parser.put_car(
+        parser.put_car(
+            roll_out_changing_data(
                 undo_normalize(
                     dict.copy(car)
-                )
-            ),
-            car.get('changing_data', None)
+                ),
+                car.get('changing_data', None)
+            )
         ) for car in current_positions)
 
     system_obj = parser.put_cars(list(system_cars), result_dict)  # TODO: otherwise json cannot serialize, lame

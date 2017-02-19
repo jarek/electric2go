@@ -142,8 +142,8 @@ def put_car(car):
     # minor changes
     formatted_car['coordinates'] = (car['lng'], car['lat'], 0)
 
-    # in the API, 'charging' key is only present on non-CE cars
-    if car['fuel_type'] != 'CE':
+    # in the API, 'charging' key is only present on electric cars
+    if car['electric']:
         formatted_car['charging'] = car['charging']
 
     return formatted_car
@@ -157,7 +157,7 @@ def get_car_parking_drift(car):
     :return: a hashable object
     """
 
-    charging = car.get('charging', None)
+    charging = car['charging']
 
     return car['fuel'], charging
 
@@ -170,7 +170,9 @@ def put_car_parking_drift(car, d):
 
     car['fuel'] = d[0]
 
-    if d[1] is not None:
+    # TODO: needs testing with a system with electric cars. I don't think there are
+    # any mixed systems anymore, so just test two systems separately
+    if car['fuel_type'] == 'ED':
         car['charging'] = d[1]
 
     return car
