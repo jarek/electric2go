@@ -81,6 +81,35 @@ customize what is included (no lesser roads, no city borders, etc).
 Need to research on existing OSM renderers I could reuse.
 
 
+Estimations
+===========
+
+We could try to guesstimate actual trip distance for better using reported
+battery levels on electric vehicles, by comparing api_estimated_range on
+trip start and end with distance driven, we can see how it compares
+(with some asterisks on accuracy of api_estimated_range).
+
+First plot charge level vs api_estimated_range to see if there is
+a useful trend or if it is too noisy.
+
+Example data from a quick look:
+WBY1Z41070VZ77282 in duesseldorf:
+start range 208 (charge 99)
+end range 191
+calculated distance 4.68 km
+duration 40 minutes
+difference in range 17 km
+
+probably unlikely that they drove 17 km in 40 minutes...
+
+might get more accurate results with mid-charge data...
+
+a 30-minute booking on same car went from fuel 93 to 89,
+range 191 to 176 (= 15 km), calculated distance 3.7
+
+next one 36 minutes, fuel 89 to 81, range 176 to 166 = 10 km, calculated 4.3
+
+
 Analysis angles
 ===============
 
