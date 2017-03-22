@@ -591,12 +591,13 @@ class GenerateTest(unittest.TestCase):
     # - Test on more Drivenow cities than just Duesseldorf
     #   (although Duesseldorf looks to contain all types of cars that
     #    Drivenow has, so might not be crucial)
-    # - Test how Drivenow handoff feature shows up in the API output
     # - Test on car2go city with electric cars, e.g. Amsterdam,
-    #   and on city with a few electric cars (Stuttgart maybe?)
-    # - Verify parking periods longer than a day are handled fine in generator
+    #   and on car2go city with a few electric cars if there are any left
     # - Integration test using scripts/generate.py. Bonus: use py2 to generate
     #   then py3 to read-in, and vice versa, to ensure cross-version compatibility
+    # - Verify parking periods longer than a day are handled fine in generator
+    # - Test how Drivenow handoff feature shows up in the API output
+    #   (introduced in November 2017 in e.g. Berlin)
 
     generated_data_dir = ''
 
