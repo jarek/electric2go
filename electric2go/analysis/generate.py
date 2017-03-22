@@ -139,23 +139,14 @@ def build_objs(result_dict):
             for data_frame in data_frames)
 
 
-def _write_built_objs(city, location, x):
-    data_time, data_dict = x
-    file_name = files.get_file_name(city, data_time)
-    file_path = os.path.join(location, file_name)
-
-    with open(file_path, 'w') as f:
-        cmdline.write_json(data_dict, f)
-
-
 def write_files(result_dict, location):
     # TODO: depending on how it's being used, this function might not belong here
     city = result_dict['metadata']['city']
+    for data_time, data_dict in build_objs(result_dict):
+        file_name = files.get_file_name(city, data_time)
+        file_path = os.path.join(location, file_name)
 
-    from multiprocessing import Pool
-    from functools import partial
-    func = partial(_write_built_objs, city, location)
-
-    # TODO: is getting the objs from build_objs iterator also parallelized?
-    with Pool(4) as p:
-        p.map(func, build_objs(result_dict))
+        # TODO: it would be good to parallelize this, but a quick attempt in f39bb45c5b
+        # resulted in test failures due to incorrect data being written... hrm
+        with open(file_path, 'w') as f:
+            cmdline.write_json(data_dict, f)
