@@ -157,7 +157,7 @@ def get_car_parking_drift(car):
     :return: a hashable object
     """
 
-    charging = car['charging']
+    charging = car.get('charging', None)
 
     return car['fuel'], charging
 
@@ -172,7 +172,7 @@ def put_car_parking_drift(car, d):
 
     # TODO: needs testing with a system with electric cars. I don't think there are
     # any mixed systems anymore, so just test two systems separately
-    if car['fuel_type'] == 'ED':
+    if d[1]:
         car['charging'] = d[1]
 
     return car

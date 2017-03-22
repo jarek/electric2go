@@ -109,6 +109,16 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         result['starting_time'] = curr_time
         del result['ending_time']  # that was the ending time of the parking
 
+        # update with most recent changing data to cover "parking drift"
+        # (e.g. car changing during parking).
+        # otherwise, picking up a car that had been charging while parking
+        # would calculate 'fuel_use' from the value at the start of the parking
+        # (what is in 'fuel' key) and not at the end of the charging
+        # (what is in the last item of 'changing_data' key).
+        # there is always at least once value in changing_data list, per start_parking();
+        # the list contains tuples of (datetime, dataset) - we don't care about the datetime.
+        result = parser.put_car_parking_drift(result, result['changing_data'][-1][1])
+
         # at this point, `result` contains the output of parser.get_car_changing_properties
         # plus the following keys:
         # - from start_parking: vin, coords, starting_time (though overwritten just now), changing_data
@@ -129,8 +139,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # just result = {'start': dict_comp_above} :)
         result = {key: result[key] for key in result
                   if key in {'start', 'starting_time', 'from'}}
-
-        # TODO: parking drift properties need to be rolled out, see comment in end_trip
 
         return result
 
@@ -160,13 +168,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # update with data from the start of the trip
         trip_data = unfinished_trip
         trip_data.update(ending_trip_data)
-
-        # TODO: bug: picking up a car that had been charging while parking
-        # will calculate 'fuel_use' from the value at the start of the parking
-        # (what is in 'fuel' key) and not at the end of the charging
-        # (what is in the last item of 'changing_data' key).
-        # Need to roll out changing data when starting a trip probably.
-        # Sample: WBY1Z41070VZ77282 Duesseldorf trip 2016-08-20T17:28:00 to 18:08:00
 
         # calculate trip distance, duration, etc, based on start and end data
         trip_data = calculate_trip(trip_data)

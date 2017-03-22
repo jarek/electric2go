@@ -597,8 +597,6 @@ class GenerateTest(unittest.TestCase):
     # - Verify parking periods longer than a day are handled fine in generator
     # - Integration test using scripts/generate.py. Bonus: use py2 to generate
     #   then py3 to read-in, and vice versa, to ensure cross-version compatibility
-    # - Test stats for fuel use in a system that has electric cars that can charge
-    #   while parked. Sample: WBY1Z41070VZ77282 Duesseldorf trip 2016-08-20T17:28:00 to 18:08:00
 
     generated_data_dir = ''
 
@@ -711,12 +709,20 @@ class GenerateTest(unittest.TestCase):
 
         # read in data
         start = datetime(2016, 8, 20, 0, 0)
-        end = datetime(2016, 8, 20, 3, 0)
+        end = datetime(2016, 8, 20, 19, 0)
         freq = 60
 
         drivenow_original_data = normalize.batch_load_data(system, input_file, None, end, freq)
 
-        # generate 181 files covering from midnight to 3:00 every minute
+        # Bonus: test valid roll-out of parking drift data prior to creating trip.
+        # Test on a given trip in the dataset, found by looking at data manually.
+        trips = drivenow_original_data['finished_trips']['WBY1Z41070VZ77282']
+        sought_start_time = datetime(2016, 8, 20, 17, 28)
+        the_trip = [trip for trip in trips if trip['starting_time'] == sought_start_time]
+        self.assertEqual(len(the_trip), 1)
+        self.assertGreater(the_trip[0]['fuel_use'], 0)
+
+        # generate test files
         generated_data_dir = tempfile.mkdtemp()
         generate.write_files(drivenow_original_data, generated_data_dir)
 
