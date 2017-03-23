@@ -3,7 +3,7 @@
 from datetime import timedelta
 import os
 
-from . import cmdline
+from . import cmdline, normalize
 from .. import files, systems
 
 
@@ -150,3 +150,59 @@ def write_files(result_dict, location):
         # resulted in test failures due to incorrect data being written... hrm
         with open(file_path, 'w') as f:
             cmdline.write_json(data_dict, f)
+
+
+###### NOT TESTED - START ###
+# TODO: this duplicates tests.py GenerateTest except with worse error reporting - factor out somehow?
+def compare_files(result_dict, expected_location, actual_location):
+    metadata = result_dict['metadata']
+    return compare_files_for_system(metadata['system'], metadata['city'],
+                                    expected_location, actual_location,
+                                    metadata['starting_time'],
+                                    metadata['ending_time'],
+                                    metadata['time_step'])
+
+
+def compare_files_for_system(system, city, expected_location, actual_location,
+                             start_time, end_time, time_step):
+    # Name where files have been generated might be a tempdir name
+    # like '/tmp/tmp25l2ba19', while Electric2goDataArchive expects
+    # a trailing slash if not a file name - so add a trailing slash.
+    actual_location = os.path.join(actual_location, '')
+
+    expected_data_archive = normalize.Electric2goDataArchive(city, expected_location)
+    actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
+
+    comparison_time = start_time
+    while comparison_time <= end_time:
+        equal = _compare_system_independent(system, expected_data_archive, actual_data_archive, comparison_time)
+
+        if not equal:
+            return False
+
+        comparison_time += timedelta(seconds=time_step)
+
+    return True
+
+
+def _compare_system_independent(system, expected_data_archive, actual_data_archive, comparison_time):
+    parser = systems.get_parser(system)
+
+    expected_file = expected_data_archive.load_data_point(comparison_time)
+
+    actual_file = actual_data_archive.load_data_point(comparison_time)
+
+    # test cars equivalency. we have to do it separately because
+    # it comes from API as a list, but we don't store the list order.
+    expected_cars = parser.get_cars_dict(expected_file)
+    actual_cars = parser.get_cars_dict(actual_file)
+
+    # test for equivalency of cars
+    if expected_cars != actual_cars:
+        return False
+
+    # test exact equivalency of everything but the cars list
+    expected_remainder = parser.get_everything_except_cars(expected_file)
+    actual_remainder = parser.get_everything_except_cars(actual_file)
+    return expected_remainder == actual_remainder
+###### NOT TESTED - END ###

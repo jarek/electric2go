@@ -23,7 +23,16 @@ from electric2go.analysis import cmdline, generate
 def process_commandline():
     result_dict = cmdline.read_json()
 
-    generate.write_files(result_dict, '')
+    target_directory = ''
+
+    generate.write_files(result_dict, target_directory)
+
+    # TODO: option --check=original-archive.tgz that compares the files,
+    # for initial verification of functionality on different cities/systems/data sets.
+    # something like:
+    #equal = generate.compare_files(result_dict, original_archive, target_directory)
+    #if not equal:
+    #    raise RuntimeError('Generated file is not the same as original!')
 
 
 if __name__ == '__main__':
