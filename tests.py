@@ -593,8 +593,6 @@ class GenerateTest(unittest.TestCase):
     #    Drivenow has, so might not be crucial)
     # - Test on car2go city with electric cars, e.g. Amsterdam,
     #   and on car2go city with a few electric cars if there are any left
-    # - When calling generate.py, get it to use py2 to generate then py3 to read-in,
-    #   and vice versa, to ensure cross-version compatibility
     # - Verify parking periods longer than a day are handled fine in generator
     # - Test how Drivenow handoff feature shows up in the API output
     #   (introduced in November 2016 in e.g. Berlin)
@@ -734,11 +732,13 @@ class GenerateTest(unittest.TestCase):
         shutil.rmtree(generated_data_dir, ignore_errors=True)
 
     def test_scripts_with_drivenow_py2_to_py3(self):
-        # use py2 to normalize then py3 to generate to ensure cross-version compatibility
+        # use py2 to normalize and generate, and then py2 to verify generated files,
+        # to ensure cross-version compatibility
         self._test_scripts_with_drivenow_python_versions('python2', 'python3')
 
     def test_scripts_with_drivenow_py3_to_py2(self):
-        # use py3 to normalize then py2 to generate to ensure cross-version compatibility
+        # use py3 to normalize and generate, and then py2 to verify generated files,
+        # to ensure cross-version compatibility
         self._test_scripts_with_drivenow_python_versions('python3', 'python2')
 
     def _test_scripts_with_drivenow_python_versions(self, first_command, second_command):
@@ -747,20 +747,28 @@ class GenerateTest(unittest.TestCase):
         # -c verifies the generated files against the original archive.
         # We expect generate.py to finish quietly if successful, and throw an error
         # in stderr if there was a problem during the verification.
+
         generated_data_dir = tempfile.mkdtemp()
         root_dir = os.path.dirname(os.path.abspath(__file__))
         script_dir = root_dir + '/scripts'
         data_file = root_dir + '/duesseldorf_2016-08-20.tgz'
 
-        p1 = Popen([first_command, os.path.join(script_dir, 'normalize.py'), 'drivenow', data_file],
-                   stdout=PIPE)
-        p2 = Popen([second_command, os.path.join(script_dir, 'generate.py'), '-c', data_file],
+        normalize_cmd = [first_command, os.path.join(script_dir, 'normalize.py'),
+                         'drivenow', data_file]
+        p1 = Popen(normalize_cmd, stdout=PIPE)
+        p2 = Popen([first_command, os.path.join(script_dir, 'generate.py')],
                    cwd=generated_data_dir,
-                   stdin=p1.stdout,
-                   stdout=PIPE)
+                   stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()
+        p2.wait()
 
-        results = p2.communicate()
+        # generate.py needs a result_dict with its metadata (system, starting and ending time, etc)
+        # to verify. A bit dumb to do it again, hm, output to a file instead?
+        p3 = Popen(normalize_cmd, stdout=PIPE)
+        p4 = Popen([second_command, os.path.join(script_dir, 'generate.py'), '--check-only', '-c', data_file],
+                   cwd=generated_data_dir,
+                   stdin=p3.stdout, stdout=PIPE)
+        results = p4.communicate()
 
         self.assertEqual(results, (b'', None))
         self.assertTrue(os.path.exists(generated_data_dir + '/duesseldorf_2016-08-20--01-00'))
