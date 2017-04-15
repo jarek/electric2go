@@ -593,7 +593,7 @@ class GenerateTest(unittest.TestCase):
     #    Drivenow has, so might not be crucial)
     # - Test on car2go city with electric cars, e.g. Amsterdam,
     #   and on car2go city with a few electric cars if there are any left
-    # - In test_scripts_with_drivenow, use py2 to generate then py3 to read-in,
+    # - When calling generate.py, get it to use py2 to generate then py3 to read-in,
     #   and vice versa, to ensure cross-version compatibility
     # - Verify parking periods longer than a day are handled fine in generator
     # - Test how Drivenow handoff feature shows up in the API output
@@ -733,7 +733,15 @@ class GenerateTest(unittest.TestCase):
 
         shutil.rmtree(generated_data_dir, ignore_errors=True)
 
-    def test_scripts_with_drivenow(self):
+    def test_scripts_with_drivenow_py2_to_py3(self):
+        # use py2 to normalize then py3 to generate to ensure cross-version compatibility
+        self._test_scripts_with_drivenow_python_versions('python2', 'python3')
+
+    def test_scripts_with_drivenow_py3_to_py2(self):
+        # use py3 to normalize then py2 to generate to ensure cross-version compatibility
+        self._test_scripts_with_drivenow_python_versions('python3', 'python2')
+
+    def _test_scripts_with_drivenow_python_versions(self, first_command, second_command):
         # Test that a round-trip using normalize.py then generate.py -c
         # completes successfully.
         # -c verifies the generated files against the original archive.
@@ -744,11 +752,9 @@ class GenerateTest(unittest.TestCase):
         script_dir = root_dir + '/scripts'
         data_file = root_dir + '/duesseldorf_2016-08-20.tgz'
 
-        print('will generate to {}'.format(generated_data_dir))
-
-        p1 = Popen([os.path.join(script_dir, 'normalize.py'), 'drivenow', data_file],
+        p1 = Popen([first_command, os.path.join(script_dir, 'normalize.py'), 'drivenow', data_file],
                    stdout=PIPE)
-        p2 = Popen([os.path.join(script_dir, 'generate.py'), '-c', data_file],
+        p2 = Popen([second_command, os.path.join(script_dir, 'generate.py'), '-c', data_file],
                    cwd=generated_data_dir,
                    stdin=p1.stdout,
                    stdout=PIPE)
