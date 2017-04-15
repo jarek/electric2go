@@ -2,6 +2,7 @@
 # coding=utf-8
 
 from __future__ import print_function
+import argparse
 import os
 import sys
 
@@ -21,18 +22,22 @@ from electric2go.analysis import cmdline, generate
 
 
 def process_commandline():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--check', type=str,
+                        help='optional: verify that the generated files'
+                             'has the same contents as the CHECK archive')
+    args = parser.parse_args()
+
     result_dict = cmdline.read_json()
 
     target_directory = ''
 
     generate.write_files(result_dict, target_directory)
 
-    # TODO: option --check=original-archive.tgz that compares the files,
-    # for initial verification of functionality on different cities/systems/data sets.
-    # something like:
-    #equal = generate.compare_files(result_dict, original_archive, target_directory)
-    #if not equal:
-    #    raise RuntimeError('Generated file is not the same as original!')
+    if args.check:
+        equal = generate.compare_files(result_dict, args.check, target_directory)
+        if not equal:
+            raise RuntimeError('Generated file is not the same as original!')
 
 
 if __name__ == '__main__':

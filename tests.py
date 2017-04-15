@@ -593,11 +593,11 @@ class GenerateTest(unittest.TestCase):
     #    Drivenow has, so might not be crucial)
     # - Test on car2go city with electric cars, e.g. Amsterdam,
     #   and on car2go city with a few electric cars if there are any left
-    # - Integration test using scripts/generate.py. Bonus: use py2 to generate
-    #   then py3 to read-in, and vice versa, to ensure cross-version compatibility
+    # - In test_scripts_with_drivenow, use py2 to generate then py3 to read-in,
+    #   and vice versa, to ensure cross-version compatibility
     # - Verify parking periods longer than a day are handled fine in generator
     # - Test how Drivenow handoff feature shows up in the API output
-    #   (introduced in November 2017 in e.g. Berlin)
+    #   (introduced in November 2016 in e.g. Berlin)
 
     generated_data_dir = ''
 
@@ -730,6 +730,35 @@ class GenerateTest(unittest.TestCase):
         # test that all the files are the same
         self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
                                      start, end, freq)
+
+        shutil.rmtree(generated_data_dir, ignore_errors=True)
+
+    def test_scripts_with_drivenow(self):
+        # Test that a round-trip using normalize.py then generate.py -c
+        # completes successfully.
+        # -c verifies the generated files against the original archive.
+        # We expect generate.py to finish quietly if successful, and throw an error
+        # in stderr if there was a problem during the verification.
+        generated_data_dir = tempfile.mkdtemp()
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = root_dir + '/scripts'
+        data_file = root_dir + '/duesseldorf_2016-08-20.tgz'
+
+        print('will generate to {}'.format(generated_data_dir))
+
+        p1 = Popen([os.path.join(script_dir, 'normalize.py'), 'drivenow', data_file],
+                   stdout=PIPE)
+        p2 = Popen([os.path.join(script_dir, 'generate.py'), '-c', data_file],
+                   cwd=generated_data_dir,
+                   stdin=p1.stdout,
+                   stdout=PIPE)
+        p1.stdout.close()
+
+        results = p2.communicate()
+
+        self.assertEqual(results, (b'', None))
+        self.assertTrue(os.path.exists(generated_data_dir + '/duesseldorf_2016-08-20--01-00'))
+        self.assertTrue(os.path.exists(generated_data_dir + '/duesseldorf_2016-08-20--23-59'))
 
         shutil.rmtree(generated_data_dir, ignore_errors=True)
 
