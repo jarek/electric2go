@@ -70,10 +70,6 @@ def build_obj(data_frame, parser, result_dict):
     def undo_normalize(car_data):
         # undoes normalize.process_data.process_car
 
-        car_data['lat'] = car_data['coords'][0]
-        car_data['lng'] = car_data['coords'][1]
-        del car_data['coords']
-
         if 'duration' in car_data:
             del car_data['duration']  # this is added in normalize end_parking
 
@@ -152,7 +148,6 @@ def write_files(result_dict, location):
             cmdline.write_json(data_dict, f)
 
 
-###### NOT TESTED - START ###
 # TODO: this duplicates tests.py GenerateTest except with worse error reporting - factor out somehow?
 def compare_files(result_dict, expected_location, actual_location):
     metadata = result_dict['metadata']
@@ -205,4 +200,3 @@ def _compare_system_independent(system, expected_data_archive, actual_data_archi
     expected_remainder = parser.get_everything_except_cars(expected_file)
     actual_remainder = parser.get_everything_except_cars(actual_file)
     return expected_remainder == actual_remainder
-###### NOT TESTED - END ###

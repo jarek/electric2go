@@ -261,11 +261,18 @@ def graph_wrapper(city_data, plot_function, image_name, background=None):
     plt.close(f)
 
 
+def convert_positions_to_legacy(positions):
+    return [dict(p, coords=(p['lat'], p['lng']))
+            for p in positions]
+
+
 def make_graph(result_dict, positions, trips, image_filename, printed_time,
                show_speeds, highlight_distance, symbol):
     """ Creates and saves matplotlib figure for provided positions and trips. """
 
     city_data = get_city_by_result_dict(result_dict)
+
+    positions = convert_positions_to_legacy(positions)
 
     # filter to only vehicles that are in city's graphing bounds
     filtered_positions = filter_positions_to_bounds(city_data, positions)
@@ -321,6 +328,8 @@ def make_positions_graph(result_dict, image_name, symbol, colour_electric=False)
     positions = [p for p in result_dict['unfinished_parkings'].values()]
     positions.extend(parking for vin in result_dict['finished_parkings']
                      for parking in result_dict['finished_parkings'][vin])
+
+    positions = convert_positions_to_legacy(positions)
 
     filtered = filter_positions_to_bounds(city_data, positions)
 

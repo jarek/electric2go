@@ -54,9 +54,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         return {
             'vin': p_vin,
 
-            # transitional, TODO: should be merged into changing_properties
-            'coords': (p_lat, p_lng),
-
             'changing_properties': parser.get_car_changing_properties(car_info)
         }
 
@@ -65,7 +62,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
         result = {
             'vin': data['vin'],
-            'coords': data['coords'],
 
             # car properties will not change during a parking period, so we don't need to save any
             # starting/ending pairs except for starting_time and ending_time
@@ -103,8 +99,7 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         result = dict.copy(just_finished_parking)
 
         # TODO: move it into 'start' dict - needs updates elsewhere
-        result['from'] = result['coords']
-        del result['coords']
+        result['from'] = (result['lat'], result['lng'])
 
         result['starting_time'] = curr_time
         del result['ending_time']  # that was the ending time of the parking
@@ -121,12 +116,12 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
         # at this point, `result` contains the output of parser.get_car_changing_properties
         # plus the following keys:
-        # - from start_parking: vin, coords, starting_time (though overwritten just now), changing_data
+        # - from start_parking: vin, starting_time (though overwritten just now), changing_data
         # - from end_parking: ending_time (but deleted just now)
         # - from calculate_parking: duration
         # By excluding those keys, we can get the keys that are changing,
         # and write them into the "start" dictionary.
-        keys_to_exclude = {'vin', 'coords', 'starting_time',
+        keys_to_exclude = {'vin', 'starting_time',
                            'duration', 'changing_data'}
         result['start'] = {key: result[key] for key in result
                            if key not in keys_to_exclude}
@@ -150,13 +145,12 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
             'vin': data['vin'],
             'ending_time': prev_time,
 
-            'to': data['coords'],
+            # TODO: this is only transitional
+            'to': (new_properties['lat'], new_properties['lng']),
 
-            # write all keys in the parser response except for lat and lng
-            # (which are handled above) into 'end' key
+            # write all keys in the parser response into 'end' key
             'end': {key: new_properties[key]
-                    for key in new_properties
-                    if key not in {'lat', 'lng'}}
+                    for key in new_properties}
         }
 
         return trip_data
@@ -225,7 +219,7 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
             unfinished_parkings[vin] = start_parking(data_time, car)
 
-        elif vin in unfinished_parkings and (lat != unfinished_parkings[vin]['coords'][0] or lng != unfinished_parkings[vin]['coords'][1]):
+        elif vin in unfinished_parkings and (lat != unfinished_parkings[vin]['lat'] or lng != unfinished_parkings[vin]['lng']):
             # car has moved but the "trip" took exactly 1 cycle. consequently unfinished_trips and finished_parkings
             # were never created in vins_that_just_became_unavailable loop. need to handle this manually
 
