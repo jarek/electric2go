@@ -509,7 +509,8 @@ class MergeTest(unittest.TestCase):
         test_vin3 = 'WMEEJ3BA3EK732887'
 
         self.assertEqual(merged_dict['unstarted_trips'][test_vin]['ending_time'], datetime(2015, 6, 1, 0, 0))
-        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['to'], [39.95781, -82.9975])
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['lat'], 39.95781)
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['lng'], -82.9975)
         self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['starting_time'], datetime(2015, 6, 3, 18, 13))
         self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['lat'], 40.05838)
         self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['lng'], -83.00955)

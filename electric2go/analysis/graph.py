@@ -140,10 +140,10 @@ def plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat
 
 
 def plot_trips(ax, city_data, trips, colour='#aaaaaa'):
-    lines_start_lat = [t['from'][0] for t in trips]
-    lines_start_lng = [t['from'][1] for t in trips]
-    lines_end_lat = [t['to'][0] for t in trips]
-    lines_end_lng = [t['to'][1] for t in trips]
+    lines_start_lat = [t['start']['lat'] for t in trips]
+    lines_start_lng = [t['start']['lng'] for t in trips]
+    lines_end_lat = [t['end']['lat'] for t in trips]
+    lines_end_lng = [t['end']['lng'] for t in trips]
 
     return plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
@@ -228,8 +228,8 @@ def create_points_trip_start_end(trips, from_colour='b', to_colour='r'):
     # this would vary depending on hash function in use.)
     # With OrderedDict, I specify the order.
     return OrderedDict([
-        (from_colour, [trip['from'] for trip in trips]),
-        (to_colour, [trip['to'] for trip in trips])
+        (from_colour, [(trip['start']['lat'], trip['start']['lng']) for trip in trips]),
+        (to_colour, [(trip['end']['lat'], trip['end']['lng']) for trip in trips])
     ])
 
 

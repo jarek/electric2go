@@ -23,7 +23,8 @@ def calculate_trip(trip_data):
     Calculates a trip's distance, duration, speed, and fuel use.
     """
 
-    current_trip_distance = dist(trip_data['to'], trip_data['from'])
+    current_trip_distance = dist((trip_data['end']['lat'], trip_data['end']['lng']),
+                                 (trip_data['start']['lat'], trip_data['start']['lng']))
     current_trip_duration = (trip_data['ending_time'] - trip_data['starting_time']).total_seconds()
 
     trip_data['distance'] = current_trip_distance
@@ -98,9 +99,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
         result = dict.copy(just_finished_parking)
 
-        # TODO: move it into 'start' dict - needs updates elsewhere
-        result['from'] = (result['lat'], result['lng'])
-
         result['starting_time'] = curr_time
         del result['ending_time']  # that was the ending time of the parking
 
@@ -129,11 +127,10 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # Need to remove all of the stuff from parking which is not applicable to trips,
         # otherwise stuff like changing_data or electric is left over in trip definition.
         # Exceptions are coords and starting_time since they were rewritten above.
-        # TODO: 'from' can be removed from this list once migrated into 'start' dict
-        # If we ever migrate 'starting_time' into ['start']['time'], this can become
+        # TODO: If we ever migrate 'starting_time' into ['start']['time'], this can become
         # just result = {'start': dict_comp_above} :)
         result = {key: result[key] for key in result
-                  if key in {'start', 'starting_time', 'from'}}
+                  if key in {'start', 'starting_time'}}
 
         return result
 
@@ -144,9 +141,6 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         trip_data = {
             'vin': data['vin'],
             'ending_time': prev_time,
-
-            # TODO: this is only transitional
-            'to': (new_properties['lat'], new_properties['lng']),
 
             # write all keys in the parser response into 'end' key
             'end': {key: new_properties[key]
