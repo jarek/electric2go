@@ -157,6 +157,13 @@ def get_car_parking_drift(car):
     :return: a hashable object
     """
 
+    # TODO: reported address can also change during the parking
+    # see Austin 2016-07-27 07:05 to 07:10, WMEEJ3BA4FK802009
+
+    # TODO: reported licence plate ('name' key) can *also* change
+    # see Austin 2016-07-27 20:14, WMEEJ3BA3EK735465
+    # so much for unchanging... will have to regen the whole Austin month
+
     charging = car.get('charging', None)
 
     return car['fuel'], charging
