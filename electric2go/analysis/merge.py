@@ -50,7 +50,7 @@ def merge_two_dicts(one, two):
         unstarted_trip = two['unstarted_trips'][vin]
 
         if (vin in one['unfinished_parkings']
-                and unstarted_trip['ending_time'] == two_starting_time
+                and unstarted_trip['end']['time'] == two_starting_time
                 and one['unfinished_parkings'][vin]['lat'] == unstarted_trip['end']['lat']
                 and one['unfinished_parkings'][vin]['lng'] == unstarted_trip['end']['lng']):
 

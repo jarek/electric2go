@@ -297,16 +297,16 @@ def stats_slice(data_dict, from_time, to_time):
         # use dict.copy to avoid changing trip durations in the passed-by-reference data_dict
         trips = [dict.copy(trip) for trip in data_dict['finished_trips'][vin]
                  # normal trips, within the day
-                 if (from_time <= trip['starting_time'] <= trip['ending_time'] <= to_time)
+                 if (from_time <= trip['start']['time'] <= trip['end']['time'] <= to_time)
 
                  # trips spanning starting_time
-                 or (trip['starting_time'] < from_time < trip['ending_time'] < to_time)
+                 or (trip['start']['time'] < from_time < trip['end']['time'] < to_time)
 
                  # trips spanning starting_time
-                 or (from_time < trip['starting_time'] < to_time < trip['ending_time'])
+                 or (from_time < trip['start']['time'] < to_time < trip['end']['time'])
 
                  # trips spanning whole day from from_time to to_time
-                 or (trip['starting_time'] < from_time and trip['ending_time'] > to_time)]
+                 or (trip['start']['time'] < from_time and trip['end']['time'] > to_time)]
 
         # then trim off ends of trips that straddle dataset borders (either from_time
         # or to_time).
@@ -316,15 +316,15 @@ def stats_slice(data_dict, from_time, to_time):
         # because by definition only one trip each will straddle from_time and to_time.
         if len(trips):
             first_trip = trips[0]
-            if first_trip['starting_time'] < from_time:
-                first_trip['starting_time'] = from_time
-                first_trip['duration'] = (first_trip['ending_time'] - from_time).total_seconds()
+            if first_trip['start']['time'] < from_time:
+                first_trip['start']['time'] = from_time
+                first_trip['duration'] = (first_trip['end']['time'] - from_time).total_seconds()
                 # not recalculating speed since it'll be pretty meaningless on the changed duration
 
             last_trip = trips[-1]
-            if last_trip['ending_time'] > to_time:
-                last_trip['ending_time'] = to_time
-                last_trip['duration'] = (to_time - last_trip['starting_time']).total_seconds()
+            if last_trip['end']['time'] > to_time:
+                last_trip['end']['time'] = to_time
+                last_trip['duration'] = (to_time - last_trip['start']['time']).total_seconds()
 
         result_dict['finished_trips'][vin] = trips
 
@@ -368,11 +368,11 @@ def stats_slice(data_dict, from_time, to_time):
 
     unfi_trips = data_dict['unfinished_trips']
     result_dict['unfinished_trips'] = {vin: unfi_trips[vin] for vin in unfi_trips
-                                       if from_time <= unfi_trips[vin]['starting_time'] <= to_time}
+                                       if from_time <= unfi_trips[vin]['start']['time'] <= to_time}
 
     unst_trips = data_dict['unstarted_trips']
     result_dict['unstarted_trips'] = {vin: unst_trips[vin] for vin in unst_trips
-                                      if from_time <= unst_trips[vin]['ending_time'] <= to_time}
+                                      if from_time <= unst_trips[vin]['end']['time'] <= to_time}
 
     # Now we just need to adjust metadata
     result_dict['metadata']['starting_time'] = from_time

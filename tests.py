@@ -508,7 +508,7 @@ class MergeTest(unittest.TestCase):
         test_vin2 = 'WMEEJ3BAXEK733745'
         test_vin3 = 'WMEEJ3BA3EK732887'
 
-        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['ending_time'], datetime(2015, 6, 1, 0, 0))
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['time'], datetime(2015, 6, 1, 0, 0))
         self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['lat'], 39.95781)
         self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['lng'], -82.9975)
         self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['starting_time'], datetime(2015, 6, 3, 18, 13))
@@ -719,7 +719,7 @@ class GenerateTest(unittest.TestCase):
         # Test on a given trip in the dataset, found by looking at data manually.
         trips = drivenow_original_data['finished_trips']['WBY1Z41070VZ77282']
         sought_start_time = datetime(2016, 8, 20, 17, 28)
-        the_trip = [trip for trip in trips if trip['starting_time'] == sought_start_time]
+        the_trip = [trip for trip in trips if trip['start']['time'] == sought_start_time]
         self.assertEqual(len(the_trip), 1)
         self.assertGreater(the_trip[0]['fuel_use'], 0)
 

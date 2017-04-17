@@ -25,7 +25,7 @@ def calculate_trip(trip_data):
 
     current_trip_distance = dist((trip_data['end']['lat'], trip_data['end']['lng']),
                                  (trip_data['start']['lat'], trip_data['start']['lng']))
-    current_trip_duration = (trip_data['ending_time'] - trip_data['starting_time']).total_seconds()
+    current_trip_duration = (trip_data['end']['time'] - trip_data['start']['time']).total_seconds()
 
     trip_data['distance'] = current_trip_distance
     trip_data['duration'] = current_trip_duration
@@ -48,21 +48,11 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
     # internal, not returned
     original_car_data = {}
 
-    # called by start_parking and _get_ending_trip_data
-    def process_car(car_info):
-        p_vin, p_lat, p_lng = parser.get_car_basics(car_info)
-
-        return {
-            'vin': p_vin,
-
-            'changing_properties': parser.get_car_changing_properties(car_info)
-        }
-
-    def start_parking(curr_time, new_car_data):
-        data = process_car(new_car_data)
+    def start_parking(curr_time, vin, new_car_data):
+        changing = parser.get_car_changing_properties(new_car_data)
 
         result = {
-            'vin': data['vin'],
+            'vin': vin,
 
             # car properties will not change during a parking period, so we don't need to save any
             # starting/ending pairs except for starting_time and ending_time
@@ -70,11 +60,11 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
             # store initial version of changing data in to compare against later
             # make it a list so new versions can be appended as needed
-            'changing_data': [(curr_time, parser.get_car_parking_drift(data['changing_properties']))]
+            'changing_data': [(curr_time, parser.get_car_parking_drift(changing))]
         }
 
         # save the rest of properties straight in the parking object
-        result.update(data['changing_properties'])
+        result.update(changing)
 
         return result
 
@@ -97,10 +87,9 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # consequently, we take in the data we do have and convert it into
         # trip information.
 
-        result = dict.copy(just_finished_parking)
+        starting_data = dict.copy(just_finished_parking)
 
-        result['starting_time'] = curr_time
-        del result['ending_time']  # that was the ending time of the parking
+        starting_data['time'] = curr_time
 
         # update with most recent changing data to cover "parking drift"
         # (e.g. car changing during parking).
@@ -110,48 +99,38 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # (what is in the last item of 'changing_data' key).
         # there is always at least once value in changing_data list, per start_parking();
         # the list contains tuples of (datetime, dataset) - we don't care about the datetime.
-        result = parser.put_car_parking_drift(result, result['changing_data'][-1][1])
+        starting_data = parser.put_car_parking_drift(starting_data, starting_data['changing_data'][-1][1])
 
-        # at this point, `result` contains the output of parser.get_car_changing_properties
+        # at this point, `starting_data` contains the output of parser.get_car_changing_properties
         # plus the following keys:
-        # - from start_parking: vin, starting_time (though overwritten just now), changing_data
-        # - from end_parking: ending_time (but deleted just now)
+        # - from start_parking: vin, starting_time, changing_data
+        # - from end_parking: ending_time
         # - from calculate_parking: duration
         # By excluding those keys, we can get the keys that are changing,
         # and write them into the "start" dictionary.
-        keys_to_exclude = {'vin', 'starting_time',
+        keys_to_exclude = {'vin', 'starting_time', 'ending_time'
                            'duration', 'changing_data'}
-        result['start'] = {key: result[key] for key in result
-                           if key not in keys_to_exclude}
-
-        # Need to remove all of the stuff from parking which is not applicable to trips,
-        # otherwise stuff like changing_data or electric is left over in trip definition.
-        # Exceptions are coords and starting_time since they were rewritten above.
-        # TODO: If we ever migrate 'starting_time' into ['start']['time'], this can become
-        # just result = {'start': dict_comp_above} :)
-        result = {key: result[key] for key in result
-                  if key in {'start', 'starting_time'}}
+        result = {
+            'vin': starting_data['vin'],
+            'start': {key: starting_data[key] for key in starting_data
+                      if key not in keys_to_exclude}
+        }
 
         return result
 
-    def _get_ending_trip_data(prev_time, ending_car_info):
-        data = process_car(ending_car_info)
-        new_properties = data['changing_properties']
-
+    def _get_ending_trip_data(prev_time, vin, ending_car_info):
         trip_data = {
-            'vin': data['vin'],
-            'ending_time': prev_time,
-
-            # write all keys in the parser response into 'end' key
-            'end': {key: new_properties[key]
-                    for key in new_properties}
+            'vin': vin,
+            'end': parser.get_car_changing_properties(ending_car_info)
         }
+
+        trip_data['end']['time'] = prev_time
 
         return trip_data
 
-    def end_trip(prev_time, ending_car_info, unfinished_trip):
+    def end_trip(prev_time, vin, ending_car_info, unfinished_trip):
         # save data at end of trip
-        ending_trip_data = _get_ending_trip_data(prev_time, ending_car_info)
+        ending_trip_data = _get_ending_trip_data(prev_time, vin, ending_car_info)
 
         # update with data from the start of the trip
         trip_data = unfinished_trip
@@ -162,11 +141,11 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
 
         return trip_data
 
-    def end_unstarted_trip(prev_time, ending_car_info):
+    def end_unstarted_trip(prev_time, vin, ending_car_info):
         # essentially the same as end_trip except all bits that depend on
         # unfinished_trip have been removed - we can only return the end info
 
-        return _get_ending_trip_data(prev_time, ending_car_info)
+        return _get_ending_trip_data(prev_time, vin, ending_car_info)
 
     """
     Set this up as a defacto state machine with two states.
@@ -201,17 +180,17 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
             # save original raw info
             original_car_data[vin] = car
 
-            unstarted_potential_trips[vin] = end_unstarted_trip(data_time, car)
+            unstarted_potential_trips[vin] = end_unstarted_trip(data_time, vin, car)
 
-            unfinished_parkings[vin] = start_parking(data_time, car)
+            unfinished_parkings[vin] = start_parking(data_time, vin, car)
 
         if vin in unfinished_trips:
             # trip has just finished
 
-            finished_trips[vin].append(end_trip(data_time, car, unfinished_trips[vin]))
+            finished_trips[vin].append(end_trip(data_time, vin, car, unfinished_trips[vin]))
             del unfinished_trips[vin]
 
-            unfinished_parkings[vin] = start_parking(data_time, car)
+            unfinished_parkings[vin] = start_parking(data_time, vin, car)
 
         elif vin in unfinished_parkings and (lat != unfinished_parkings[vin]['lat'] or lng != unfinished_parkings[vin]['lng']):
             # car has moved but the "trip" took exactly 1 cycle. consequently unfinished_trips and finished_parkings
@@ -223,16 +202,15 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
             started_trip = start_trip(prev_data_time, finished_parking)
 
             # end trip right away and start 'new' parking period in new position
-            finished_trips[vin].append(end_trip(data_time, car, started_trip))
-            unfinished_parkings[vin] = start_parking(data_time, car)
+            finished_trips[vin].append(end_trip(data_time, vin, car, started_trip))
+            unfinished_parkings[vin] = start_parking(data_time, vin, car)
 
         else:
             # if we're here, we have an unfinished parking.
             # test one more thing: if a car is parked and charging at the same time,
             # its properties can change during the parking period.
             # compare current data with last-stored data for the parking.
-            car_data = process_car(car)
-            current_data = parser.get_car_parking_drift(car_data['changing_properties'])
+            current_data = parser.get_car_parking_drift(parser.get_car_changing_properties(car))
 
             # note, 'changing_data' is guaranteed to have at least one item
             # because that's added in start_parking()

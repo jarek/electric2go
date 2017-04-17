@@ -45,7 +45,7 @@ def build_data_frame(result_dict, turn, include_trips):
 
     if include_trips:
         current_trips = [trip for vin in fin_trips for trip in fin_trips[vin]
-                         if trip['ending_time'] == turn]
+                         if trip['end']['time'] == turn]
     else:
         current_trips = None
 
