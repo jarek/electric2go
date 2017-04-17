@@ -108,8 +108,7 @@ def process_data(parser, data_time, prev_data_time, available_cars, result_dict)
         # - from calculate_parking: duration
         # By excluding those keys, we can get the keys that are changing,
         # and write them into the "start" dictionary.
-        keys_to_exclude = {'vin', 'starting_time', 'ending_time'
-                           'duration', 'changing_data'}
+        keys_to_exclude = {'vin', 'starting_time', 'ending_time', 'duration', 'changing_data'}
         result = {
             'vin': starting_data['vin'],
             'start': {key: starting_data[key] for key in starting_data
