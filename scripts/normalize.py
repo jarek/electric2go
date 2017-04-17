@@ -28,8 +28,8 @@ def process_commandline():
                              'to stop at; format YYYY-mm-DD--HH-MM')
     parser.add_argument('-step', '--time-step', type=int, default=60,
                         help='each step is TIME_STEP seconds (default 60)')
-    parser.add_argument('-i', '--indent', type=int, default=None,
-                        help='indent for output JSON (default none)')
+    parser.add_argument('-i', '--indent', type=int, default=0,
+                        help='indent for output JSON (default 0)')
 
     args = parser.parse_args()
 

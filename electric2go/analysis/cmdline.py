@@ -48,7 +48,7 @@ def json_deserializer(obj):
     return obj
 
 
-def write_json(data, fp=sys.stdout, indent=None):
+def write_json(data, fp=sys.stdout, indent=0):
     json.dump(data, fp=fp, default=json_serializer, indent=indent)
 
 
