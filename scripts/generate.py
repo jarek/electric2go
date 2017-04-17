@@ -41,9 +41,10 @@ def process_commandline():
         generate.write_files(result_dict, target_directory)
 
     if args.check:
-        equal = generate.compare_files(result_dict, args.check, target_directory)
-        if not equal:
-            raise RuntimeError('Generated files are not the same as original!')
+        try:
+            generate.compare_files(result_dict, args.check, target_directory)
+        except AssertionError as e:
+            raise RuntimeError('Generated file at {} is not the same as original!'.format(e))
 
 
 if __name__ == '__main__':

@@ -139,6 +139,16 @@ def write_files(result_dict, location):
     # TODO: depending on how it's being used, this function might not belong here
     city = result_dict['metadata']['city']
     for data_time, data_dict in build_objs(result_dict):
+        # If file was missing in the original, don't write it out.
+        # Strictly speaking, this doesn't always perfectly recreate the original files.
+        # For instance, if the server returned an "<html><h1>503 Service Unavailable</h1></html>" response,
+        # this will be treated as unparseable, recorded as missing, and its contents information not saved.
+        # When generated, the file will not be written at all.
+        # But I am already not recreating the originals *perfectly* due to being unable
+        # to preserve list order, and recreating error data isn't high on my priority list...
+        if data_time in result_dict['metadata']['missing']:
+            continue
+
         file_name = files.get_file_name(city, data_time)
         file_path = os.path.join(location, file_name)
 
@@ -173,7 +183,7 @@ def compare_files_for_system(system, city, expected_location, actual_location,
         equal = _compare_system_independent(system, expected_data_archive, actual_data_archive, comparison_time)
 
         if not equal:
-            return False
+            raise AssertionError(comparison_time)
 
         comparison_time += timedelta(seconds=time_step)
 
@@ -186,6 +196,11 @@ def _compare_system_independent(system, expected_data_archive, actual_data_archi
     expected_file = expected_data_archive.load_data_point(comparison_time)
 
     actual_file = actual_data_archive.load_data_point(comparison_time)
+
+    # load_data_point can return False when the file is missing or malformed.
+    # When that happens, expect it on both archives.
+    if expected_file is False:
+        return actual_file is False
 
     # test cars equivalency. we have to do it separately because
     # it comes from API as a list, but we don't store the list order.
