@@ -22,14 +22,9 @@ KEYS = {
         'app_required': 'smartPhoneRequired',
         'fuel_type': 'engineType',
         'license_plate': 'name'
-    },
-
-    # these are not included in the API output, previously we'd assumed
-    # they were always the same, TODO: this is no longer the case
-    'constant': {
-        'model': 'smart fortwo',
-        'transmission': 'A'
     }
+
+    # TODO: web interface is expecting 'model'. that's not in v2.1 API and has to be guessed from VIN.
 }
 
 
@@ -64,8 +59,6 @@ def get_car_unchanging_properties(car):
     result = {mapped_key: car[original_key]
               for mapped_key, original_key
               in KEYS['unchanging'].items()}
-
-    result.update({key: value for key, value in KEYS['constant'].items()})
 
     result['electric'] = (car['engineType'] == 'ED')
 
