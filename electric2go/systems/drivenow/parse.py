@@ -1,5 +1,7 @@
 # coding=utf-8
 
+from ...analysis.cmdline import json
+
 
 KEYS = {
     'changing': {
@@ -14,6 +16,7 @@ KEYS = {
         'fuel': 'fuelLevelInPercent',
         'api_estimated_range': 'estimatedRange',
         # also price_offer: car['rentalPrice']['isOfferDrivePriceActive']
+        # also car['rentalPrice']['offerDrivePrice'] dict is present or not, depending on if offer is active
 
         # properties that can only change during a drive:
         'cleanliness_interior': 'innerCleanliness',
@@ -73,7 +76,12 @@ def get_cars_dict(system_data_dict):
 
 def get_everything_except_cars(system_data_dict):
     result = system_data_dict.copy()
-    del result['cars']['items']
+
+    # like `del result['cars']['items']`, except don't error
+    # when either of those keys are not there
+    if 'cars' in result:
+        result['cars'].pop('items', None)
+
     return result
 
 
@@ -112,6 +120,7 @@ def get_car_changing_properties(car):
     # derived fields that can't be done automatically with a key mapping
     result['address'] = ', '.join(car['address'])
     result['price_offer'] = car['rentalPrice']['isOfferDrivePriceActive']
+    result['price_offer_details'] = car['rentalPrice'].get('offerDrivePrice', {})
 
     return result
 
@@ -168,6 +177,14 @@ def put_car(car):
     formatted_car['address'] = car['address'].split(', ')
     formatted_car['rentalPrice']['isOfferDrivePriceActive'] = car['price_offer']
 
+    if car['price_offer_details']:
+        car['rentalPrice']['offerDrivePrice'] = car['price_offer_details']
+    else:
+        # Delete offerDrivePrice if it is set when it shouldn't be.
+        # It could be detected as part of the "static" vehicle information
+        # if vehicle is on offer when first seen by the script.
+        car['rentalPrice'].pop('offerDrivePrice', None)
+
     # special handling, data is duplicated in source API
     # note 100.0 to trigger float division in Python 2
     formatted_car['fuelLevel'] = formatted_car['fuelLevelInPercent'] / 100.0
@@ -184,8 +201,13 @@ def get_car_parking_drift(car):
     :return: a hashable object
     """
 
+    # Use json.dumps() because a dict is not hashable.
+    # Sort keys to ensure deterministic key order in dumped JSON.
+    # Note: using sort_keys prevents us from using e.g. ujson
+    offer_drive_price = json.dumps(car['price_offer_details'], sort_keys=True)
+
     return (car['api_estimated_range'], car['fuel'],
-            car['charging'], car['price_offer'])
+            car['charging'], car['price_offer'], offer_drive_price)
 
 
 def put_car_parking_drift(car, d):
@@ -195,9 +217,12 @@ def put_car_parking_drift(car, d):
     :param d: must be a result of get_car_parking_drift()
     """
 
+    offer_drive_price = json.loads(d[4])
+
     car['api_estimated_range'] = d[0]
     car['fuel'] = d[1]
     car['charging'] = d[2]
     car['price_offer'] = d[3]
+    car['price_offer_details'] = offer_drive_price
 
     return car
