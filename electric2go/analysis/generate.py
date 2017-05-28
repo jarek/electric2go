@@ -108,6 +108,7 @@ def build_obj(data_frame, parser, result_dict):
     # `car in current_positions` here ultimately comes from a result_dict,
     # which could be still used for other purposes - so dict.copy it first
     # to avoid undo_normalize and roll_out_changing_data creating side-effects
+    # note: this isn't a deep copy, so nested dicts as seen for e.g. drivenow might break :(
     system_cars = (
         parser.put_car(
             roll_out_changing_data(

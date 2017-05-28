@@ -113,7 +113,7 @@ def get_car_changing_properties(car):
     :return: dict with keys mapped to common electric2go format
     """
 
-    result = {mapped_key: car[original_key]
+    result = {mapped_key: car.get(original_key, None)
               for mapped_key, original_key
               in KEYS['changing'].items()}
 

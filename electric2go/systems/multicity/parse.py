@@ -41,6 +41,7 @@ def get_car(car):
     result['name'] = result['license_plate']
 
     # defaults for all the cars in the system
+    # TODO: no longer holds now!
     result['model'] = 'Citroën C-Zero'
     result['electric'] = True
     result['fuel_type'] = 'E'
