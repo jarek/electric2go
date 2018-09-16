@@ -7,10 +7,12 @@ import os
 import numpy as np
 import json
 import csv
+import tempfile
+import shutil
 from subprocess import Popen, PIPE
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from electric2go import files, download, systems
+from electric2go import current_git_revision, files, download, systems
 from electric2go.analysis import normalize, merge, generate
 from electric2go.analysis import graph as process_graph
 from electric2go.analysis import stats as process_stats
@@ -109,8 +111,6 @@ class DownloadTest(unittest.TestCase):
         Tests that downloader will attempt to create data directories
         if they don't exist.
         """
-        import shutil
-
         city_data = {'system': 'sharengo', 'name': 'milano'}
         data_dir = files.get_data_dir(city_data)
 
@@ -170,6 +170,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car median": 6.0,
                     "distance per trip quartile 25": 0.638860634765,
                     "duration per trip quartile 75": 32.0,
+                    "fuel use stats mean": -0.7559009787,
+                    "fuel use stats over 5 ratio": 0.04490500864,
                     "weird trip count": 64
                 },
                 "expected_dataframes": {
@@ -213,6 +215,9 @@ class StatsTest(unittest.TestCase):
                     "trips per car per day quartile 25": 1.625564432,
                     "distance per trip quartile 25": 0.3909876034,
                     "duration per trip quartile 75": 40.0,
+                    "fuel use stats mean": 0.3960345704,
+                    "fuel use stats std": 6.485464921,
+                    "fuel use stats under 5 ratio": 0.8698525674,
                     "weird trip count": 103
                 },
                 "expected_dataframes": {
@@ -264,6 +269,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car per day quartile 25": 3.002084781,
                     "distance per trip quartile 25": 0.1563771331,
                     "duration per trip quartile 75": 37.0,
+                    "fuel use stats mean": -0.4366091523,
+                    "fuel use stats under 1 ratio": 0.647411853,
                     "weird trip count": 37
                 },
                 "expected_dataframes": {
@@ -312,6 +319,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car per day quartile 25": 3.002084781,
                     "distance per trip quartile 25": 0.1563771331,
                     "duration per trip quartile 75": 37.0,
+                    "fuel use stats mean": -0.4366091523,
+                    "fuel use stats under 1 ratio": 0.647411853,
                     "weird trip count": 37
                 },
                 "expected_dataframes": {
@@ -353,6 +362,8 @@ class StatsTest(unittest.TestCase):
                     "trips per car quartile 75": 14.0,
                     "distance per trip median": 1.76005701,
                     "duration per trip quartile 25": 15.0,
+                    "fuel use stats std": 9.39346094,
+                    "fuel use stats over 10 ratio": 0.003356777494,
                     "weird trip ratio": 0.04648681603
                 },
                 "expected_dataframes": {
@@ -392,6 +403,31 @@ class StatsTest(unittest.TestCase):
             result_dict = normalize.batch_load_data(**params)
 
             cls.results[dataset_name] = result_dict
+
+    def test_metadata(self):
+        """
+        Even though this doesn't test any of the stats,
+        it's piggybacked in this test as it verifies
+        the dynamic metadata (not dataset-dependent).
+        """
+        for key in self.results:
+            metadata = self.results[key]['metadata']
+
+            # Test generation date, give it 5 minutes of leeway
+            # to avoid spurious test failures around midnight.
+            now = datetime.utcnow()
+            then = metadata['processing_started']
+            self.assertLess(now - then, timedelta(minutes=5))
+
+            # Test git revision: verify 'electric2go_revision' is not empty,
+            # and verify it's the same as what the module's returns.
+            # The latter is a bit pointless, though no more pointless than
+            # reimplementing `git rev-parse HEAD` in the test...
+            # Verified experimentally that self.assertTrue('') and
+            # self.assertTrue(None) fails on pythons 2.7.8 and 3.4.2.
+            self.assertTrue(metadata['electric2go_revision'])
+            self.assertEqual(metadata['electric2go_revision'],
+                             current_git_revision())
 
     def test_stats_for_sample_datasets(self):
         for dataset_name in self.datasets:
@@ -472,10 +508,12 @@ class MergeTest(unittest.TestCase):
         test_vin2 = 'WMEEJ3BAXEK733745'
         test_vin3 = 'WMEEJ3BA3EK732887'
 
-        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['ending_time'], datetime(2015, 6, 1, 0, 0))
-        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['to'], [39.95781, -82.9975])
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['time'], datetime(2015, 6, 1, 0, 0))
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['lat'], 39.95781)
+        self.assertEqual(merged_dict['unstarted_trips'][test_vin]['end']['lng'], -82.9975)
         self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['starting_time'], datetime(2015, 6, 3, 18, 13))
-        self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['coords'], [40.05838, -83.00955])
+        self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['lat'], 40.05838)
+        self.assertEqual(merged_dict['unfinished_parkings'][test_vin]['lng'], -83.00955)
         self.assertTrue(test_vin not in merged_dict['unfinished_trips'])
         self.assertEqual(len(merged_dict['finished_parkings'][test_vin]), 12)
         self.assertEqual(len(merged_dict['finished_trips'][test_vin]), 12)
@@ -550,6 +588,244 @@ class IntegrationTest(unittest.TestCase):
             self.assertEqual(get_data('distance per trip quartile 75'), '3.362357622')
 
 
+class GenerateTest(unittest.TestCase):
+    # TODO:
+    # - Test on more Drivenow cities than just Duesseldorf
+    #   (although Duesseldorf looks to contain all types of cars that
+    #    Drivenow has, so might not be crucial)
+    # - Test on car2go city with electric cars, e.g. Amsterdam,
+    #   and on car2go city with a few electric cars if there are any left
+    # - Verify parking periods longer than a day are handled fine in generator
+    # - Test how Drivenow handoff feature shows up in the API output
+    #   (introduced in November 2016 in e.g. Berlin)
+
+    generated_data_dir = ''
+
+    @classmethod
+    def setUpClass(cls):
+        # read in data just once
+        # this is 181 data points from midnight to 3:00 every minute
+        cls.dataset_info = {
+            'start': None,
+            'end': datetime(2016, 2, 9, 3, 0),
+            'freq': 60
+        }
+        cls.original_data_source = '/home/jarek/projects/electric2go/vancouver_2016-02-09.tgz'
+        cls.original_data = normalize.batch_load_data(
+            'car2go',
+            cls.original_data_source,
+            cls.dataset_info['start'], cls.dataset_info['end'], cls.dataset_info['freq'])
+
+        # Create temporary directory to generate class files into.
+        # This will be deleted in tearDownClass().
+        cls.generated_data_dir = tempfile.mkdtemp()
+
+        # generate and write data to a test file
+        generate.write_files(cls.original_data, cls.generated_data_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.generated_data_dir:
+            shutil.rmtree(cls.generated_data_dir, ignore_errors=True)
+
+    def test_stats_equal(self):
+        # stats for original data
+        first_stats = process_stats.stats_dict(self.original_data)
+
+        # get read the generated data back in
+        generated_data = normalize.batch_load_data(
+            'car2go',
+            os.path.join(self.generated_data_dir, 'vancouver_2016-02-09--00-00'),
+            self.dataset_info['start'], self.dataset_info['end'], self.dataset_info['freq'])
+
+        # get stats for data generated from the original data
+        second_stats = process_stats.stats_dict(generated_data)
+
+        # test that they are the same
+        test_keys = ["total vehicles", "missing data ratio", "trips per car quartile 75",
+                     "distance per trip median", "duration per trip quartile 25",
+                     "weird trip ratio"]
+
+        for test_key in test_keys:
+            self.assertEqual(first_stats[test_key], second_stats[test_key],
+                             "{test_key}: expected {exp}, got {got}".format(
+                                 test_key=test_key,
+                                 exp=first_stats[test_key], got=second_stats[test_key]))
+
+    def test_vehicles_equal_car2go(self):
+        # load an original file and a newly generated file, and ensure everything
+        # in original file is also in new file
+
+        # depends on the files being generated in setUpClass
+
+        # test that all the files are the same
+        self._compare_system_from_to('car2go', 'vancouver',
+                                     self.original_data_source,
+                                     self.generated_data_dir,
+                                     self.original_data['metadata']['starting_time'],
+                                     self.dataset_info['end'],
+                                     self.dataset_info['freq'])
+
+    def test_vehicles_fail_when_expected(self):
+        """
+        Verify that test failures would still be caught, and
+        that _compare_system_from_to works as expected.
+        Do this by taking a result dict, removing a changing_data from
+        one of the cars' parking period (choose one that is actually changing)
+        and running the compare function, wrapped in an expectException.
+        """
+
+        result_dict = self.original_data
+
+        # vin with changing_data, determined by looking at output data
+        vin = 'WMEEJ3BA5DK704216'
+
+        # do a dict.copy to avoid modifying self.original_data in case
+        # it's needed later by some other test
+        parking = dict.copy(result_dict['finished_parkings'][vin][0])
+        result_dict['finished_parkings'][vin][0] = parking
+
+        # remove all but the first item (the first item is the default one)
+        parking['changing_data'] = parking['changing_data'][:1]
+
+        # generate files in a temporary directory
+        generated_data_dir = tempfile.mkdtemp()
+        generate.write_files(result_dict, generated_data_dir)
+
+        with self.assertRaises(AssertionError):
+            # this call should be the same as in test_vehicles_equal_car2go
+            # except for actual_location=generated_data_dir.name
+            self._compare_system_from_to('car2go', 'vancouver',
+                                         self.original_data_source,
+                                         generated_data_dir,
+                                         self.original_data['metadata']['starting_time'],
+                                         self.dataset_info['end'],
+                                         self.dataset_info['freq'])
+
+        shutil.rmtree(generated_data_dir, ignore_errors=True)
+
+    def test_vehicles_equal_drivenow(self):
+        system = 'drivenow'
+        input_file = '/home/jarek/projects/electric2go/duesseldorf_2016-08-20.tgz'
+
+        # read in data
+        start = datetime(2016, 8, 20, 0, 0)
+        end = datetime(2016, 8, 20, 19, 0)
+        freq = 60
+
+        drivenow_original_data = normalize.batch_load_data(system, input_file, None, end, freq)
+
+        # Bonus: test valid roll-out of parking drift data prior to creating trip.
+        # Test on a given trip in the dataset, found by looking at data manually.
+        trips = drivenow_original_data['finished_trips']['WBY1Z41070VZ77282']
+        sought_start_time = datetime(2016, 8, 20, 17, 28)
+        the_trip = [trip for trip in trips if trip['start']['time'] == sought_start_time]
+        self.assertEqual(len(the_trip), 1)
+        self.assertGreater(the_trip[0]['fuel_use'], 0)
+
+        # generate test files
+        generated_data_dir = tempfile.mkdtemp()
+        generate.write_files(drivenow_original_data, generated_data_dir)
+
+        # test that all the files are the same
+        self._compare_system_from_to(system, 'duesseldorf', input_file, generated_data_dir,
+                                     start, end, freq)
+
+        shutil.rmtree(generated_data_dir, ignore_errors=True)
+
+    def test_scripts_with_drivenow_py2_to_py3(self):
+        # use py2 to normalize and generate, and then py2 to verify generated files,
+        # to ensure cross-version compatibility
+        self._test_scripts_with_drivenow_python_versions('python2', 'python3')
+
+    def test_scripts_with_drivenow_py3_to_py2(self):
+        # use py3 to normalize and generate, and then py2 to verify generated files,
+        # to ensure cross-version compatibility
+        self._test_scripts_with_drivenow_python_versions('python3', 'python2')
+
+    def _test_scripts_with_drivenow_python_versions(self, first_command, second_command):
+        # Test that a round-trip using normalize.py then generate.py -c
+        # completes successfully.
+        # -c verifies the generated files against the original archive.
+        # We expect generate.py to finish quietly if successful, and throw an error
+        # in stderr if there was a problem during the verification.
+
+        generated_data_dir = tempfile.mkdtemp()
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = root_dir + '/scripts'
+        data_file = root_dir + '/duesseldorf_2016-08-20.tgz'
+
+        normalize_cmd = [first_command, os.path.join(script_dir, 'normalize.py'),
+                         'drivenow', data_file]
+        p1 = Popen(normalize_cmd, stdout=PIPE)
+        p2 = Popen([first_command, os.path.join(script_dir, 'generate.py')],
+                   cwd=generated_data_dir,
+                   stdin=p1.stdout, stdout=PIPE)
+        p1.stdout.close()
+        p2.wait()
+
+        # generate.py needs a result_dict with its metadata (system, starting and ending time, etc)
+        # to verify. A bit dumb to do it again, hm, output to a file instead?
+        p3 = Popen(normalize_cmd, stdout=PIPE)
+        p4 = Popen([second_command, os.path.join(script_dir, 'generate.py'), '--check-only', '-c', data_file],
+                   cwd=generated_data_dir,
+                   stdin=p3.stdout, stdout=PIPE)
+        results = p4.communicate()
+
+        self.assertEqual(results, (b'', None))
+        self.assertTrue(os.path.exists(generated_data_dir + '/duesseldorf_2016-08-20--01-00'))
+        self.assertTrue(os.path.exists(generated_data_dir + '/duesseldorf_2016-08-20--23-59'))
+
+        shutil.rmtree(generated_data_dir, ignore_errors=True)
+
+    def _compare_system_from_to(self, system, city, expected_location, actual_location,
+                                start_time, end_time, time_step):
+        # Name where files have been generated might be a tempdir name
+        # like '/tmp/tmp25l2ba19', while Electric2goDataArchive expects
+        # a trailing slash if not a file name - so add a trailing slash.
+        actual_location = os.path.join(actual_location, '')
+
+        expected_data_archive = normalize.Electric2goDataArchive(city, expected_location)
+        actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
+
+        comparison_time = start_time
+        while comparison_time <= end_time:
+            self._compare_system_independent(system, expected_data_archive, actual_data_archive, comparison_time)
+
+            comparison_time += timedelta(seconds=time_step)
+
+    def _compare_system_independent(self, system, expected_data_archive, actual_data_archive, comparison_time):
+        parser = systems.get_parser(system)
+
+        expected_file = expected_data_archive.load_data_point(comparison_time)
+
+        actual_file = actual_data_archive.load_data_point(comparison_time)
+
+        # test cars equivalency. we have to do it separately because
+        # it comes from API as a list, but we don't store the list order.
+        expected_cars = parser.get_cars_dict(expected_file)
+        actual_cars = parser.get_cars_dict(actual_file)
+
+        error_msg = 'unequal at {}'.format(comparison_time)
+
+        # the following block is more manual than self.assertEqual but gives
+        # more useful error messages
+        old_max_diff = self.maxDiff
+        self.maxDiff = None
+        for vin, car in expected_cars.items():
+            self.assertEqual(car, actual_cars[vin], msg=error_msg)
+        self.maxDiff = old_max_diff
+
+        # now run self.assertEqual in case I'd somehow missed anything
+        # during the manual check
+        self.assertEqual(expected_cars, actual_cars, msg=error_msg)
+
+        # test exact equivalency of everything but the cars list
+        expected_remainder = parser.get_everything_except_cars(expected_file)
+        actual_remainder = parser.get_everything_except_cars(actual_file)
+        self.assertEqual(expected_remainder, actual_remainder, msg=error_msg)
+
+
 class HelperFunctionsTest(unittest.TestCase):
     def test_is_latlng_in_bounds(self):
         VALUES = {
@@ -593,4 +869,4 @@ class HelperFunctionsTest(unittest.TestCase):
 
  
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(module='tests')  # allow profiling, otherwise no tests are found

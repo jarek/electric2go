@@ -37,6 +37,9 @@ def is_latlng_in_bounds(city_data, latlng):
 def get_pixel_size(city_data):
     # find the length in metres represented by one pixel on graph in both lat and lng direction
 
+    # TODO: calculate DEGREE_LENGTHS here from formula rather than needing it provided in city_data
+    # it is only ever used here (so far? hm, that distance-from-subway-station could use it as well)
+
     lat_range = city_data['MAP_LIMITS']['NORTH'] - city_data['MAP_LIMITS']['SOUTH']
     lat_in_m = lat_range * city_data['DEGREE_LENGTHS']['LENGTH_OF_LATITUDE']
     pixel_in_lat_m = lat_in_m / city_data['MAP_SIZES']['MAP_Y']
@@ -137,10 +140,10 @@ def plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat
 
 
 def plot_trips(ax, city_data, trips, colour='#aaaaaa'):
-    lines_start_lat = [t['from'][0] for t in trips]
-    lines_start_lng = [t['from'][1] for t in trips]
-    lines_end_lat = [t['to'][0] for t in trips]
-    lines_end_lng = [t['to'][1] for t in trips]
+    lines_start_lat = [t['start']['lat'] for t in trips]
+    lines_start_lng = [t['start']['lng'] for t in trips]
+    lines_end_lat = [t['end']['lat'] for t in trips]
+    lines_end_lng = [t['end']['lng'] for t in trips]
 
     return plot_geolines(ax, city_data, lines_start_lat, lines_start_lng, lines_end_lat, lines_end_lng, colour)
 
@@ -149,6 +152,10 @@ def filter_positions_to_bounds(city_data, positions):
     """
     Filters the list of positions to only include those that in graphing bounds for the given city
     """
+
+    # TODO: I don't think this function is actually necessary, if we're outside of bounds
+    # I think it'll just try to draw it offscreen and not include in final render.
+    # Confirm and if so, remove this function.
 
     return [p for p in positions if is_latlng_in_bounds(city_data, p['coords'])]
 
@@ -221,8 +228,8 @@ def create_points_trip_start_end(trips, from_colour='b', to_colour='r'):
     # this would vary depending on hash function in use.)
     # With OrderedDict, I specify the order.
     return OrderedDict([
-        (from_colour, [trip['from'] for trip in trips]),
-        (to_colour, [trip['to'] for trip in trips])
+        (from_colour, [(trip['start']['lat'], trip['start']['lng']) for trip in trips]),
+        (to_colour, [(trip['end']['lat'], trip['end']['lng']) for trip in trips])
     ])
 
 
@@ -254,11 +261,18 @@ def graph_wrapper(city_data, plot_function, image_name, background=None):
     plt.close(f)
 
 
+def convert_positions_to_legacy(positions):
+    return [dict(p, coords=(p['lat'], p['lng']))
+            for p in positions]
+
+
 def make_graph(result_dict, positions, trips, image_filename, printed_time,
                show_speeds, highlight_distance, symbol):
     """ Creates and saves matplotlib figure for provided positions and trips. """
 
     city_data = get_city_by_result_dict(result_dict)
+
+    positions = convert_positions_to_legacy(positions)
 
     # filter to only vehicles that are in city's graphing bounds
     filtered_positions = filter_positions_to_bounds(city_data, positions)
@@ -314,6 +328,8 @@ def make_positions_graph(result_dict, image_name, symbol, colour_electric=False)
     positions = [p for p in result_dict['unfinished_parkings'].values()]
     positions.extend(parking for vin in result_dict['finished_parkings']
                      for parking in result_dict['finished_parkings'][vin])
+
+    positions = convert_positions_to_legacy(positions)
 
     filtered = filter_positions_to_bounds(city_data, positions)
 

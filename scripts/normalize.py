@@ -28,13 +28,18 @@ def process_commandline():
                              'to stop at; format YYYY-mm-DD--HH-MM')
     parser.add_argument('-step', '--time-step', type=int, default=60,
                         help='each step is TIME_STEP seconds (default 60)')
-    parser.add_argument('-i', '--indent', type=int, default=None,
-                        help='indent for output JSON (default none)')
+    parser.add_argument('-i', '--indent', type=int, default=0,
+                        help='indent for output JSON (default 0)')
 
     args = parser.parse_args()
 
     if not os.path.exists(args.starting_filename):
         sys.exit('file not found: ' + args.starting_filename)
+
+    # TODO: also support more standard YYYY-mm-DDTHH-MM (ISO 8601)
+    # in addition to YYYY-mm-DD--HH-MM when parsing dates here.
+    # I guess changing the file naming to match would be a bit of a big
+    # and breaking change... hmm.
 
     if args.starting_time:
         try:

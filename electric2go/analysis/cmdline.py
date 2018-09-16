@@ -20,27 +20,35 @@ def json_serializer(obj):
     return obj.isoformat() if hasattr(obj, 'isoformat') else obj
 
 
+def _strptime(t):
+    return datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
+
+
 def json_deserializer(obj):
     # parse datetimes from JSON we wrote
     for (key, value) in obj.items():
 
         # json_deserializer is used as an object_hook. That only runs on objects,
-        # that is, dicts. We are also storing datetimes as a list in the 'missing' key.
+        # that is, dicts. We are also storing datetimes as lists in the 'missing'
+        # and 'changing_data' keys.
         # List items don't get passed into object_hook so we need to catch it separately. Sucks.
         if key == 'missing':
             datetimes_as_string_list = obj[key]
-            obj[key] = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S") for t in datetimes_as_string_list]
+            obj[key] = [_strptime(t) for t in datetimes_as_string_list]
+        elif key == 'changing_data':
+            changing_data = obj[key]
+            obj[key] = [(_strptime(item[0]), item[1]) for item in changing_data]
 
         try:
             # this is the format that isoformat outputs
-            obj[key] = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+            obj[key] = _strptime(value)
         except (TypeError, ValueError):
             pass
 
     return obj
 
 
-def write_json(data, fp=sys.stdout, indent=None):
+def write_json(data, fp=sys.stdout, indent=0):
     json.dump(data, fp=fp, default=json_serializer, indent=indent)
 
 

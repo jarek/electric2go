@@ -50,9 +50,9 @@ def merge_two_dicts(one, two):
         unstarted_trip = two['unstarted_trips'][vin]
 
         if (vin in one['unfinished_parkings']
-                and unstarted_trip['ending_time'] == two_starting_time
-                and one['unfinished_parkings'][vin]['coords'][0] == unstarted_trip['to'][0]
-                and one['unfinished_parkings'][vin]['coords'][1] == unstarted_trip['to'][1]):
+                and unstarted_trip['end']['time'] == two_starting_time
+                and one['unfinished_parkings'][vin]['lat'] == unstarted_trip['end']['lat']
+                and one['unfinished_parkings'][vin]['lng'] == unstarted_trip['end']['lng']):
 
             # most common case, cars that were parked over the break
 
