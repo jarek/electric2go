@@ -1,5 +1,6 @@
 # coding=utf-8
 
+from collections import defaultdict
 from datetime import timedelta
 import os
 
@@ -179,14 +180,37 @@ def compare_files_for_system(system, city, expected_location, actual_location,
     expected_data_archive = normalize.Electric2goDataArchive(city, expected_location)
     actual_data_archive = normalize.Electric2goDataArchive(city, actual_location)
 
+    differing_vins = defaultdict(list)
+    differing_keys = defaultdict(list)
+    differing_remainder_keys = defaultdict(list)
+
     comparison_time = start_time
     while comparison_time <= end_time:
-        equal = _compare_system_independent(system, expected_data_archive, actual_data_archive, comparison_time)
+        (step_diff_vins, step_diff_keys, step_remainder_keys) = _compare_system_independent(
+            system, expected_data_archive, actual_data_archive, comparison_time)
 
-        if not equal:
-            raise AssertionError(comparison_time)
+        for vin in step_diff_vins:
+            differing_vins[vin].append(comparison_time)
+
+        for key in step_diff_keys:
+            differing_keys[key].append(comparison_time)
+
+        for key in step_remainder_keys:
+            differing_remainder_keys[key].append(comparison_time)
 
         comparison_time += timedelta(seconds=time_step)
+
+    if len(differing_vins):
+        print("======================")
+        print("=== differing VINs: {}".format(differing_vins))
+
+    if len(differing_keys):
+        print("======================")
+        print("=== differing keys for cars: {}".format(differing_keys))
+
+    if len(differing_remainder_keys):
+        print("======================")
+        print("=== differing keys in remainder info: {}".format(differing_remainder_keys))
 
     return True
 
@@ -201,18 +225,62 @@ def _compare_system_independent(system, expected_data_archive, actual_data_archi
     # load_data_point can return False when the file is missing or malformed.
     # When that happens, expect it on both archives.
     if expected_file is False:
-        return actual_file is False
+        if actual_file is False:
+            print("expected_file and actual_file are both False")
+            return set(), set(), set()
+        else:
+            return set(), set(), set("expected_file is False, but actual_file is not")
 
     # test cars equivalency. we have to do it separately because
     # it comes from API as a list, but we don't store the list order.
     expected_cars = parser.get_cars_dict(expected_file)
     actual_cars = parser.get_cars_dict(actual_file)
 
+    differing_vins = set()
+    differing_keys = set()
+
     # test for equivalency of cars
     if expected_cars != actual_cars:
-        return False
+        print("{}: cars are not equiv".format(comparison_time))
+        for vin, car in expected_cars.items():
+            if car != actual_cars[vin]:
+                print(vin + " is the first offender")
+                differing_vins.add(vin)
+                for key in car:
+                    if car[key] != actual_cars[vin][key]:
+                        print(key + ": in expected: " + repr(car[key]) + ", in actual: " + repr(actual_cars[vin][key]))
+                        differing_keys.add(key)
+                # return False
 
     # test exact equivalency of everything but the cars list
     expected_remainder = parser.get_everything_except_cars(expected_file)
     actual_remainder = parser.get_everything_except_cars(actual_file)
-    return expected_remainder == actual_remainder
+
+    differing_remainder_keys = set()
+
+    if expected_remainder != actual_remainder:
+        if expected_remainder.get('code', '') == 500:
+            # this happens sometimes, ignore it
+            print("{}: expected_remainder was a 500 JSON, returning valid".format(comparison_time))
+            return differing_vins, differing_keys, differing_remainder_keys
+
+        print("{}: remainders are wrong".format(comparison_time))
+        for key, value in expected_remainder.items():
+            if key not in actual_remainder:
+                print("key missing from generated: {}".format(key))
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print("!!!!!!!!!!!!!!!!!!! unrecognized key, pay attention!!")
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!")
+                differing_remainder_keys.add(key)
+                # return False
+
+            elif value != actual_remainder[key]:
+                print(key + ": in expected: " + repr(value) + ", in actual: " + repr(actual_remainder[key]))
+                differing_remainder_keys.add(key)
+                if not (system == "drivenow" and key in ("emergencyStatus", "marketingMessage", "message")):
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print("!!!!!!!!!!!!!!!!!!! unrecognized key, pay attention!!")
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!")
+                # return False
+
+    return differing_vins, differing_keys, differing_remainder_keys

@@ -1,0 +1,21 @@
+#!/bin/bash
+for file in berlin_2016-09-18.tgz #berlin_2016-09-15.tgz berlin_2016-09-16.tgz
+do
+    if [ -f "$file.json" ]
+    then
+        echo "$file: json already exists, skipping"
+    else
+        md5sum $file > "$file.md5sum"
+        echo "$file: md5summed"
+        ~/projects/electric2go/scripts/normalize.py drivenow $file > "$file.json"
+        # TODO: maybe pass to jq . --indent 0 --sort-keys to get consistent order for hashing/md5summing?
+        echo "$file: normalized"
+        cat $file.json | ~/projects/electric2go/scripts/generate.py --check "$file"  # --check-only
+        if [ $? == 0 ]; then
+            echo "$file: verified"
+        else
+            echo "$file: INCORRECTLY GENERATED!!!!!! ============================"
+            rm "$file.json"
+        fi
+    fi
+done
