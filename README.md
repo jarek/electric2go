@@ -7,9 +7,15 @@ The project started out as a way to find nearest electric car2go vehicles,
 hence the name. I've since added caching the data, archiving it,
 and processing to make visualizations and collect statistics.
 
-There is now good support for other carshare systems, and as of December 2015
-we can handle Drivenow, Montréal's Communauto Automobile, Vancouver's Evo,
-Italy's Enjoy, Milan's Sharengo, and Berlin's floating Multicity.
+**Much of the data-collection code no longer works as of 2018.** Drivenow API
+was turned off in April 2017 and car2go API in January 2018. The code is now
+mostly useful as historical record or for analyzing data collected earlier.
+It is mostly not maintained.
+
+There was once good support for various carshare systems: in December 2015
+we could handle car2go, Drivenow, Montréal's Communauto Automobile,
+Vancouver's Evo, Italy's Enjoy, Milan's Sharengo, and Berlin's Multicity.
+Communauto and Evo appear to still work, others are untested.
 
 
 Requirements
@@ -84,7 +90,7 @@ This product uses the car2go API but is not endorsed or certified by car2go.
 
 Released under the ISC license. Boilerplate:
 
-Copyright (c) 2012-2015, Jarek Piórkowski <jarek@piorkowski.ca>
+Copyright (c) 2012-2018, Jarek Piórkowski <jarek@piorkowski.ca>
 		
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
 		
