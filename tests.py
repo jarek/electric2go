@@ -743,6 +743,41 @@ class GenerateTest(unittest.TestCase):
         # to ensure cross-version compatibility
         self._test_scripts_with_drivenow_python_versions('python3', 'python2')
 
+    def test_austin(self):
+        # TODO: generate fails, but this doesn't. why? generate says that "cars are not equiv"
+        with open('/home/jarek/projects/electric2go/austin_2016-07-27--07-08') as f:
+            source = json.load(f)
+
+        with open('/home/jarek/projects/electric2go/generated_austin_2016-07-27--07-08') as f:
+            generated = json.load(f)
+
+        parser = systems.get_parser('car2go')
+
+        # test cars equivalency. we have to do it separately because
+        # it comes from API as a list, but we don't store the list order.
+        expected_cars = parser.get_cars_dict(source)
+        actual_cars = parser.get_cars_dict(generated)
+
+        error_msg = 'unequal at {}'.format('07:08')
+
+        # the following block is more manual than self.assertEqual but gives
+        # more useful error messages
+        old_max_diff = self.maxDiff
+        self.maxDiff = None
+        for vin, car in expected_cars.items():
+            self.assertEqual(car, actual_cars[vin], msg=error_msg)
+        self.maxDiff = old_max_diff
+
+        # now run self.assertEqual in case I'd somehow missed anything
+        # during the manual check
+        self.assertEqual(expected_cars, actual_cars, msg=error_msg)
+        self.assertFalse(expected_cars != actual_cars)
+
+        # test exact equivalency of everything but the cars list
+        expected_remainder = parser.get_everything_except_cars(source)
+        actual_remainder = parser.get_everything_except_cars(generated)
+        self.assertEqual(expected_remainder, actual_remainder, msg=error_msg)
+
     def _test_scripts_with_drivenow_python_versions(self, first_command, second_command):
         # Test that a round-trip using normalize.py then generate.py -c
         # completes successfully.
