@@ -7,7 +7,7 @@ JSONP_CALLBACK_NAME = 'electric2goscraper'
 
 # communauto auto-mobile has only one city for now, and the service always returns it,
 # so I am hardcoding the URL
-API_URL = 'https://www.reservauto.net/WCF/LSI/LSIBookingService.asmx/GetVehicleProposals?CustomerID=&Longitude=0&Latitude=0&Callback={callback}'
+API_URL = 'https://www.reservauto.net/WCF/LSI/Cache/LSIBookingService.svc/GetVehicleProposals'
 
 CITIES = {
     'montreal': {
